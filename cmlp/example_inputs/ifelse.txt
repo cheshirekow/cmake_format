@@ -1,0 +1,6 @@
+IF(a)
+    SET(X foo)
+ELSE(a)
+    SET(Y bar)
+ENDIF(a)
+

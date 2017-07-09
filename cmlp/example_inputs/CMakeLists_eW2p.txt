@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 2.6)
+PROJECT( graph_cut_seg )
+FIND_PACKAGE( OpenCV REQUIRED )
+
+INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR}/graphcut )
+
+ADD_EXECUTABLE( graph_cut_seg graph_cut_seg.cpp graphcut/GCoptimization.cpp
+	graphcut/LinkedBlockList.cpp graphcut/graph.cpp graphcut/maxflow.cpp )
+TARGET_LINK_LIBRARIES( graph_cut_seg ${OpenCV_LIBS} )
+
+ADD_EXECUTABLE( show show.cpp )
+TARGET_LINK_LIBRARIES( show ${OpenCV_LIBS} )
+

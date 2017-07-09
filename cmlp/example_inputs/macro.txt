@@ -1,0 +1,6 @@
+# define a macro hello 
+macro(hello MESSAGE)
+    message(${MESSAGE})
+endmacro(hello) 
+# call the macro with the string "hello world" 
+hello("hello world") 
