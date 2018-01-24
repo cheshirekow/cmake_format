@@ -1,0 +1,1 @@
+cmake_format/doc/README.rst

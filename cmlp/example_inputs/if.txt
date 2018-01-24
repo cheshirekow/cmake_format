@@ -1,4 +1,0 @@
-IF(a)
-    SET(X foo)
-ENDIF(a)
-

@@ -1,0 +1,20 @@
+
+*.pyc
+*.o
+*.so
+
+# unified repo tracking
+.gitu
+
+# qt creator
+*.qtc.*
+
+# cmake builds
+.build
+
+# visual studio code
+.vscode
+
+# python packaging
+*.egg-info/
+dist/

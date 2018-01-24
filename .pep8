@@ -1,0 +1,4 @@
+[pep8]
+indent-size=2
+max-line-length=80
+ignore=E309 # Don't add an empty line after a class declaration

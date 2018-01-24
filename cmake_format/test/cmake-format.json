@@ -1,0 +1,18 @@
+{
+  "line_width": 80,
+  "tab_size": 2,
+  "max_subargs_per_line": 3,
+  "additional_commands": {
+    "foo": {
+      "flags": [
+        "BAR",
+        "BAZ"
+      ],
+      "kwargs": {
+        "HEADERS": "*",
+        "SOURCES": "*",
+        "DEPENDS": "*"
+      }
+    }
+  }
+}
