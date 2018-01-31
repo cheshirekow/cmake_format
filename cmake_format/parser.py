@@ -150,7 +150,7 @@ def dump_digest(tok_seqs):
   Print a series of token_sequences for debugging purposes
   """
   for tok_seq in tok_seqs:
-    print tok_seq
+    print(tok_seq)
 
 
 # Node Types
@@ -430,7 +430,7 @@ def construct_fst(token_seqs):
 
 
 def dump_fst(node, depth=0):
-  print '{}{}'.format('  ' * depth, node)
+  print('{}{}'.format('  ' * depth, node))
   for child in getattr(node, 'children', []):
     dump_fst(child, depth + 1)
 
@@ -454,7 +454,7 @@ def main():
 
   if args.command == 'dump-digest':
     for seq in tok_seqs:
-      print seq
+      print(seq)
   elif args.command == 'dump-tree':
     dump_fst(fst)
   else:
