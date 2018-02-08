@@ -1,3 +1,4 @@
+import inspect
 import re
 import textwrap
 
@@ -8,13 +9,62 @@ from cmake_format import parser
 # Matches comment strings like ``# TODO(josh):`` or ``# NOTE(josh):``
 NOTE_REGEX = re.compile(r'^[A-Z_]+\([^)]+\):.*')
 
+# Matches comment lines that are clearly meant to separate sections or
+# headers. The meaning of this regex is "a line consisting only of five or
+# more non-word characters"
+SEPARATOR_REGEX = re.compile(r'^\W{4}\W+$')
 
-class Configuration(object):
+
+def serialize(obj):
+  """
+  Return a serializable representation of the object. If the object has an
+  `as_dict` method, then it will call and return the output of that method.
+  Otherwise return the object itself.
+  """
+  if hasattr(obj, 'as_dict'):
+    fun = getattr(obj, 'as_dict')
+    if callable(fun):
+      return fun()
+
+  return obj
+
+
+class ConfigObject(object):
+  """
+  Provides simple serialization to a dictionary based on the assumption that
+  all args in the __init__() function are fields of this object.
+  """
+
+  @classmethod
+  def get_field_names(cls):
+    """
+    The order of fields in the tuple representation is the same as the order
+    of the fields in the __init__ function
+    """
+    argspec = inspect.getargspec(cls.__init__)
+    # NOTE(josh): args[0] is `self`
+    return argspec.args[1:]
+
+  def as_dict(self):
+    """
+    Return a dictionary mapping field names to their values only for fields
+    specified in the constructor
+    """
+    return {field: serialize(getattr(self, field))
+            for field in self.get_field_names()}
+
+
+class Configuration(ConfigObject):
   """
   Encapsulates various configuration options/parameters for formatting
   """
 
-  def __init__(self, line_width=80, tab_size=2, max_subargs_per_line=3):
+  def __init__(self, line_width=80, tab_size=2,
+               max_subargs_per_line=3,
+               preserve_punctuation_lines=True,
+               separate_ctrl_name_with_space=False,
+               separate_fn_name_with_space=False,
+               additional_commands=None, **_):
     self.line_width = line_width
     self.tab_size = tab_size
     # TODO(josh): make this conditioned on certain commands / kwargs
@@ -22,26 +72,21 @@ class Configuration(object):
     # formatted as a single list. In fact... special case COMMAND to break on
     # flags the way we do kwargs.
     self.max_subargs_per_line = max_subargs_per_line
+    self.preserve_punctuation_lines = preserve_punctuation_lines
+    self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
+    self.separate_fn_name_with_space = separate_fn_name_with_space
+    self.additional_commands = additional_commands
+
     self.fn_spec = commands.get_fn_spec()
-
-  def merge(self, config_dict):
-    """
-    Modify values of this object by reading them out of a dictionary. The
-    dictionary most likely comes from reading a configuration file in json
-    or yaml.
-    """
-
-    for key, value in config_dict.iteritems():
-      if hasattr(self, key):
-        setattr(self, key, value)
+    if additional_commands is not None:
+      for command_name, spec in additional_commands.iteritems():
+        commands.decl_command(self.fn_spec, command_name, **spec)
 
   def clone(self):
     """
     Return a copy of self.
     """
-    kwargs = {key: getattr(self, key)
-              for key in ['line_width', 'tab_size', 'max_subargs_per_line']}
-    return Configuration(**kwargs)
+    return Configuration(**self.as_dict())
 
 
 def indent_list(indent_str, lines):
@@ -49,6 +94,7 @@ def indent_list(indent_str, lines):
   Return a list of lines where indent_str is prepended to everything in lines.
   """
   return [indent_str + line for line in lines]
+
 
 def stable_wrap(wrapper, paragraph_text):
   """
@@ -66,9 +112,9 @@ def stable_wrap(wrapper, paragraph_text):
     prev_text = next_text
     history.append(next_text)
 
-
   assert False, ("textwrap failed to converge on:\n\n {}"
                  .format('\n\n'.join(history)))
+
 
 def format_comment_block(config, line_width,  # pylint: disable=unused-argument
                          comment_lines):
@@ -87,6 +133,11 @@ def format_comment_block(config, line_width,  # pylint: disable=unused-argument
       if paragraph_lines:
         paragraphs.append(' '.join(paragraph_lines))
       paragraph_lines = [line]
+    elif SEPARATOR_REGEX.match(line.strip()):
+      if paragraph_lines:
+        paragraphs.append(' '.join(paragraph_lines))
+      paragraphs.append(line.rstrip())
+      paragraph_lines = []
     elif line:
       paragraph_lines.append(line)
     else:
@@ -190,6 +241,10 @@ def split_shell_command(args):
 def format_shell_command(config, line_width, command_name, args):
   """Format arguments into a block with at most line_width chars."""
 
+  # If there are no arguments with comments, then check to see how long the
+  # line would be if we just catted the arguments together into a single line.
+  # If that line is small enough to fit then we are done, and just return that
+  # single line.
   if not arg_exists_with_comment(args):
     single_line = ' '.join([arg.contents for arg in args])
     if len(single_line) < line_width:
@@ -198,7 +253,9 @@ def format_shell_command(config, line_width, command_name, args):
   lines = []
   arg_multilist = split_shell_command(args)
 
-  # Look for strings of single arguments that can be joined together
+  # If there are multiple single flags (i.e. --foo --bar --baz) in a row
+  # that do not have arguments, then we can join them together into a single
+  # row that we try to format as one
   arg_multilist_filtered = []
   for arg_sublist in arg_multilist:
     if len(arg_sublist) == 1 and arg_multilist_filtered:
@@ -232,66 +289,65 @@ def join_parens(args):
   return out
 
 
-def format_arglist(config, line_width, command_name, args):
+def format_kwarglist(config, line_width, command_name, args):
   """
-  Given a list arguments containing at most one KWARG (in position [0]
-  if it exists), format into a list of lines.
+  Given a list of arguments containing a KWARG in position [0], format into
+  a list of lines.
   """
-  if len(args) < 1:
-    return []
+  kwarg = args[0].contents
 
-  if is_kwarg(config.fn_spec, command_name, args[0].contents):
-    kwarg = args[0].contents
+  if len(args) == 1:
+    return [kwarg]
 
-    if len(args) == 1:
-      return [kwarg]
+  # If the KWARG is 'COMMAND' then let's not put one entry per line,
+  # but fit as many command args per line as possible.
+  if kwarg == 'COMMAND':
+    # Copy the config and override max subargs per line
+    config = config.clone()
+    # pylint: disable=attribute-defined-outside-init
+    config.max_subargs_per_line = 1e6
 
-    # If the KWARG is 'COMMAND' then let's not put one entry per line,
-    # but fit as many command args per line as possible.
-    if kwarg == 'COMMAND':
-      # Copy the config and override max subargs per line
-      config = config.clone()
-      # pylint: disable=attribute-defined-outside-init
-      config.max_subargs_per_line = 1e6
+    aligned_indent_str = ' ' * (len(kwarg) + 1)
+    tabbed_indent_str = ' ' * config.tab_size
 
-      aligned_indent_str = ' ' * (len(kwarg) + 1)
-      tabbed_indent_str = ' ' * config.tab_size
+    # Lines to append if we put them aligned with the end of the kwarg
+    line_width_aligned = line_width - len(aligned_indent_str)
+    lines_aligned = format_shell_command(config, line_width_aligned,
+                                         args[1].contents, args[1:])
 
-      # Lines to append if we put them aligned with the end of the kwarg
-      line_width_aligned = line_width - len(aligned_indent_str)
-      lines_aligned = format_shell_command(config,
-                                           line_width_aligned,
-                                           args[1].contents, args[1:])
+    # Lines to append if we put them on lines after the kwarg and
+    # indented one block higher
+    line_width_tabbed = line_width - len(tabbed_indent_str)
+    lines_tabbed = format_shell_command(config, line_width_tabbed,
+                                        args[1].contents, args[1:])
 
-      # Lines to append if we put them on lines after the kwarg and
-      # indented one block higher
-      line_width_tabbed = line_width - len(tabbed_indent_str)
-      lines_tabbed = format_shell_command(config,
-                                          line_width_tabbed,
-                                          args[1].contents, args[1:])
+  else:
+    aligned_indent_str = ' ' * (len(kwarg) + 1)
+    tabbed_indent_str = ' ' * config.tab_size
 
-    else:
-      aligned_indent_str = ' ' * (len(kwarg) + 1)
-      tabbed_indent_str = ' ' * config.tab_size
+    # Lines to append if we put them aligned with the end of the kwarg
+    line_width_aligned = line_width - len(aligned_indent_str)
+    lines_aligned = format_arglist(config, line_width_aligned,
+                                   command_name, args[1:])
 
-      # Lines to append if we put them aligned with the end of the kwarg
-      lines_aligned = format_arglist(config,
-                                     line_width - len(aligned_indent_str),
-                                     command_name, args[1:])
+    # Lines to append if we put them on lines after the kwarg and
+    # indented one block higher
+    line_width_tabbed = line_width - len(tabbed_indent_str)
+    lines_tabbed = format_arglist(config, line_width_tabbed,
+                                  command_name, args[1:])
 
-      # Lines to append if we put them on lines after the kwarg and
-      # indented one block higher
-      lines_tabbed = format_arglist(config,
-                                    line_width - len(tabbed_indent_str),
-                                    command_name, args[1:])
+  # If aligned doesn't fit, then use tabbed
+  if get_block_width(lines_aligned) > line_width - len(aligned_indent_str):
+    return [kwarg] + indent_list(tabbed_indent_str, lines_tabbed)
 
-    # If aligned doesn't fit, then use tabbed
-    if get_block_width(lines_aligned) > line_width - len(aligned_indent_str):
-      return [kwarg] + indent_list(tabbed_indent_str, lines_tabbed)
+  return ([kwarg + ' ' + lines_aligned[0]]
+          + indent_list(aligned_indent_str, lines_aligned[1:]))
 
-    return ([kwarg + ' ' + lines_aligned[0]]
-            + indent_list(aligned_indent_str, lines_aligned[1:]))
 
+def format_nonkwarglist(config, line_width, args):
+  """
+  Given a list arguments containing no KWARGS, format into a list of lines
+  """
   indent_str = ''
   lines = ['']
 
@@ -316,10 +372,13 @@ def format_arglist(config, line_width, command_name, args):
     return lines
 
   for arg in args:
-    # Lines to add if we were to put the arg at the end of the current
-    # line.
-    arg_linelen = line_width - len(lines[-1]) - 1
-    if arg_linelen > len(arg.contents) + 1:
+    # Lines to add if we were to put the arg at the end of the current line.
+    if lines[-1]:
+      arg_linelen = line_width - len(lines[-1]) - 1
+    else:
+      arg_linelen = line_width - len(lines[-1])
+
+    if arg_linelen >= len(arg.contents):
       lines_append = format_single_arg(config, arg_linelen, arg)
     else:
       lines_append = None
@@ -346,6 +405,20 @@ def format_arglist(config, line_width, command_name, args):
         lines.append(arg_indent_str + line)
 
   return lines
+
+
+def format_arglist(config, line_width, command_name, args):
+  """
+  Given a list arguments containing at most one KWARG (in position [0]
+  if it exists), format into a list of lines.
+  """
+  if len(args) < 1:
+    return []
+
+  if is_kwarg(config.fn_spec, command_name, args[0].contents):
+    return format_kwarglist(config, line_width, command_name, args)
+
+  return format_nonkwarglist(config, line_width, args)
 
 
 def format_args(config, line_width, command_name, args):
@@ -385,13 +458,30 @@ def get_block_width(lines):
   return max(len(line) for line in lines)
 
 
+def is_control_statement(command_name):
+  return command_name.lower() in [
+      'if', 'elseif', 'else', 'endif',
+      'while', 'endwhile',
+      'foreach', 'endforeach',
+      'function', 'endfunction',
+      'macro', 'endmacro',
+      'continue', 'break', 'return',
+  ]
+
+
 def format_command(config, command, line_width):
   """
   Formats a cmake command call into a block with at most line_width chars.
   Returns a list of lines.
   """
 
-  command_start = command.name + '('
+  if (config.separate_fn_name_with_space or
+      # pylint: disable=bad-continuation
+      (is_control_statement(command.name)
+          and config.separate_ctrl_name_with_space)):
+    command_start = command.name + ' ('
+  else:
+    command_start = command.name + '('
 
   # If there are no args then return just the command
   if len(command.body) < 1:

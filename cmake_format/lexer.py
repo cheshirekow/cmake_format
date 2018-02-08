@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import re
 
 # NOTE(josh): inspiration and some bits taken from cmakeast_ and
@@ -128,7 +130,7 @@ def main():
   args = parser.parse_args()
   with open(args.infile, 'r') as infile:
     tokens = tokenize(infile.read())
-  print '\n'.join(str(x) for x in tokens)
+  print('\n'.join(str(x) for x in tokens))
 
 
 if __name__ == '__main__':

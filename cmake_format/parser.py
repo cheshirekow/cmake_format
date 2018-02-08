@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from cmake_format import lexer
 
 
@@ -64,9 +66,9 @@ def consume_comment(tokens):
     comment_tokens.append(tokens.pop(0))
     # pylint: disable=bad-continuation
     if (len(tokens) > 2
-            and tokens[0].type == lexer.NEWLINE
-            and tokens[1].type in COMMENT_TOKENS
-        ):
+                and tokens[0].type == lexer.NEWLINE
+                and tokens[1].type in COMMENT_TOKENS
+            ):
       comment_tokens.append(tokens.pop(0))
   return TokenSequence(COMMENT, comment_tokens)
 
@@ -150,7 +152,7 @@ def dump_digest(tok_seqs):
   Print a series of token_sequences for debugging purposes
   """
   for tok_seq in tok_seqs:
-    print tok_seq
+    print(tok_seq)
 
 
 # Node Types
@@ -347,71 +349,71 @@ def construct_fst(token_seqs):
     elif tok_seq.type == WHITESPACE:
       block_stack[-1].children.append(Whitespace(tok_seq))
     elif tok_seq.type == STATEMENT:
-      if tok_seq.tokens[0].content == 'if':
+      if tok_seq.tokens[0].content.lower() == 'if':
         block = Block(IF_BLOCK)
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(block)
         block.children.append(stmt)
         block_stack.append(block)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content in ['elseif', 'else']:
+      elif tok_seq.tokens[0].content.lower() in ['elseif', 'else']:
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == IF_BLOCK
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(stmt)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content == 'endif':
+      elif tok_seq.tokens[0].content.lower() == 'endif':
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == IF_BLOCK
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(stmt)
         block_stack.pop(-1)
-      elif tok_seq.tokens[0].content == 'while':
+      elif tok_seq.tokens[0].content.lower() == 'while':
         block = Block(WHILE)
         stmt = Statement(tok_seq)
         block.children.append(stmt)
         block_stack.append(block)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content == 'endwhile':
+      elif tok_seq.tokens[0].content.lower() == 'endwhile':
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == WHILE
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(stmt)
         block_stack.pop(-1)
-      elif tok_seq.tokens[0].content == 'foreach':
+      elif tok_seq.tokens[0].content.lower() == 'foreach':
         block = Block(FOREACH)
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(block)
         block.children.append(stmt)
         block_stack.append(block)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content == 'endforeach':
+      elif tok_seq.tokens[0].content.lower() == 'endforeach':
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == FOREACH
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(stmt)
         block_stack.pop(-1)
-      elif tok_seq.tokens[0].content == 'function':
+      elif tok_seq.tokens[0].content.lower() == 'function':
         block = Block(FUNCTION_DEF)
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(block)
         block.children.append(stmt)
         block_stack.append(block)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content == 'endfunction':
+      elif tok_seq.tokens[0].content.lower() == 'endfunction':
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == FUNCTION_DEF
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(stmt)
         block_stack.pop(-1)
-      elif tok_seq.tokens[0].content == 'macro':
+      elif tok_seq.tokens[0].content.lower() == 'macro':
         block = Block(MACRO_DEF)
         stmt = Statement(tok_seq)
         block_stack[-1].children.append(block)
         block.children.append(stmt)
         block_stack.append(block)
         block_stack.append(stmt)
-      elif tok_seq.tokens[0].content == 'endmacro':
+      elif tok_seq.tokens[0].content.lower() == 'endmacro':
         assert block_stack and block_stack.pop(-1)
         assert block_stack and block_stack[-1].block_type == MACRO_DEF
         stmt = Statement(tok_seq)
@@ -420,17 +422,22 @@ def construct_fst(token_seqs):
       else:
         block_stack[-1].children.append(Statement(tok_seq))
 
-  assert len(block_stack) == 1, \
-      ("Unclosed block of type: {} opened at {}:{}"
-       .format(kBlockTypeToStr.get(block_stack[-1].block_type),
-               block_stack[-1].children[0].line,
-               block_stack[-1].children[0].col))
+  if len(block_stack) != 1:
+    for block in block_stack[::-1]:
+      if block.node_type == BLOCK_NODE:
+        raise AssertionError("Unclosed block of type: {} opened at {}:{}"
+                             .format(kBlockTypeToStr.get(block.block_type),
+                                     block.children[0].line,
+                                     block.children[0].col))
+
+    raise AssertionError('Unclosed node of type: {}'
+                         .format(block_stack[-1].node_type))
 
   return block_stack[0]
 
 
 def dump_fst(node, depth=0):
-  print '{}{}'.format('  ' * depth, node)
+  print('{}{}'.format('  ' * depth, node))
   for child in getattr(node, 'children', []):
     dump_fst(child, depth + 1)
 
@@ -454,7 +461,7 @@ def main():
 
   if args.command == 'dump-digest':
     for seq in tok_seqs:
-      print seq
+      print(seq)
   elif args.command == 'dump-tree':
     dump_fst(fst)
   else:

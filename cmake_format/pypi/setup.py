@@ -1,12 +1,13 @@
+import io
 from setuptools import setup
 
-with open('README.rst') as infile:
+with io.open('README.rst', encoding='utf8') as infile:
   long_description = infile.read()
 
 setup(
     name='cmake_format',
     packages=['cmake_format'],
-    version='0.2.0',
+    version='0.3.0',
     description="Can format your listfiles so they don't look like crap",
     long_description=long_description,
     author='Josh Bialkowski',

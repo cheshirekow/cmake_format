@@ -360,5 +360,62 @@ foreach(forbarbaz arg1 arg2, arg3)
 endforeach()
 """)
 
+  def test_ctrl_space(self):
+    self.config.separate_ctrl_name_with_space = True
+    self.do_format_test("""\
+if(foo)
+  myfun(foo bar baz)
+endif()
+""", """\
+if (foo)
+  myfun(foo bar baz)
+endif ()
+""")
+
+  def test_fn_space(self):
+    self.config.separate_fn_name_with_space = True
+    self.do_format_test("""\
+myfun(foo bar baz)
+""", """\
+myfun (foo bar baz)
+""")
+
+  def test_preserve_separator(self):
+    self.do_format_test("""\
+# --------------------
+# This is some
+# text that I expect
+# to reflow
+# --------------------
+""", """\
+# --------------------
+# This is some text that I expect to reflow
+# --------------------
+""")
+
+    self.do_format_test("""\
+# !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
+# This is some
+# text that I expect
+# to reflow
+# !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
+""", """\
+# !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
+# This is some text that I expect to reflow
+# !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
+""")
+
+    self.do_format_test("""\
+# ----Not Supported----
+# This is some
+# text that I expect
+# to reflow
+# ----Not Supported----
+""", """\
+# ----Not Supported---- This is some text that I expect to reflow ----Not
+# Supported----
+""")
+
+
 if __name__ == '__main__':
   unittest.main()

@@ -23,8 +23,11 @@ Usage
 
 .. code:: text
 
-    usage: cmake-format [-h] [-i] [-o OUTFILE_PATH] [-c CONFIG_FILE]
-                          infilepaths [infilepaths ...]
+    usage:
+    cmake-format [-h]
+                [--dump-config {yaml,json,python} | -i | -o OUTFILE_PATH]
+                [-c CONFIG_FILE]
+                infilepath [infilepath ...]
 
     Parse cmake listfiles and format them nicely.
 
@@ -33,19 +36,34 @@ Usage
 
     optional arguments:
       -h, --help            show this help message and exit
+      --dump-config {yaml,json,python}
+                            If specified, print the default configuration to
+                            stdout and exit
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
       -c CONFIG_FILE, --config-file CONFIG_FILE
-                            path to yaml config
+                            path to configuration file
+
+    Formatter Configuration:
+      Override configfile options
+
+      --line-width LINE_WIDTH
+      --additional-commands ADDITIONAL_COMMANDS
+      --separate-fn-name-with-space SEPARATE_FN_NAME_WITH_SPACE
+      --separate-ctrl-name-with-space SEPARATE_CTRL_NAME_WITH_SPACE
+      --max-subargs-per-line MAX_SUBARGS_PER_LINE
+      --tab-size TAB_SIZE
+
 
 -------------
 Configuration
 -------------
 
-``cmake-format`` accepts configuration files in yaml or json format. An example
-configuration file is given here. Additional flags and additional kwargs will
-help ``cmake_format`` to break up your custom commands in a pleasant way.
+``cmake-format`` accepts configuration files in yaml, json, or python format.
+An example configuration file is given here. Additional flags and additional
+kwargs will help ``cmake_format`` to break up your custom commands in a
+pleasant way.
 
 .. code:: yaml
 
@@ -57,6 +75,12 @@ help ``cmake_format`` to break up your custom commands in a pleasant way.
 
     # If arglists are longer than this, break them always.
     max_subargs_per_line: 3
+
+    # If true, separate control flow names from the parentheses with a space
+    separate_ctrl_name_with_space : false
+
+    # If true, separate function names from the parenthesis with a space
+    separate_fn_name_with_space : false
 
     # Additional FLAGS and KWARGS for custom commands
     additional_commands:
@@ -72,11 +96,12 @@ command line option. Otherwise, ``cmake-format`` will search the ancestry
 of each ``infilepath`` looking for a configuration file to use. If no
 configuration file is found it will use sensible defaults.
 
-A automatically detected configuration file may be named any of the following:
+A automatically detected configuration files may have any name that matches
+``\.?cmake-format(.yaml|.json|.py)``
 
-* ``.cmake-format``
-* ``cmake-format.yaml``
-* ``cmake-format.json``
+If you'd like to customize the behavior of ``cmake-format``, you can run
+``cmake-format --dump-config [yaml|json|python]`` to print the default
+configuration ``stdout`` and use that as a starting point.
 
 -------
 Example
