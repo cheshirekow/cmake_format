@@ -84,7 +84,9 @@ def try_get_configdict(configfile_path):
 
   try:
     config_dict = {}
-    execfile(configfile_path, config_dict)
+    with open(configfile_path) as infile:
+      # pylint: disable=exec-used
+      exec(infile.read(), config_dict)
     return config_dict
   except:  # pylint: disable=bare-except
     pass
@@ -112,7 +114,9 @@ def get_config(infile_path, configfile_path):
         config_dict = yaml.load(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
-        execfile(configfile_path, config_dict)
+        with open(configfile_path) as infile:
+          # pylint: disable=exec-used
+          exec(infile.read(), config_dict)
       else:
         try_get_configdict(configfile_path)
 

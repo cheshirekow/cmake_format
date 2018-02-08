@@ -3,6 +3,12 @@ Changelog
 =========
 
 ------
+v0.3.1
+------
+
+* use exec instead of execfile for python3 compatibility
+
+------
 v0.3.0
 ------
 

@@ -7,7 +7,7 @@ with io.open('README.rst', encoding='utf8') as infile:
 setup(
     name='cmake_format',
     packages=['cmake_format'],
-    version='0.3.0',
+    version='0.3.1',
     description="Can format your listfiles so they don't look like crap",
     long_description=long_description,
     author='Josh Bialkowski',
