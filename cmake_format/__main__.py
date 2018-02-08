@@ -84,9 +84,10 @@ def try_get_configdict(configfile_path):
 
   try:
     config_dict = {}
-    execfile(configfile_path, config_dict)
+    with open(configfile_path) as in_file:
+        exec(in_file.read(), config_dict)
     return config_dict
-  except:  # pylint: disable=bare-except
+  except Exception:
     pass
 
   raise RuntimeError("Failed to parse {} as any of yaml, json, or python"
@@ -99,8 +100,7 @@ def get_config(infile_path, configfile_path):
   for a config file in the ancestry of the filesystem of infile_path and find
   a config file to load.
   """
-  if configfile_path is None:
-    configfile_path = find_config_file(infile_path)
+  configfile_path = configfile_path or find_config_file(infile_path)
 
   config_dict = {}
   if configfile_path:
@@ -112,7 +112,7 @@ def get_config(infile_path, configfile_path):
         config_dict = yaml.load(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
-        execfile(configfile_path, config_dict)
+        exec(config_file.read(), config_dict)
       else:
         try_get_configdict(configfile_path)
 
