@@ -18,5 +18,6 @@ setup(
     classifiers=[],
     entry_points={
         'console_scripts': ['cmake-format=cmake_format.__main__:main'],
-    }
+    },
+    install_requires=['pyyaml']
 )
