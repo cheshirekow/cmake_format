@@ -1,92 +1,6 @@
-import inspect
-import re
-import textwrap
-
-from cmake_format import commands
 from cmake_format import lexer
+from cmake_format import markup
 from cmake_format import parser
-
-# Matches comment strings like ``# TODO(josh):`` or ``# NOTE(josh):``
-NOTE_REGEX = re.compile(r'^[A-Z_]+\([^)]+\):.*')
-
-# Matches comment lines that are clearly meant to separate sections or
-# headers. The meaning of this regex is "a line consisting only of five or
-# more non-word characters"
-SEPARATOR_REGEX = re.compile(r'^\W{4}\W+$')
-
-
-def serialize(obj):
-  """
-  Return a serializable representation of the object. If the object has an
-  `as_dict` method, then it will call and return the output of that method.
-  Otherwise return the object itself.
-  """
-  if hasattr(obj, 'as_dict'):
-    fun = getattr(obj, 'as_dict')
-    if callable(fun):
-      return fun()
-
-  return obj
-
-
-class ConfigObject(object):
-  """
-  Provides simple serialization to a dictionary based on the assumption that
-  all args in the __init__() function are fields of this object.
-  """
-
-  @classmethod
-  def get_field_names(cls):
-    """
-    The order of fields in the tuple representation is the same as the order
-    of the fields in the __init__ function
-    """
-    argspec = inspect.getargspec(cls.__init__)
-    # NOTE(josh): args[0] is `self`
-    return argspec.args[1:]
-
-  def as_dict(self):
-    """
-    Return a dictionary mapping field names to their values only for fields
-    specified in the constructor
-    """
-    return {field: serialize(getattr(self, field))
-            for field in self.get_field_names()}
-
-
-class Configuration(ConfigObject):
-  """
-  Encapsulates various configuration options/parameters for formatting
-  """
-
-  def __init__(self, line_width=80, tab_size=2,
-               max_subargs_per_line=3,
-               preserve_punctuation_lines=True,
-               separate_ctrl_name_with_space=False,
-               separate_fn_name_with_space=False,
-               additional_commands=None, **_):
-    self.line_width = line_width
-    self.tab_size = tab_size
-    # TODO(josh): make this conditioned on certain commands / kwargs
-    # because things like execute_process(COMMAND...) are less readable
-    # formatted as a single list. In fact... special case COMMAND to break on
-    # flags the way we do kwargs.
-    self.max_subargs_per_line = max_subargs_per_line
-    self.preserve_punctuation_lines = preserve_punctuation_lines
-    self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
-    self.separate_fn_name_with_space = separate_fn_name_with_space
-    self.additional_commands = additional_commands
-
-    self.fn_spec = commands.get_fn_spec()
-    if additional_commands is not None:
-      for command_name, spec in additional_commands.iteritems():
-        commands.decl_command(self.fn_spec, command_name, **spec)
-
-  def clone(self):
-    """
-    Return a copy of self.
-    """
-    return Configuration(**self.as_dict())
 
 
 def indent_list(indent_str, lines):
@@ -96,72 +10,17 @@ def indent_list(indent_str, lines):
   return [indent_str + line for line in lines]
 
 
-def stable_wrap(wrapper, paragraph_text):
-  """
-  textwrap doesn't appear to be stable. We run it multiple times until it
-  converges
-  """
-
-  history = [paragraph_text]
-  prev_text = paragraph_text
-  for _ in range(8):
-    lines = wrapper.wrap(prev_text)
-    next_text = '\n'.join(line[2:] for line in lines)
-    if next_text == prev_text:
-      return lines
-    prev_text = next_text
-    history.append(next_text)
-
-  assert False, ("textwrap failed to converge on:\n\n {}"
-                 .format('\n\n'.join(history)))
-
-
 def format_comment_block(config, line_width,  # pylint: disable=unused-argument
                          comment_lines):
   """
   Reflow a comment block into the given line_width. Return a list of lines.
   """
-  stripped_lines = [line.strip().lstrip('#').strip()
+
+  stripped_lines = [line.strip().lstrip('#')
                     for line in comment_lines]
-
-  paragraph_lines = list()
-  paragraphs = list()
-  # A new "paragraph" starts at a paragraph boundary (double newline), or at
-  # the start of a TODO(...): or NOTE(...):
-  for line in stripped_lines:
-    if NOTE_REGEX.match(line):
-      if paragraph_lines:
-        paragraphs.append(' '.join(paragraph_lines))
-      paragraph_lines = [line]
-    elif SEPARATOR_REGEX.match(line.strip()):
-      if paragraph_lines:
-        paragraphs.append(' '.join(paragraph_lines))
-      paragraphs.append(line.rstrip())
-      paragraph_lines = []
-    elif line:
-      paragraph_lines.append(line)
-    else:
-      if paragraph_lines:
-        paragraphs.append('\n'.join(paragraph_lines))
-      paragraphs.append('')
-      paragraph_lines = []
-  if paragraph_lines:
-    paragraphs.append('\n'.join(paragraph_lines))
-
-  lines = []
-  for paragraph_text in paragraphs:
-    if not paragraph_text:
-      lines.append('#')
-      continue
-    wrapper = textwrap.TextWrapper(width=line_width,
-                                   expand_tabs=True,
-                                   replace_whitespace=True,
-                                   drop_whitespace=True,
-                                   initial_indent='# ',
-                                   subsequent_indent='# ')
-
-    lines.extend(stable_wrap(wrapper, paragraph_text))
-  return lines
+  items = markup.parse(stripped_lines)
+  return ['# ' + line
+          for line in markup.format_items(config, line_width - 2, items)]
 
 
 def is_flag(fn_spec, command_name, arg):
@@ -600,13 +459,26 @@ class TreePrinter(object):
     were in the input file. If the formatter is active, then reflow and
     hard-wrap the comment text and print out the resulting lines.
     """
+    if not tokens:
+      return
 
     if self.active:
-      # Strip newline tokens and remove the comment char
-      lines = [token.content[1:] for token in tokens
-               if token.type in parser.COMMENT_TOKENS]
-      lines = format_comment_block(self.config, self.get_line_width(),
-                                   lines)
+      # TODO(josh): it's confusing and brittle that the token sequence opaquely
+      # stores either one bracket comment or a list of line comments
+      if tokens[0].type == lexer.BRACKET_COMMENT:
+        assert len(tokens) == 1
+
+        # NOTE(josh): I'm not sure we want to format these the way we do regular
+        # line comments... For now, let's just render verbatim.
+        self.outfile.write(' ' * tokens[0].col)
+        self.outfile.write(tokens[0].content)
+        return
+      else:
+        # Strip newline tokens and remove the comment char
+        lines = [token.content for token in tokens
+                 if token.type in parser.COMMENT_TOKENS]
+        lines = format_comment_block(self.config, self.get_line_width(),
+                                     lines)
 
       # NOTE(josh): since we callback inside print_comment() if we see an
       # on/off sentinel it's possible that we actually have no lines cached
@@ -655,6 +527,11 @@ class TreePrinter(object):
         if self.active:
           if token.type == lexer.COMMENT:
             cache.append(token)
+          elif token.type == lexer.BRACKET_COMMENT:
+            self.print_comment_tokens(cache)
+            cache = []
+            self.print_comment_tokens([token])
+
         else:
           cache.append(token)
 
@@ -668,10 +545,11 @@ class TreePrinter(object):
     newlines. Otehrwise we will print all tokens as they were in the infile.
     """
     if self.active:
+      num_newlines = node.count_newlines()
       # Block-level whitespace is collapsed into exactly one or two newlines
-      if node.count_newlines() > 1:
+      if num_newlines > 1:
         self.outfile.write('\n\n')
-      else:
+      elif num_newlines > 0:
         self.outfile.write('\n')
     else:
       for token in node.content.tokens:

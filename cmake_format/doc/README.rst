@@ -49,7 +49,6 @@ Usage
       Override configfile options
 
       --line-width LINE_WIDTH
-      --additional-commands ADDITIONAL_COMMANDS
       --separate-fn-name-with-space SEPARATE_FN_NAME_WITH_SPACE
       --separate-ctrl-name-with-space SEPARATE_CTRL_NAME_WITH_SPACE
       --max-subargs-per-line MAX_SUBARGS_PER_LINE
@@ -62,7 +61,7 @@ Configuration
 
 ``cmake-format`` accepts configuration files in yaml, json, or python format.
 An example configuration file is given here. Additional flags and additional
-kwargs will help ``cmake_format`` to break up your custom commands in a
+kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
 .. code:: yaml
@@ -76,10 +75,10 @@ pleasant way.
     # If arglists are longer than this, break them always.
     max_subargs_per_line: 3
 
-    # If true, separate control flow names from the parentheses with a space
+    # If true, separate control flow names from their parentheses with a space
     separate_ctrl_name_with_space : false
 
-    # If true, separate function names from the parenthesis with a space
+    # If true, separate function names from their parentheses with a space
     separate_fn_name_with_space : false
 
     # Additional FLAGS and KWARGS for custom commands
@@ -97,11 +96,80 @@ of each ``infilepath`` looking for a configuration file to use. If no
 configuration file is found it will use sensible defaults.
 
 A automatically detected configuration files may have any name that matches
-``\.?cmake-format(.yaml|.json|.py)``
+``\.?cmake-format(.yaml|.json|.py)``.
 
-If you'd like to customize the behavior of ``cmake-format``, you can run
+If you'd like to create a new configuration file, ``cmake-format`` can help
+by dumping out the default configuration in your preferred format. You can run
 ``cmake-format --dump-config [yaml|json|python]`` to print the default
 configuration ``stdout`` and use that as a starting point.
+
+-------
+Markup
+-------
+
+``cmake-format`` is for the exceptionally lazy. It will even format your
+comments for you. It will reflow your comment text to within the configured
+line width. It also understands a very limited markup format for a couple of
+common bits.
+
+**rulers**: A ruler is a line which starts with and ends with three or more
+non-alphanum or space characters::
+
+    # ---- This is a Ruler ----
+    # cmake-format will know to keep the ruler separated from the
+    # paragraphs around it. So it wont try to reflow this text as
+    # a single paragraph.
+    # ---- This is also a Ruler ---
+
+
+**list**: A list is started on the first encountered list item, which starts
+with a bullet character (``*``) followed by a space followed by some text.
+Subsequent lines will be included in the list item until the next list item
+is encountered (the bullet must be at the same indentation level). The list must
+be surrounded by a pair of empty lines. Nested lists will be formatted in
+nested text::
+
+    # here are some lists:
+    #
+    # * item 1
+    # * item 2
+    #
+    #   * subitem 1
+    #   * subitem 2
+    #
+    # * second list item 1
+    # * second list item 2
+
+**enumerations**: An enumeration is similar to a list but the bullet character
+is some integers followed by a period. New enumeration items are detected as
+long as either the first digit or the punctuation lines up in the same column
+as the previous item. ``cmake-format`` will renumber your items and align their
+labels for you::
+
+    # This is an enumeration
+    #
+    #   1. item
+    #   2. item
+    #   3. item
+
+**fences**: If you have any text which you do not want to be formatted you can
+guard it with a pair of fences. Fences are three or more tilde characters::
+
+    # ~~~
+    # This comment is fenced
+    #   and will not be formatted
+    # ~~~
+
+-------
+Issues
+-------
+
+If you encounter any bugs or regressions or if ``cmake-format`` doesn't behave
+in the way that you expect, please post an issue on the `github issue tracker`_.
+It is especially helpful if you can provide cmake listfile snippets that
+demonstrate any issues you encounter.
+
+.. _`github issue tracker`: https://github.com/cheshirekow/cmake_format/issues
 
 -------
 Example
@@ -254,7 +322,7 @@ into this:
     set(HEADERS
         header_a.h
         header_b.h # This comment should be preserved, moreover it should be split
-                  # across two lines.
+                   # across two lines.
         header_c.h
         header_d.h)
 
@@ -288,8 +356,8 @@ into this:
                     baz.cc) # This comment is part of add_library
 
         other_command(some_long_argument some_long_argument) # this comment is very
-                                                            # long and gets split
-                                                            # across some lines
+                                                             # long and gets split
+                                                             # across some lines
 
         other_command(some_long_argument some_long_argument some_long_argument)
         # this comment is even longer and wouldn't make sense to pack at the end of

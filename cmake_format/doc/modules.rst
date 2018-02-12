@@ -12,6 +12,14 @@ Module contents
 Submodules
 ----------
 
+cmake\_format\.configuration module
+-----------------------------------
+
+.. automodule:: cmake_format.configuration
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cmake\_format\.commands module
 ------------------------------
 
@@ -44,10 +52,18 @@ cmake\_format\.parser module
     :undoc-members:
     :show-inheritance:
 
-cmake\_format\.tests module
----------------------------
+cmake\_format\.lexer_tests module
+---------------------------------
 
-.. automodule:: cmake_format.tests
+.. automodule:: cmake_format.lexer_tests
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cmake\_format\.format_tests module
+----------------------------------
+
+.. automodule:: cmake_format.format_tests
     :members:
     :undoc-members:
     :show-inheritance:

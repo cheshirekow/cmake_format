@@ -22,6 +22,8 @@ COMMENT = 8
 UNQUOTED_LITERAL = 9
 FORMAT_OFF = 10
 FORMAT_ON = 11
+BRACKET_ARGUMENT = 12
+BRACKET_COMMENT = 13
 
 
 def token_type_to_str(query):
@@ -71,6 +73,9 @@ def tokenize(contents):
       # single quoted string
       (r"(?<![^\s\(])'([^\']|\\[\'])*[^\\]?'(?![^\s\)])",
        lambda s, t: (QUOTED_LITERAL, t)),
+      # bracket argument
+      (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",
+       lambda s, t: (BRACKET_ARGUMENT, t)),
       (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])",
        lambda s, t: (NUMBER, t)),
       (r"\(", lambda s, t: (LEFT_PAREN, t)),
@@ -86,11 +91,14 @@ def tokenize(contents):
       (r"\s+", lambda s, t: (WHITESPACE, t)),
       (r"#\s*cmake-format: off[^\n]*", lambda s, t: (FORMAT_OFF, t)),
       (r"#\s*cmake-format: on[^\n]*", lambda s, t: (FORMAT_ON, t)),
+      # bracket comment
+      (r"#\[(=*)\[.*\]\1\]", lambda s, t: (BRACKET_COMMENT, t)),
+      # line comment
       (r"#[^\n]*", lambda s, t: (COMMENT, t)),
       # Catch-all for literals which are compound statements.
       (r"([^\s\(\)]+|[^\s\(]*[^\)]|[^\(][^\s\)]*)",
        lambda s, t: (UNQUOTED_LITERAL, t))
-  ])
+  ], re.DOTALL)
 
   tokens, remainder = scanner.scan(contents)
   assert not remainder, "Unparsed tokens: {}".format(remainder)
@@ -118,6 +126,20 @@ def tokenize(contents):
       col += len(token_contents)
 
   return tokens_return
+
+
+def parse_bracket_argument(text):
+  regex = re.compile(r'^\[(=*)\[(.*)\]\1\]$', re.DOTALL)
+  match = regex.match(text)
+  assert match, "Failed to match bracket argument pattern in {}".format(text)
+  return ('[' + match.group(1) + '[',
+          match.group(2),
+          ']' + match.group(1) + ']')
+
+
+def parse_bracket_comment(text):
+  prefix, content, suffix = parse_bracket_argument(text[1:])
+  return ('#' + prefix, content, suffix)
 
 
 def main():

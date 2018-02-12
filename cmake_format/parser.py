@@ -66,9 +66,9 @@ def consume_comment(tokens):
     comment_tokens.append(tokens.pop(0))
     # pylint: disable=bad-continuation
     if (len(tokens) > 2
-                and tokens[0].type == lexer.NEWLINE
-                and tokens[1].type in COMMENT_TOKENS
-            ):
+        and tokens[0].type == lexer.NEWLINE
+        and tokens[1].type in COMMENT_TOKENS
+        ):
       comment_tokens.append(tokens.pop(0))
   return TokenSequence(COMMENT, comment_tokens)
 
@@ -103,6 +103,7 @@ def consume_statement(tokens):
 
   while tokens:
     if tokens[0].type in [lexer.COMMENT,
+                          lexer.BRACKET_COMMENT,
                           lexer.WHITESPACE]:
       stmt_tokens.append(tokens.pop(0))
     else:
@@ -111,7 +112,7 @@ def consume_statement(tokens):
   while (len(tokens) > 2
          and tokens[0].type == lexer.NEWLINE
          and tokens[1].type == lexer.WHITESPACE
-         and tokens[2].type == lexer.COMMENT):
+         and tokens[2].type in (lexer.COMMENT, lexer.BRACKET_COMMENT)):
     stmt_tokens.append(tokens.pop(0))
     stmt_tokens.append(tokens.pop(0))
     stmt_tokens.append(tokens.pop(0))
@@ -137,6 +138,8 @@ def digest_tokens(tokens):
       tok_seqs.append(consume_whitespace(tokens))
     elif tokens[0].type in COMMENT_TOKENS:
       tok_seqs.append(consume_comment(tokens))
+    elif tokens[0].type == lexer.BRACKET_COMMENT:
+      tok_seqs.append(TokenSequence(COMMENT, [tokens.pop(0)]))
     elif tokens[0].type == lexer.WORD:
       tok_seqs.append(consume_statement(tokens))
     else:
@@ -329,7 +332,7 @@ class Statement(TreeNode):
       if self.postfix_tokens[-1].type == lexer.COMMENT:
         if self.comment:
           self.comment += "\n"
-        self.comment += self.postfix_tokens[-1].content.strip()[1:]
+        self.comment += self.postfix_tokens[-1].content.strip().lstrip('#')
 
 
 def construct_fst(token_seqs):

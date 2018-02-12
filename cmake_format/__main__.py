@@ -20,6 +20,7 @@ import shutil
 import sys
 import tempfile
 
+from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import parser
@@ -84,7 +85,9 @@ def try_get_configdict(configfile_path):
 
   try:
     config_dict = {}
-    execfile(configfile_path, config_dict)
+    with open(configfile_path) as infile:
+      # pylint: disable=exec-used
+      exec(infile.read(), config_dict)
     return config_dict
   except:  # pylint: disable=bare-except
     pass
@@ -112,7 +115,9 @@ def get_config(infile_path, configfile_path):
         config_dict = yaml.load(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
-        execfile(configfile_path, config_dict)
+        with open(configfile_path) as infile:
+          # pylint: disable=exec-used
+          exec(infile.read(), config_dict)
       else:
         try_get_configdict(configfile_path)
 
@@ -124,20 +129,20 @@ def dump_config(outfmt, outfile):
   Dump the default configuration to stdout
   """
 
-  config = formatter.Configuration()
+  cfg = configuration.Configuration()
   if outfmt == 'yaml':
     import yaml
-    yaml.dump(config.as_dict(), sys.stdout, indent=2,
+    yaml.dump(cfg.as_dict(), sys.stdout, indent=2,
               default_flow_style=False)
     return
   elif outfmt == 'json':
-    json.dump(config.as_dict(), sys.stdout, indent=2)
+    json.dump(cfg.as_dict(), sys.stdout, indent=2)
     sys.stdout.write('\n')
     return
 
   ppr = pprint.PrettyPrinter(indent=2)
-  for key in config.get_field_names():
-    value = formatter.serialize(getattr(config, key))
+  for key in cfg.get_field_names():
+    value = configuration.serialize(getattr(cfg, key))
     outfile.write('{} = {}\n'.format(key, ppr.pformat(value)))
 
 
@@ -157,6 +162,9 @@ def main():
       formatter_class=argparse.RawDescriptionHelpFormatter,
       usage=USAGE_STRING)
 
+  arg_parser.add_argument('-v', '--version', action='version',
+                          version='0.3.2')
+
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
                      help='If specified, print the default configuration to '
@@ -173,9 +181,13 @@ def main():
       title='Formatter Configuration',
       description='Override configfile options')
 
-  for key, value in formatter.Configuration().as_dict().iteritems():
+  for key, value in configuration.Configuration().as_dict().iteritems():
     flag = '--{}'.format(key.replace('_', '-'))
-    optgroup.add_argument(flag, type=type(value), default=value)
+    if isinstance(value, (dict, list)):
+      continue
+    if key == 'additional_commands':
+      continue
+    optgroup.add_argument(flag, type=type(value), default=argparse.SUPPRESS)
 
   args = arg_parser.parse_args()
 
@@ -195,7 +207,7 @@ def main():
   for infile_path in args.infilepaths:
     config_dict = get_config(infile_path, args.config_file)
     config_dict.update(vars(args))
-    config = formatter.Configuration(**config_dict)
+    cfg = configuration.Configuration(**config_dict)
     if args.in_place:
       outfile = tempfile.NamedTemporaryFile(delete=False)
     else:
@@ -208,7 +220,7 @@ def main():
     try:
       with open(infile_path, 'r') as infile:
         try:
-          process_file(config, infile, outfile)
+          process_file(cfg, infile, outfile)
         except:
           sys.stderr.write('Error while processing {}\n'.format(infile_path))
           raise
