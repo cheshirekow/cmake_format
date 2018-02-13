@@ -328,6 +328,23 @@ def is_control_statement(command_name):
   ]
 
 
+def close_command_parenthesis_without_comment(config, command, lines):
+  if config.dangling_parentheses and len(lines) > 1:
+    lines.append(')')
+
+    if config.new_line_after_dangling_parentheses and not command.comment:
+      lines.append('')
+  else:
+    lines[-1] += ')'
+
+
+def close_command_parenthesis(config, command, indent_size, line_width, lines):
+  if len(lines[-1]) < line_width and not command.body[-1].comments:
+    close_command_parenthesis_without_comment(config, command, lines)
+  else:
+    lines.append((' ' * indent_size) + ')')
+
+
 def format_command(config, command, line_width):
   """
   Formats a cmake command call into a block with at most line_width chars.
@@ -366,21 +383,18 @@ def format_command(config, command, line_width):
       indent_str = ' ' * config.tab_size
       for line in lines_b:
         lines.append(indent_str + line)
-      if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
-      else:
-        lines.append(indent_str[:-1] + ')')
+
+      close_command_parenthesis(config, command, config.tab_size, line_width, lines)
 
     # Otherwise use the version that is aligned with the command ending
     else:
       lines = [command_start + lines_a[0]]
-      indent_str = ' ' * len(command_start)
+      indent_size = len(command_start)
+      indent_str = ' ' * indent_size
       for line in lines_a[1:]:
         lines.append(indent_str + line)
-      if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
-      else:
-        lines.append(indent_str[:-1] + ')')
+
+      close_command_parenthesis(config, command, indent_size, line_width, lines)
 
     # If the command itself has a trailing line comment then attempt to
     # keep the comment attached to the command, but consider also moving

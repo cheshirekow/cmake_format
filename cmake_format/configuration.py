@@ -50,6 +50,8 @@ class Configuration(ConfigObject):
                max_subargs_per_line=3,
                separate_ctrl_name_with_space=False,
                separate_fn_name_with_space=False,
+               dangling_parentheses=False,
+               new_line_after_dangling_parentheses=False,
                bullet_char='*',
                enum_char=".",
                additional_commands=None, **_):
@@ -64,6 +66,8 @@ class Configuration(ConfigObject):
 
     self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
     self.separate_fn_name_with_space = separate_fn_name_with_space
+    self.dangling_parentheses = dangling_parentheses
+    self.new_line_after_dangling_parentheses = new_line_after_dangling_parentheses
 
     self.bullet_char = str(bullet_char)[0]
     self.enum_char = str(enum_char)[0]

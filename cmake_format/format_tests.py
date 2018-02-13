@@ -588,6 +588,46 @@ class TestCanonicalFormatting(unittest.TestCase):
       message("First Argument" #[[Bracket Comment]] "Second Argument")
       """)
 
+  def test_dangling_parentheses(self):
+    self.config.dangling_parentheses = True
+
+    self.do_format_test("""\
+      enable_testing()
+      """, """\
+      enable_testing()
+      """)
+
+    self.do_format_test("""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      """, """\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      )
+      """)
+
+    self.config.new_line_after_dangling_parentheses = True
+    self.do_format_test("""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      enable_testing()
+      """, """\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      )
+
+      enable_testing()
+      """)
+
+    self.do_format_test("""\
+      target_include_directories(
+        target INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      ) # FIXME no new line!
+      """, """\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      ) # FIXME no new line!
+      """)
+
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
