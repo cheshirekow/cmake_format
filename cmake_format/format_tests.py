@@ -97,6 +97,20 @@ class TestCanonicalFormatting(unittest.TestCase):
       add_subdirectories(foo bar baz foo2 bar2 baz2)
       """)
 
+  def test_comment_after_empty_command(self):
+    self.do_format_test("""\
+      enable_testing() #comment
+      """, """\
+      enable_testing() # comment
+      """)
+
+    self.do_format_test("""\
+      enable_testing() #Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+      """, """\
+      enable_testing() # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+                       # do eiusmod tempor incididunt
+      """)
+
   def test_long_args_command_split(self):
     self.do_format_test("""\
       # This very long command should be split to multiple lines
