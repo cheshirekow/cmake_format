@@ -97,26 +97,18 @@ class TestCanonicalFormatting(unittest.TestCase):
       add_subdirectories(foo bar baz foo2 bar2 baz2)
       """)
 
-  def test_comment_after_closing_statement(self):
+  def test_comment_after_empty_command(self):
     self.do_format_test("""\
-      if(True)
-        message(STATUS "Lorem ipsum dolor sit amet, consectetur adipiscing elit")
-      endif() # Short comment
+      enable_testing() #comment
       """, """\
-      if(True)
-        message(STATUS "Lorem ipsum dolor sit amet, consectetur adipiscing elit")
-      endif() # Short comment
+      enable_testing() # comment
       """)
 
     self.do_format_test("""\
-      if(True)
-        message(STATUS "Lorem ipsum dolor sit amet, consectetur adipiscing elit")
-      endif() # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+      enable_testing() #Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
       """, """\
-      if(True)
-        message(STATUS "Lorem ipsum dolor sit amet, consectetur adipiscing elit")
-      endif() # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              # eiusmod tempor incididunt
+      enable_testing() # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+                       # do eiusmod tempor incididunt
       """)
 
   def test_long_args_command_split(self):
