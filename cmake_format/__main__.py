@@ -181,7 +181,7 @@ def main():
       title='Formatter Configuration',
       description='Override configfile options')
 
-  for key, value in configuration.Configuration().as_dict().iteritems():
+  for key, value in configuration.Configuration().as_dict().items():
     flag = '--{}'.format(key.replace('_', '-'))
     if isinstance(value, (dict, list)):
       continue

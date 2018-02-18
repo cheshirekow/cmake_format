@@ -30,7 +30,7 @@ def token_type_to_str(query):
   """
   Return the string name of a token type enum value.
   """
-  for name, value in globals().iteritems():
+  for name, value in globals().items():
     if name[0].upper() == name[0] and value == query:
       return name
   return None
