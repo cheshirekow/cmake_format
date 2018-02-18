@@ -72,7 +72,7 @@ class Configuration(ConfigObject):
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
-      for command_name, spec in additional_commands.iteritems():
+      for command_name, spec in additional_commands.items():
         commands.decl_command(self.fn_spec, command_name, **spec)
 
   def clone(self):

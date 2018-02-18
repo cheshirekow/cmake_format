@@ -26,7 +26,7 @@ class EnumObject(object):
 
   @classmethod
   def assign_names(cls):
-    for key, value in vars(cls).iteritems():
+    for key, value in vars(cls).items():
       if isinstance(value, cls):
         value.name_ = key
 

@@ -2,7 +2,11 @@
 import os
 import difflib
 import unittest
-import StringIO
+
+try:
+  import StringIO
+except ImportError:
+  import io as StringIO
 
 from cmake_format import __main__
 from cmake_format import commands
