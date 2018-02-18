@@ -621,25 +621,14 @@ class TestCanonicalFormatting(unittest.TestCase):
 
     self.config.new_line_after_dangling_parentheses = True
     self.do_format_test("""\
-      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>) # comment
       enable_testing()
       """, """\
       target_include_directories(
         target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-      )
+      ) # comment
 
       enable_testing()
-      """)
-
-    self.do_format_test("""\
-      target_include_directories(
-        target INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-      ) # FIXME no new line!
-      """, """\
-      target_include_directories(
-        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-      ) # FIXME no new line!
       """)
 
   def test_example_file(self):
