@@ -328,79 +328,107 @@ def is_control_statement(command_name):
   ]
 
 
+def open_command_parenthesis(config, command_name, lines):
+  if (config.separate_fn_name_with_space or (
+          is_control_statement(command_name) and config.separate_ctrl_name_with_space)):
+    lines.append(command_name + ' (')
+  else:
+    lines.append(command_name + '(')
+
+
+def format_command_body(config, command, line_width, lines):
+  command_length = len(lines[-1])
+
+  # Format args into a block that is aligned with the end of the
+  # parenthesis after the command name
+  lines_a = format_args(config, line_width - command_length,
+                        command.name, command.body)
+
+  # Format args into a block that is aligned with the command start
+  # plus one tab size
+  lines_b = format_args(config,
+                        line_width - config.tab_size,
+                        command.name, command.body)
+
+  # If the version aligned with the comand start + indent has *alot*
+  # fewer lines than the version aligned with the command end, then
+  # use this one. Also use it if the first option exceeds line width.
+  if len(lines_a) > 4 * len(lines_b) \
+          or get_block_width(lines_a) > line_width - command_length:
+    indent_str = ' ' * config.tab_size
+    for line in lines_b:
+      lines.append(indent_str + line)
+
+  # Otherwise use the version that is aligned with the command ending
+  else:
+    lines[-1] += lines_a[0]
+    indent_str = ' ' * command_length
+    for line in lines_a[1:]:
+      lines.append(indent_str + line)
+
+
+def close_command_parenthesis_without_body_comment(config, lines):
+  if config.dangling_parentheses and len(lines) > 1:
+    lines.append(')')
+  else:
+    lines[-1] += ')'
+
+
+def close_command_parenthesis(config, command, line_width, lines):
+  if len(lines[-1]) < line_width and not command.body[-1].comments:
+    close_command_parenthesis_without_body_comment(config, lines)
+  else:
+    lines.append(')')
+
+
+def add_command_comment(config, command, line_width, lines):
+  # If the command itself has a trailing line comment then attempt to
+  # keep the comment attached to the command, but consider also moving
+  # the comment to it's own line if that uses up a lot less lines.
+  if command.comment:
+    line_width_append = line_width - len(lines[-1]) - 1
+    comment_lines_append = format_comment_block(config,
+                                                line_width_append,
+                                                [command.comment])
+
+    comment_lines_extend = format_comment_block(config, line_width,
+                                                [command.comment])
+
+    if len(comment_lines_append) < 4 * len(comment_lines_extend):
+      append_indent = ' ' * (len(lines[-1]) + 1)
+      lines[-1] += ' ' + comment_lines_append[0]
+      lines.extend(indent_list(append_indent,
+                               comment_lines_append[1:]))
+    else:
+      lines.extend(comment_lines_extend)
+
+
 def format_command(config, command, line_width):
   """
   Formats a cmake command call into a block with at most line_width chars.
   Returns a list of lines.
   """
 
-  if (config.separate_fn_name_with_space or
-      # pylint: disable=bad-continuation
-      (is_control_statement(command.name)
-          and config.separate_ctrl_name_with_space)):
-    command_start = command.name + ' ('
+  lines = []
+
+  open_command_parenthesis(config, command.name, lines)
+
+  if len(command.body) > 0:
+    format_command_body(config, command, line_width, lines)
+    close_command_parenthesis(config, command, line_width, lines)
   else:
-    command_start = command.name + '('
+    # Command has no body so we close the parenthesis in the same line.
+    lines[-1] += ')'
 
-  # If there are no args then return just the command
-  if len(command.body) < 1:
-    return [command_start + ')']
-  else:
-    # Format args into a block that is aligned with the end of the
-    # parenthesis after the command name
-    lines_a = format_args(config, line_width - len(command_start),
-                          command.name, command.body)
+  # We have to save it before comment is added
+  is_multiline = (len(lines) > 1)
 
-    # Format args into a block that is aligned with the command start
-    # plus one tab size
-    lines_b = format_args(config,
-                          line_width - config.tab_size,
-                          command.name, command.body)
+  add_command_comment(config, command, line_width, lines)
 
-    # If the version aligned with the comand start + indent has *alot*
-    # fewer lines than the version aligned with the command end, then
-    # use this one. Also use it if the first option exceeds line width.
-    if len(lines_a) > 4 * len(lines_b) \
-            or get_block_width(lines_a) > line_width - len(command_start):
-      lines = [command_start]
-      indent_str = ' ' * config.tab_size
-      for line in lines_b:
-        lines.append(indent_str + line)
-      if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
-      else:
-        lines.append(indent_str[:-1] + ')')
+  # In case the is a comment, newline should be added after it
+  if is_multiline and config.new_line_after_dangling_parentheses:
+    lines.append('')
 
-    # Otherwise use the version that is aligned with the command ending
-    else:
-      lines = [command_start + lines_a[0]]
-      indent_str = ' ' * len(command_start)
-      for line in lines_a[1:]:
-        lines.append(indent_str + line)
-      if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
-      else:
-        lines.append(indent_str[:-1] + ')')
-
-    # If the command itself has a trailing line comment then attempt to
-    # keep the comment attached to the command, but consider also moving
-    # the comment to it's own line if that uses up a lot less lines.
-    if command.comment:
-      line_width_append = line_width - len(lines[-1]) - 1
-      comment_lines_append = format_comment_block(config,
-                                                  line_width_append,
-                                                  [command.comment])
-
-      comment_lines_extend = format_comment_block(config, line_width,
-                                                  [command.comment])
-
-      if len(comment_lines_append) < 4 * len(comment_lines_extend):
-        append_indent = ' ' * (len(lines[-1]) + 1)
-        lines[-1] += ' ' + comment_lines_append[0]
-        lines.extend(indent_list(append_indent,
-                                 comment_lines_append[1:]))
-      else:
-        lines.extend(comment_lines_extend)
   return lines
 
 

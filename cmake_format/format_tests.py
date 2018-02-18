@@ -97,6 +97,20 @@ class TestCanonicalFormatting(unittest.TestCase):
       add_subdirectories(foo bar baz foo2 bar2 baz2)
       """)
 
+  def test_comment_after_empty_command(self):
+    self.do_format_test("""\
+      enable_testing() #comment
+      """, """\
+      enable_testing() # comment
+      """)
+
+    self.do_format_test("""\
+      enable_testing() #Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+      """, """\
+      enable_testing() # Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+                       # do eiusmod tempor incididunt
+      """)
+
   def test_long_args_command_split(self):
     self.do_format_test("""\
       # This very long command should be split to multiple lines
@@ -586,6 +600,35 @@ class TestCanonicalFormatting(unittest.TestCase):
       message("First Argument" #[[Bracket Comment]] "Second Argument")
       """, """\
       message("First Argument" #[[Bracket Comment]] "Second Argument")
+      """)
+
+  def test_dangling_parentheses(self):
+    self.config.dangling_parentheses = True
+
+    self.do_format_test("""\
+      enable_testing()
+      """, """\
+      enable_testing()
+      """)
+
+    self.do_format_test("""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      """, """\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      )
+      """)
+
+    self.config.new_line_after_dangling_parentheses = True
+    self.do_format_test("""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>) # comment
+      enable_testing()
+      """, """\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      ) # comment
+
+      enable_testing()
       """)
 
   def test_example_file(self):
