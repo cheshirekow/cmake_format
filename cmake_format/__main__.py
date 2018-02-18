@@ -209,7 +209,7 @@ def main():
     config_dict.update(vars(args))
     cfg = configuration.Configuration(**config_dict)
     if args.in_place:
-      outfile = tempfile.NamedTemporaryFile(delete=False)
+      outfile = tempfile.NamedTemporaryFile(delete=False, mode='w')
     else:
       if args.outfile_path == '-':
         outfile = sys.stdout
