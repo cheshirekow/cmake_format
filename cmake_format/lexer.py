@@ -88,7 +88,7 @@ def tokenize(contents):
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
        lambda s, t: (DEREF, t)),
       (r"\n", lambda s, t: (NEWLINE, t)),
-      (r"\s+", lambda s, t: (WHITESPACE, t)),
+      (r"[ \t]+", lambda s, t: (WHITESPACE, t)),
       (r"#\s*cmake-format: off[^\n]*", lambda s, t: (FORMAT_OFF, t)),
       (r"#\s*cmake-format: on[^\n]*", lambda s, t: (FORMAT_ON, t)),
       # bracket comment
