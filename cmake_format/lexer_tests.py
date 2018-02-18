@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from cmake_format import __main__
 from cmake_format import lexer
 
 
@@ -34,6 +33,9 @@ class TestSpecificLexings(unittest.TestCase):
       #    whitespace is removed.]==]
       """, [lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.NEWLINE,
             lexer.WHITESPACE])
+
+  def test_trailiing_whitespace(self):
+    self.assert_tok_types(" \n", [lexer.WHITESPACE, lexer.NEWLINE])
 
 
 if __name__ == '__main__':
