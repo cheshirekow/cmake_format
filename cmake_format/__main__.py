@@ -49,7 +49,7 @@ def find_config_file(infile_path):
     for filename in ['.cmake-format',
                      '.cmake-format.yaml',
                      '.cmake-format.json',
-                     '.cmake-format.py'
+                     '.cmake-format.py',
                      'cmake-format.yaml',
                      'cmake-format.json',
                      'cmake-format.py']:
