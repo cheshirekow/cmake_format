@@ -37,11 +37,34 @@ v0.3.2
 * Add pyyaml as an extra dependency in pip configuration
 * Fix `cheshirekow/cmake_format#16`_: argparse defaults always override config
 
+v0.3.3
+------
+
+* Convert all string literals in format.py to unicode literals
+* Added python3 tests
+* Attempt to deal with python2/python3 string differences by using codecs
+  and io modules where appropriate. I probably got this wrong somewhere.
+* Fix missing comma in config file matching
+
+* Implement `cheshirekow/cmake_format#13`_: option to dangle parenthesis
+* Fix `cheshirekow/cmake_format#17`_: trailing comment stripped from commands
+  with no arguments
+* Fix `cheshirekow/cmake_format#21`_: corruption upon trailing whitespace
+* Fix `cheshirekow/cmake_format#23`_: wrapping long arguments has some weird
+  extra newline or missing indentation space.
+* Fix `cheshirekow/cmake_format#25`_: cannot invoke cmake-format with python3
+
 .. _cheshirekow/cmake_format#2: https://github.com/cheshirekow/cmake_format/issues/2
 .. _cheshirekow/cmake_format#3: https://github.com/cheshirekow/cmake_format/issues/3
 .. _cheshirekow/cmake_format#7: https://github.com/cheshirekow/cmake_format/issues/7
 .. _cheshirekow/cmake_format#9: https://github.com/cheshirekow/cmake_format/issues/9
+.. _cheshirekow/cmake_format#13: https://github.com/cheshirekow/cmake_format/issues/13
 .. _cheshirekow/cmake_format#16: https://github.com/cheshirekow/cmake_format/issues/16
+.. _cheshirekow/cmake_format#17: https://github.com/cheshirekow/cmake_format/issues/17
+.. _cheshirekow/cmake_format#21: https://github.com/cheshirekow/cmake_format/issues/21
+.. _cheshirekow/cmake_format#23: https://github.com/cheshirekow/cmake_format/issues/23
+.. _cheshirekow/cmake_format#25: https://github.com/cheshirekow/cmake_format/issues/25
+
 
 ------
 v0.2.0

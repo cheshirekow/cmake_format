@@ -23,4 +23,10 @@ TODO
 
 * Don't make format-on and format-off last beyond the current scope level.
 * Refactor formatter to work entirely at a tree level. Formatter active/inactive
-  only has effect at the current tree level (and those below).
+  only has effect at the current tree level (and those below). This will allow
+  a number of new features.
+
+  1. It will make it much easier to implement additional formatting strategies
+     at each level
+  2. It will allow activation/deactivation/reorder of strategy preferences
+  3. It will allow us to deal with outer parentheses easier

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import os
 import difflib
+import io
+import os
 import unittest
-import StringIO
 
 from cmake_format import __main__
 from cmake_format import commands
@@ -44,8 +44,9 @@ class TestCanonicalFormatting(unittest.TestCase):
     input_str = strip_indent(input_str, strip_len)
     output_str = strip_indent(output_str, strip_len)
 
-    infile = StringIO.StringIO(input_str)
-    outfile = StringIO.StringIO()
+    infile = io.StringIO(input_str)
+    outfile = io.StringIO()
+
     __main__.process_file(self.config, infile, outfile)
     delta_lines = list(difflib.unified_diff(outfile.getvalue().split('\n'),
                                             output_str.split('\n')))
@@ -60,7 +61,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       raise AssertionError(message)
 
   def test_collapse_additional_newlines(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # The following multiple newlines should be collapsed into a single newline
 
 
@@ -68,7 +69,7 @@ class TestCanonicalFormatting(unittest.TestCase):
 
       cmake_minimum_required(VERSION 2.8.11)
       project(cmake_format_test)
-      """, """\
+      """, u"""\
       # The following multiple newlines should be collapsed into a single newline
 
       cmake_minimum_required(VERSION 2.8.11)
@@ -76,32 +77,32 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_multiline_reflow(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This multiline-comment should be reflowed
       # into a single comment
       # on one line
-      """, """\
+      """, u"""\
       # This multiline-comment should be reflowed into a single comment on one line
       """)
 
   def test_comment_before_command(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This comment should remain right before the command call.
       # Furthermore, the command call should be formatted
       # to a single line.
       add_subdirectories(foo bar baz
         foo2 bar2 baz2)
-      """, """\
+      """, u"""\
       # This comment should remain right before the command call. Furthermore, the
       # command call should be formatted to a single line.
       add_subdirectories(foo bar baz foo2 bar2 baz2)
       """)
 
   def test_long_args_command_split(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This very long command should be split to multiple lines
       set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
-      """, """\
+      """, u"""\
       # This very long command should be split to multiple lines
       set(HEADERS
           very_long_header_name_a.h
@@ -110,11 +111,11 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_lots_of_args_command_split(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This command should be split into one line per entry because it has a long
       # argument list.
       set(SOURCES source_a.cc source_b.cc source_d.cc source_e.cc source_f.cc source_g.cc)
-      """, """\
+      """, u"""\
       # This command should be split into one line per entry because it has a long
       # argument list.
       set(SOURCES
@@ -129,21 +130,21 @@ class TestCanonicalFormatting(unittest.TestCase):
   # TODO(josh): figure out why this test elicits different behavior than the
   # whole-file demo.
   def test_string_preserved_during_split(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # The string in this command should not be split
       set_target_properties(foo bar baz PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
-      """, """\
+      """, u"""\
       # The string in this command should not be split
       set_target_properties(foo bar baz
                             PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
       """)
 
   def disabled_test_long_arg_on_newline(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This command has a very long argument and can't be aligned with the command
       # end, so it should be moved to a new line with block indent + 1.
       some_long_command_name("Some very long argument that really needs to be on the next line.")
-      """, """\
+      """, u"""\
       # This command has a very long argument and can't be aligned with the command
       # end, so it should be moved to a new line with block indent + 1.
       some_long_command_name(
@@ -151,11 +152,11 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def disabled_test_long_kwargarg_on_newline(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This situation is similar but the argument to a KWARG needs to be on a
       # newline instead.
       set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -Wno-unused-parameter -xx")
-      """, """\
+      """, u"""\
       # This situation is similar but the argument to a KWARG needs to be on a
       # newline instead.
       set(CMAKE_CXX_FLAGS
@@ -163,12 +164,12 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_argcomment_preserved_and_reflowed(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       set(HEADERS header_a.h header_b.h # This comment should
                                         # be preserved, moreover it should be split
                                         # across two lines.
           header_c.h header_d.h)
-      """, """\
+      """, u"""\
       set(HEADERS
           header_a.h
           header_b.h # This comment should be preserved, moreover it should be split
@@ -178,7 +179,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_format_off(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This part of the comment should
       # be formatted
       # but...
@@ -191,7 +192,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       # cmake-format: on
       #          while this part should
       #          be formatted again
-      """, """\
+      """, u"""\
       # This part of the comment should be formatted but...
       # cmake-format: off
       # This bunny should remain untouched:
@@ -204,13 +205,13 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_paragraphs_preserved(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This is a paragraph
       #
       # This is a second paragraph
       #
       # This is a third paragraph
-      """, """\
+      """, u"""\
       # This is a paragraph
       #
       # This is a second paragraph
@@ -219,19 +220,19 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_todo_preserved(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This is a comment
       # that should be joined but
       # TODO(josh): This todo should not be joined with the previous line.
       # NOTE(josh): Also this should not be joined with the todo.
-      """, """\
+      """, u"""\
       # This is a comment that should be joined but
       # TODO(josh): This todo should not be joined with the previous line.
       # NOTE(josh): Also this should not be joined with the todo.
       """)
 
   def test_complex_nested_stuff(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       if(foo)
       if(sbar)
       # This comment is in-scope.
@@ -244,7 +245,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       other_command(some_long_argument some_long_argument some_long_argument) # this comment is even longer and wouldn't make sense to pack at the end of the command so it gets it's own lines
       endif()
       endif()
-      """, """\
+      """, u"""\
       if(foo)
         if(sbar)
           # This comment is in-scope.
@@ -266,10 +267,10 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_custom_command(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This very long command should be broken up along keyword arguments
       foo(nonkwarg_a nonkwarg_b HEADERS a.h b.h c.h d.h e.h f.h SOURCES a.cc b.cc d.cc DEPENDS foo bar baz)
-      """, """\
+      """, u"""\
       # This very long command should be broken up along keyword arguments
       foo(nonkwarg_a nonkwarg_b
           HEADERS a.h
@@ -283,7 +284,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_some_string_stuff(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This command uses a string with escaped quote chars
       foo(some_arg some_arg "This is a \"string\" within a string")
 
@@ -294,7 +295,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       foo(some_arg some_arg "
           This string is on multiple lines
       ")
-      """, """\
+      """, u"""\
       # This command uses a string with escaped quote chars
       foo(some_arg some_arg "This is a \"string\" within a string")
 
@@ -308,14 +309,14 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_format_off_code(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # No, I really want this to look ugly
       # cmake-format: off
       add_library(a b.cc
         c.cc         d.cc
                 e.cc)
       # cmake-format: on
-      """, """\
+      """, u"""\
       # No, I really want this to look ugly
       # cmake-format: off
       add_library(a b.cc
@@ -325,21 +326,21 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_multiline_statement_comment_idempotent(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       set(HELLO hello world!) # TODO(josh): fix this bad code with some change that
                               # takes mutiple lines to explain
-      """, """\
+      """, u"""\
       set(HELLO hello world!) # TODO(josh): fix this bad code with some change that
                               # takes mutiple lines to explain
       """)
 
   def test_nested_parens(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       if((NOT HELLO) OR (NOT EXISTS ${WORLD}))
         message(WARNING "something is wrong")
         set(foobar FALSE)
       endif()
-      """, """\
+      """, u"""\
       if((NOT HELLO) OR (NOT EXISTS ${WORLD}))
         message(WARNING "something is wrong")
         set(foobar FALSE)
@@ -347,33 +348,33 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_function_def(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       function(forbarbaz arg1)
         do_something(arg1 ${ARGN})
       endfunction()
-      """, """\
+      """, u"""\
       function(forbarbaz arg1)
         do_something(arg1 ${ARGN})
       endfunction()
       """)
 
   def test_macro_def(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       macro(forbarbaz arg1)
         do_something(arg1 ${ARGN})
       endmacro()
-      """, """\
+      """, u"""\
       macro(forbarbaz arg1)
         do_something(arg1 ${ARGN})
       endmacro()
       """)
 
   def test_foreach(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       foreach(forbarbaz arg1 arg2, arg3)
         message(hello ${foobarbaz})
       endforeach()
-      """, """\
+      """, u"""\
       foreach(forbarbaz arg1 arg2, arg3)
         message(hello ${foobarbaz})
       endforeach()
@@ -381,11 +382,11 @@ class TestCanonicalFormatting(unittest.TestCase):
 
   def test_ctrl_space(self):
     self.config.separate_ctrl_name_with_space = True
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       if(foo)
         myfun(foo bar baz)
       endif()
-      """, """\
+      """, u"""\
       if (foo)
         myfun(foo bar baz)
       endif ()
@@ -393,51 +394,51 @@ class TestCanonicalFormatting(unittest.TestCase):
 
   def test_fn_space(self):
     self.config.separate_fn_name_with_space = True
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       myfun(foo bar baz)
-      """, """\
+      """, u"""\
       myfun (foo bar baz)
       """)
 
   def test_preserve_separator(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # --------------------
       # This is some
       # text that I expect
       # to reflow
       # --------------------
-      """, """\
+      """, u"""\
       # --------------------
       # This is some text that I expect to reflow
       # --------------------
       """)
 
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
       # This is some
       # text that I expect
       # to reflow
       # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
-      """, """\
+      """, u"""\
       # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
       # This is some text that I expect to reflow
       # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
       """)
 
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # ----Not Supported----
       # This is some
       # text that I expect
       # to reflow
       # ----Not Supported----
-      """, """\
+      """, u"""\
       # ----Not Supported----
       # This is some text that I expect to reflow
       # ----Not Supported----
       """)
 
   def test_bullets(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This is a bulleted list:
       #
       #   * item 1
@@ -449,7 +450,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       #   * this is not a bulleted list
       #   * and it will be
       #   * merged
-      """, """\
+      """, u"""\
       # This is a bulleted list:
       #
       # * item 1
@@ -462,7 +463,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_enum_lists(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This is a bulleted list:
       #
       #   1. item
@@ -485,7 +486,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       #   9. item
       #   9. item
       #
-      """, """\
+      """, u"""\
       # This is a bulleted list:
       #
       # 1. item
@@ -512,7 +513,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_nested_bullets(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # This is a bulleted list:
       #
       #   * item 1
@@ -526,7 +527,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       #
       # * item 7
       # * item 8
-      """, """\
+      """, u"""\
       # This is a bulleted list:
       #
       # * item 1
@@ -543,14 +544,14 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_comment_fence(self):
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       # ~~~~~~
       #   This is some
       #  verbatim text
       #      that should not be
       # formatted
       # ```````
-      """, """\
+      """, u"""\
       # ~~~
       #   This is some
       #  verbatim text
@@ -561,31 +562,131 @@ class TestCanonicalFormatting(unittest.TestCase):
 
   def test_bracket_comments(self):
 
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       #[[This is a bracket comment.
       It is preserved verbatim, but trailing whitespace is removed.
       So things like --this-- Are fine:]]
-      """, """\
+      """, u"""\
       #[[This is a bracket comment.
       It is preserved verbatim, but trailing whitespace is removed.
       So things like --this-- Are fine:]]
       """)
 
-    self.do_format_test("""\
+    self.do_format_test(u"""\
           #[==[This is a bracket comment at some nested level
           #    it is preserved verbatim, but trailing
           #    whitespace is removed.]==]
-      """, """\
+      """, u"""\
           #[==[This is a bracket comment at some nested level
           #    it is preserved verbatim, but trailing
           #    whitespace is removed.]==]
       """)
 
     # Make sure bracket comments are kept inline in their function call
-    self.do_format_test("""\
+    self.do_format_test(u"""\
       message("First Argument" #[[Bracket Comment]] "Second Argument")
-      """, """\
+      """, u"""\
       message("First Argument" #[[Bracket Comment]] "Second Argument")
+      """)
+
+  def test_comment_after_command(self):
+    self.do_format_test(u"""\
+      foo_command() # comment
+    """, u"""\
+      foo_command() # comment
+    """)
+
+    self.do_format_test(u"""\
+      foo_command() # this is a long comment that exceeds the desired page width and will be wrapped to a newline
+    """, u"""\
+      foo_command() # this is a long comment that exceeds the desired page width and
+                    # will be wrapped to a newline
+    """)
+
+  def test_arg_just_fits(self):
+    """
+    Ensure that if an argument *just* fits that it isn't superfluously wrapped
+    """
+
+    self.do_format_test(u"""\
+      message(FATAL_ERROR "81 character line ----------------------------------------")
+    """, u"""\
+      message(FATAL_ERROR
+                "81 character line ----------------------------------------")
+    """)
+
+    self.do_format_test(u"""\
+      message(FATAL_ERROR
+              "100 character line ----------------------------------------------------------"
+      ) # Closing parenthesis is indented one space!
+    """, u"""\
+      message(
+        FATAL_ERROR
+          "100 character line ----------------------------------------------------------"
+        ) # Closing parenthesis is indented one space!
+    """)
+
+    self.do_format_test(u"""\
+      message(
+        "100 character line ----------------------------------------------------------------------"
+        ) # Closing parenthesis is indented one space!
+    """, u"""\
+      message(
+        "100 character line ----------------------------------------------------------------------"
+        ) # Closing parenthesis is indented one space!
+    """)
+
+  def test_dangle_parens(self):
+    self.config.dangle_parens = True
+    self.do_format_test(u"""\
+      foo_command()
+      foo_command(arg1)
+      foo_command(arg1) # comment
+    """, u"""\
+      foo_command()
+      foo_command(arg1)
+      foo_command(arg1) # comment
+    """)
+
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(
+        longargname longargname longargname longargname longargname
+      )
+    """)
+
+    self.do_format_test(u"""\
+      if(foo)
+        some_long_command_name(longargname longargname longargname longargname longargname)
+      endif()
+    """, u"""\
+      if(foo)
+        some_long_command_name(
+          longargname longargname longargname longargname longargname
+        )
+      endif()
+    """)
+
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname)
+    """)
+
+    self.do_format_test(u"""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      """, u"""\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+      )
       """)
 
   def test_example_file(self):
@@ -593,9 +694,9 @@ class TestCanonicalFormatting(unittest.TestCase):
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
     outfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
 
-    with open(infile_path, 'r') as infile:
+    with io.open(infile_path, 'r', encoding='utf8') as infile:
       infile_text = infile.read()
-    with open(outfile_path, 'r') as outfile:
+    with io.open(outfile_path, 'r', encoding='utf8') as outfile:
       outfile_text = outfile.read()
 
     self.do_format_test(infile_text, outfile_text, strip_len=0)

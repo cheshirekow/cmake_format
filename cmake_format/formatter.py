@@ -1,3 +1,5 @@
+import logging
+
 from cmake_format import lexer
 from cmake_format import markup
 from cmake_format import parser
@@ -16,10 +18,10 @@ def format_comment_block(config, line_width,  # pylint: disable=unused-argument
   Reflow a comment block into the given line_width. Return a list of lines.
   """
 
-  stripped_lines = [line.strip().lstrip('#')
+  stripped_lines = [line.strip().lstrip(u'#')
                     for line in comment_lines]
   items = markup.parse(stripped_lines)
-  return ['# ' + line
+  return [u'# ' + line
           for line in markup.format_items(config, line_width - 2, items)]
 
 
@@ -73,9 +75,9 @@ def format_single_arg(config,  # pylint: disable=unused-argument
     if comment_width < 0:
       return None
     comment_lines = format_comment_block(config, comment_width, arg.comments)
-    lines = [arg.contents + ' ' + comment_lines[0]]
+    lines = [arg.contents + u' ' + comment_lines[0]]
     for comment_line in comment_lines[1:]:
-      lines.append(' ' * (len(arg.contents) + 1) + comment_line)
+      lines.append(u' ' * (len(arg.contents) + 1) + comment_line)
     return lines
 
   return [arg.contents]
@@ -88,7 +90,7 @@ def split_shell_command(args):
   """
   arglist = []
   for arg in args:
-    if arg.contents.startswith('--'):
+    if arg.contents.startswith(u'--'):
       arglist.append([arg])
     elif arglist:
       arglist[-1].append(arg)
@@ -105,7 +107,7 @@ def format_shell_command(config, line_width, command_name, args):
   # If that line is small enough to fit then we are done, and just return that
   # single line.
   if not arg_exists_with_comment(args):
-    single_line = ' '.join([arg.contents for arg in args])
+    single_line = u' '.join([arg.contents for arg in args])
     if len(single_line) < line_width:
       return [single_line]
 
@@ -136,15 +138,15 @@ def join_parens(args):
   """
 
   out = []
-  cache = ""
+  cache = u''
   for arg in args:
-    if arg == '(':
+    if arg == u'(':
       cache += arg
-    elif arg == ')':
+    elif arg == u')':
       out[-1] += arg
     else:
       out.append(cache + arg)
-      cache = ""
+      cache = u''
   return out
 
 
@@ -160,14 +162,14 @@ def format_kwarglist(config, line_width, command_name, args):
 
   # If the KWARG is 'COMMAND' then let's not put one entry per line,
   # but fit as many command args per line as possible.
-  if kwarg == 'COMMAND':
+  if kwarg == u'COMMAND':
     # Copy the config and override max subargs per line
     config = config.clone()
     # pylint: disable=attribute-defined-outside-init
     config.max_subargs_per_line = 1e6
 
-    aligned_indent_str = ' ' * (len(kwarg) + 1)
-    tabbed_indent_str = ' ' * config.tab_size
+    aligned_indent_str = u' ' * (len(kwarg) + 1)
+    tabbed_indent_str = u' ' * config.tab_size
 
     # Lines to append if we put them aligned with the end of the kwarg
     line_width_aligned = line_width - len(aligned_indent_str)
@@ -181,8 +183,8 @@ def format_kwarglist(config, line_width, command_name, args):
                                         args[1].contents, args[1:])
 
   else:
-    aligned_indent_str = ' ' * (len(kwarg) + 1)
-    tabbed_indent_str = ' ' * config.tab_size
+    aligned_indent_str = u' ' * (len(kwarg) + 1)
+    tabbed_indent_str = u' ' * config.tab_size
 
     # Lines to append if we put them aligned with the end of the kwarg
     line_width_aligned = line_width - len(aligned_indent_str)
@@ -195,11 +197,14 @@ def format_kwarglist(config, line_width, command_name, args):
     lines_tabbed = format_arglist(config, line_width_tabbed,
                                   command_name, args[1:])
 
-  # If aligned doesn't fit, then use tabbed
+  # If aligned doesn't fit, then use tabbed.
   if get_block_width(lines_aligned) > line_width - len(aligned_indent_str):
     return [kwarg] + indent_list(tabbed_indent_str, lines_tabbed)
 
-  return ([kwarg + ' ' + lines_aligned[0]]
+  if not lines_aligned[0]:
+    logging.warn("BUG! format_arglist returned empty firstline!")
+
+  return ([kwarg + u' ' + lines_aligned[0]]
           + indent_list(aligned_indent_str, lines_aligned[1:]))
 
 
@@ -210,9 +215,6 @@ def format_nonkwarglist(config, line_width, args):
   indent_str = ''
   lines = ['']
 
-  # TODO(josh): if aligning after the KWARG exeeds line width, then move one
-  # line below and align to the start + one indent.
-
   # if the there are "lots" of arguments in the list, put one per line,
   # but we can't reuse the logic below since we do want to append to the
   # first line.
@@ -220,7 +222,7 @@ def format_nonkwarglist(config, line_width, args):
     first_lines = format_single_arg(config, line_width - len(indent_str),
                                     args[0])
     if lines[-1]:
-      lines[-1] += ' '
+      lines[-1] += u' '
     lines[-1] += first_lines[0]
     for line in first_lines[1:]:
       lines.append(indent_str + line)
@@ -242,9 +244,15 @@ def format_nonkwarglist(config, line_width, args):
     else:
       lines_append = None
 
+    if lines_append and not lines_append[0].strip():
+      logging.warn("BUG! format_single_arg returned empty first line")
+
     # Lines to add if we are going to make a new line for this arg
     lines_new = format_single_arg(
         config, line_width - len(indent_str), arg)
+
+    if lines_new and not lines_new[0].strip():
+      logging.warn("BUG! format_single_arg returned empty first line")
 
     # If going to a new line greatly reduces the number of lines required
     # then choose that option over the latter.
@@ -252,12 +260,14 @@ def format_nonkwarglist(config, line_width, args):
             # pylint: disable=bad-continuation
             or len(lines_append[0]) + len(lines[-1]) + 1 > line_width
             or 4 * len(lines_new) < len(lines_append)):
+      if not lines[-1]:
+        lines.pop(-1)
       for line in lines_new:
         lines.append(indent_str + line)
     else:
-      arg_indent_str = ' ' * (len(lines[-1]) + 1)
+      arg_indent_str = u' ' * (len(lines[-1]) + 1)
       if lines[-1]:
-        lines[-1] += ' '
+        lines[-1] += u' '
       lines[-1] += lines_append[0]
 
       for line in lines_append[1:]:
@@ -286,7 +296,7 @@ def format_args(config, line_width, command_name, args):
   # If there are no arguments that contain a comment, then attempt to
   # pack all of the arguments onto a single line
   if not arg_exists_with_comment(args):
-    single_line = ' '.join(join_parens([arg.contents for arg in args]))
+    single_line = u' '.join(join_parens([arg.contents for arg in args]))
     if len(single_line) < line_width:
       return [single_line]
 
@@ -304,9 +314,16 @@ def format_args(config, line_width, command_name, args):
     else:
       arg_multilist_filtered.append(arg_sublist)
 
-  for arg_sublist in arg_multilist_filtered:
-    sublist_lines = format_arglist(config, line_width, command_name,
-                                   arg_sublist)
+  for idx, arg_sublist in enumerate(arg_multilist_filtered):
+    if idx + 1 == len(arg_multilist_filtered):
+      # NOTE(josh): reserve one character in the final arglist for the
+      # parenthesis. This is not the right way to deal with this problem
+      # but it'll work until the tree-format refactor.
+      sublist_lines = format_arglist(config, line_width - 1, command_name,
+                                     arg_sublist)
+    else:
+      sublist_lines = format_arglist(config, line_width, command_name,
+                                     arg_sublist)
     lines.extend(sublist_lines)
 
   return lines
@@ -319,12 +336,12 @@ def get_block_width(lines):
 
 def is_control_statement(command_name):
   return command_name.lower() in [
-      'if', 'elseif', 'else', 'endif',
-      'while', 'endwhile',
-      'foreach', 'endforeach',
-      'function', 'endfunction',
-      'macro', 'endmacro',
-      'continue', 'break', 'return',
+      u'if', u'elseif', u'else', u'endif',
+      u'while', u'endwhile',
+      u'foreach', u'endforeach',
+      u'function', u'endfunction',
+      u'macro', u'endmacro',
+      u'continue', u'break', u'return',
   ]
 
 
@@ -338,13 +355,13 @@ def format_command(config, command, line_width):
       # pylint: disable=bad-continuation
       (is_control_statement(command.name)
           and config.separate_ctrl_name_with_space)):
-    command_start = command.name + ' ('
+    command_start = command.name + u' ('
   else:
-    command_start = command.name + '('
+    command_start = command.name + u'('
 
   # If there are no args then return just the command
   if len(command.body) < 1:
-    return [command_start + ')']
+    lines = [command_start + u')']
   else:
     # Format args into a block that is aligned with the end of the
     # parenthesis after the command name
@@ -360,47 +377,57 @@ def format_command(config, command, line_width):
     # If the version aligned with the comand start + indent has *alot*
     # fewer lines than the version aligned with the command end, then
     # use this one. Also use it if the first option exceeds line width.
+    chosen = None
     if len(lines_a) > 4 * len(lines_b) \
             or get_block_width(lines_a) > line_width - len(command_start):
+      chosen = lines_b
       lines = [command_start]
-      indent_str = ' ' * config.tab_size
+      indent_str = u' ' * config.tab_size
       for line in lines_b:
         lines.append(indent_str + line)
-      if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
-      else:
-        lines.append(indent_str[:-1] + ')')
 
     # Otherwise use the version that is aligned with the command ending
     else:
+      chosen = lines_a
       lines = [command_start + lines_a[0]]
-      indent_str = ' ' * len(command_start)
+      indent_str = u' ' * len(command_start)
       for line in lines_a[1:]:
         lines.append(indent_str + line)
+
+    if chosen is lines_b and config.dangle_parens:
+      # If we're configured to dangle newlines but there's one line worth of
+      # stuff then don't dangle
+      if (len(lines) == 1 and len(lines[-1]) < line_width
+              # pylint: disable=bad-continuation
+              and not command.body[-1].comments):
+        lines[-1] += u')'
+      else:
+        lines.append(u')')
+    else:
       if len(lines[-1]) < line_width and not command.body[-1].comments:
-        lines[-1] += ')'
+        lines[-1] += u')'
       else:
-        lines.append(indent_str[:-1] + ')')
+        lines.append(indent_str + u')')
 
-    # If the command itself has a trailing line comment then attempt to
-    # keep the comment attached to the command, but consider also moving
-    # the comment to it's own line if that uses up a lot less lines.
-    if command.comment:
-      line_width_append = line_width - len(lines[-1]) - 1
-      comment_lines_append = format_comment_block(config,
-                                                  line_width_append,
-                                                  [command.comment])
+  # If the command itself has a trailing line comment then attempt to
+  # keep the comment attached to the command, but consider also moving
+  # the comment to it's own line if that uses up a lot less lines.
+  if command.comment:
+    line_width_append = line_width - len(lines[-1]) - 1
+    comment_lines_append = format_comment_block(config,
+                                                line_width_append,
+                                                [command.comment])
 
-      comment_lines_extend = format_comment_block(config, line_width,
-                                                  [command.comment])
+    comment_lines_extend = format_comment_block(config, line_width,
+                                                [command.comment])
 
-      if len(comment_lines_append) < 4 * len(comment_lines_extend):
-        append_indent = ' ' * (len(lines[-1]) + 1)
-        lines[-1] += ' ' + comment_lines_append[0]
-        lines.extend(indent_list(append_indent,
-                                 comment_lines_append[1:]))
-      else:
-        lines.extend(comment_lines_extend)
+    if len(comment_lines_append) < 4 * len(comment_lines_extend):
+      append_indent = u' ' * (len(lines[-1]) + 1)
+      lines[-1] += u' ' + comment_lines_append[0]
+      lines.extend(indent_list(append_indent,
+                               comment_lines_append[1:]))
+    else:
+      lines.extend(comment_lines_extend)
   return lines
 
 
@@ -410,7 +437,7 @@ def write_indented(outfile, indent_str, lines):
   for line in lines:
     outfile.write(indent_str)
     outfile.write(line)
-    outfile.write('\n')
+    outfile.write(u'\n')
 
 
 class TreePrinter(object):
@@ -435,7 +462,7 @@ class TreePrinter(object):
     """
     Return an indentation string appropriate for the current scope depth.
     """
-    return ' ' * self.get_indent_size()
+    return u' ' * self.get_indent_size()
 
   def get_line_width(self):
     """
@@ -470,7 +497,7 @@ class TreePrinter(object):
 
         # NOTE(josh): I'm not sure we want to format these the way we do regular
         # line comments... For now, let's just render verbatim.
-        self.outfile.write(' ' * tokens[0].col)
+        self.outfile.write(u' ' * tokens[0].col)
         self.outfile.write(tokens[0].content)
         return
       else:
@@ -489,7 +516,7 @@ class TreePrinter(object):
       for line in lines[:-1]:
         self.outfile.write(self.get_indent())
         self.outfile.write(line.rstrip())
-        self.outfile.write('\n')
+        self.outfile.write(u'\n')
       self.outfile.write(self.get_indent())
       self.outfile.write(lines[-1].rstrip())
     else:
@@ -513,7 +540,7 @@ class TreePrinter(object):
       if token.type == lexer.FORMAT_OFF:
         self.print_comment_tokens(cache)
         if cache:
-          self.outfile.write('\n')
+          self.outfile.write(u'\n')
         cache = [token]
         self.active = False
       elif token.type == lexer.FORMAT_ON:
@@ -548,9 +575,9 @@ class TreePrinter(object):
       num_newlines = node.count_newlines()
       # Block-level whitespace is collapsed into exactly one or two newlines
       if num_newlines > 1:
-        self.outfile.write('\n\n')
+        self.outfile.write(u'\n\n')
       elif num_newlines > 0:
-        self.outfile.write('\n')
+        self.outfile.write(u'\n')
     else:
       for token in node.content.tokens:
         self.outfile.write(token.content)
@@ -568,7 +595,7 @@ class TreePrinter(object):
       for line in lines[:-1]:
         self.outfile.write(self.get_indent())
         self.outfile.write(line.rstrip())
-        self.outfile.write('\n')
+        self.outfile.write(u'\n')
       self.outfile.write(self.get_indent())
       self.outfile.write(lines[-1].rstrip())
     else:

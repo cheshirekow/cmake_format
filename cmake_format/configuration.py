@@ -50,6 +50,7 @@ class Configuration(ConfigObject):
                max_subargs_per_line=3,
                separate_ctrl_name_with_space=False,
                separate_fn_name_with_space=False,
+               dangle_parens=False,
                bullet_char='*',
                enum_char=".",
                additional_commands=None, **_):
@@ -64,6 +65,7 @@ class Configuration(ConfigObject):
 
     self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
     self.separate_fn_name_with_space = separate_fn_name_with_space
+    self.dangle_parens = dangle_parens
 
     self.bullet_char = str(bullet_char)[0]
     self.enum_char = str(enum_char)[0]
@@ -72,7 +74,7 @@ class Configuration(ConfigObject):
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
-      for command_name, spec in additional_commands.iteritems():
+      for command_name, spec in additional_commands.items():
         commands.decl_command(self.fn_spec, command_name, **spec)
 
   def clone(self):

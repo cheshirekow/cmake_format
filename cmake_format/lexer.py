@@ -30,7 +30,7 @@ def token_type_to_str(query):
   """
   Return the string name of a token type enum value.
   """
-  for name, value in globals().iteritems():
+  for name, value in globals().items():
     if name[0].upper() == name[0] and value == query:
       return name
   return None
@@ -88,7 +88,9 @@ def tokenize(contents):
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
        lambda s, t: (DEREF, t)),
       (r"\n", lambda s, t: (NEWLINE, t)),
-      (r"\s+", lambda s, t: (WHITESPACE, t)),
+      # NOTE(josh): don't match '\s' here or we'll miss some newline tokens
+      # TODO(josh): should we match unicode whitespace too?
+      (r"[ \t\r\f\v]+", lambda s, t: (WHITESPACE, t)),
       (r"#\s*cmake-format: off[^\n]*", lambda s, t: (FORMAT_OFF, t)),
       (r"#\s*cmake-format: on[^\n]*", lambda s, t: (FORMAT_ON, t)),
       # bracket comment

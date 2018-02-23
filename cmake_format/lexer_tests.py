@@ -17,23 +17,34 @@ class TestSpecificLexings(unittest.TestCase):
                      [tok.type for tok in lexer.tokenize(input_str)])
 
   def test_bracket_arguments(self):
-    self.assert_tok_types("foo(bar [=[hello world]=] baz)", [
+    self.assert_tok_types(u"foo(bar [=[hello world]=] baz)", [
         lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
         lexer.WHITESPACE, lexer.BRACKET_ARGUMENT, lexer.WHITESPACE,
         lexer.WORD, lexer.RIGHT_PAREN])
 
   def test_bracket_comments(self):
-    self.assert_tok_types("foo(bar #[=[hello world]=] baz)", [
+    self.assert_tok_types(u"foo(bar #[=[hello world]=] baz)", [
         lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
         lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.WHITESPACE,
         lexer.WORD, lexer.RIGHT_PAREN])
 
-    self.assert_tok_types("""\
+    self.assert_tok_types(u"""\
       #[==[This is a bracket comment at some nested level
       #    it is preserved verbatim, but trailing
       #    whitespace is removed.]==]
       """, [lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.NEWLINE,
             lexer.WHITESPACE])
+
+  def test_mixed_whitespace(self):
+    """
+    Ensure that if a newline is part of a whitespace sequence then it is
+    tokenized separately.
+    """
+    self.assert_tok_types(u" \n", [lexer.WHITESPACE, lexer.NEWLINE])
+    self.assert_tok_types(u"\t\n", [lexer.WHITESPACE, lexer.NEWLINE])
+    self.assert_tok_types(u"\f\n", [lexer.WHITESPACE, lexer.NEWLINE])
+    self.assert_tok_types(u"\r\n", [lexer.WHITESPACE, lexer.NEWLINE])
+    self.assert_tok_types(u"\v\n", [lexer.WHITESPACE, lexer.NEWLINE])
 
 
 if __name__ == '__main__':

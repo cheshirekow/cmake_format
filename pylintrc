@@ -99,18 +99,15 @@ ignore-mixin-members=yes
 # List of classes names for which member attributes should not be checked
 # (useful for classes with attributes dynamically set).
 ignored-classes=
-    AttrDict,
     cairo,
+    clangdoc.cindex.TokenKind,
     cv2,
     git_watch.inotify,
+    jinja2,
     matplotlib.cm,
-    NetParameter,
     numpy,
     numpy.random,
-    ParameterSet,
     scoped_session,
-    SolverParameter,
-    SolverParams,
     SQLAlchemy,
     SQLObject,
     tensorflow,

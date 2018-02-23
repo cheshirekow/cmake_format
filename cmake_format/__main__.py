@@ -13,7 +13,9 @@ for customization. Run with `--dump-config [yaml|cmake|python]`.
 """
 
 import argparse
+import codecs
 import json
+import logging
 import os
 import pprint
 import shutil
@@ -24,6 +26,8 @@ from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import parser
+
+VERSION = '0.3.3'
 
 
 def process_file(config, infile, outfile):
@@ -47,12 +51,12 @@ def find_config_file(infile_path):
   head, _ = os.path.split(realpath)
   while head:
     for filename in ['.cmake-format',
-                     '.cmake-format.yaml',
+                     '.cmake-format.py',
                      '.cmake-format.json',
-                     '.cmake-format.py'
-                     'cmake-format.yaml',
+                     '.cmake-format.yaml',
+                     'cmake-format.py',
                      'cmake-format.json',
-                     'cmake-format.py']:
+                     'cmake-format.yaml', ]:
       configpath = os.path.join(head, filename)
       if os.path.exists(configpath):
         return configpath
@@ -71,21 +75,21 @@ def try_get_configdict(configfile_path):
   sentinel to indicate the file format?
   """
   try:
-    with open(configfile_path, 'r') as config_file:
+    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
       return json.load(config_file)
   except:  # pylint: disable=bare-except
     pass
 
   try:
     import yaml
-    with open(configfile_path, 'r') as config_file:
+    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
       return yaml.load(config_file)
   except:  # pylint: disable=bare-except
     pass
 
   try:
     config_dict = {}
-    with open(configfile_path) as infile:
+    with codecs.open(configfile_path, 'r', encoding='utf8') as infile:
       # pylint: disable=exec-used
       exec(infile.read(), config_dict)
     return config_dict
@@ -107,7 +111,7 @@ def get_config(infile_path, configfile_path):
 
   config_dict = {}
   if configfile_path:
-    with open(configfile_path, 'r') as config_file:
+    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
       if configfile_path.endswith('.json'):
         config_dict = json.load(config_file)
       elif configfile_path.endswith('.yaml'):
@@ -115,7 +119,7 @@ def get_config(infile_path, configfile_path):
         config_dict = yaml.load(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
-        with open(configfile_path) as infile:
+        with codecs.open(configfile_path, 'r', encoding='utf8') as infile:
           # pylint: disable=exec-used
           exec(infile.read(), config_dict)
       else:
@@ -157,13 +161,21 @@ cmake-format [-h]
 def main():
   """Parse arguments, open files, start work."""
 
+  # set up main logger, which logs everything. We'll leave this one logging
+  # to the console
+  format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'
+  logging.basicConfig(level=logging.INFO,
+                      format=format_str,
+                      datefmt='%Y-%m-%d %H:%M:%S',
+                      filemode='w')
+
   arg_parser = argparse.ArgumentParser(
       description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter,
       usage=USAGE_STRING)
 
   arg_parser.add_argument('-v', '--version', action='version',
-                          version='0.3.2')
+                          version=VERSION)
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
@@ -181,7 +193,7 @@ def main():
       title='Formatter Configuration',
       description='Override configfile options')
 
-  for key, value in configuration.Configuration().as_dict().iteritems():
+  for key, value in configuration.Configuration().as_dict().items():
     flag = '--{}'.format(key.replace('_', '-'))
     if isinstance(value, (dict, list)):
       continue
@@ -209,16 +221,24 @@ def main():
     config_dict.update(vars(args))
     cfg = configuration.Configuration(**config_dict)
     if args.in_place:
-      outfile = tempfile.NamedTemporaryFile(delete=False)
+      outfile = tempfile.NamedTemporaryFile(delete=False, mode='w')
     else:
       if args.outfile_path == '-':
-        outfile = sys.stdout
+        # NOTE(josh): The behavior or sys.stdout is different in python2 and
+        # python3. Annoyingly, if stdout is not a terminal (i.e. it is a pipe)
+        # and the encoding is not set, then the file object in python3 expects
+        # only strings on write() and will not accept the output of a
+        # codecs.StreamWriter
+        if str(sys.stdout.encoding).lower() in ['utf-8', 'utf8']:
+          outfile = sys.stdout
+        else:
+          outfile = codecs.getwriter('utf8')(sys.stdout)
       else:
-        outfile = open(args.outfile_path, 'w')
+        outfile = codecs.open(args.outfile_path, 'w', encoding='utf8')
 
     parse_ok = True
     try:
-      with open(infile_path, 'r') as infile:
+      with codecs.open(infile_path, 'r', encoding='utf8') as infile:
         try:
           process_file(cfg, infile, outfile)
         except:
