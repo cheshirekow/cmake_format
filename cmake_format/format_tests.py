@@ -55,7 +55,7 @@ class TestCanonicalFormatting(unittest.TestCase):
     if outfile.getvalue() != output_str:
       message = ('Input text:\n-----------------\n{}\n'
                  'Output text:\n-----------------\n{}\n'
-                 'Expected Output:\n-----------------\n{}'
+                 'Expected Output:\n-----------------\n{}\n'
                  'Diff:\n-----------------\n{}'
                  .format(input_str, outfile.getvalue(), output_str, delta))
       raise AssertionError(message)
@@ -688,6 +688,33 @@ class TestCanonicalFormatting(unittest.TestCase):
         target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
       )
       """)
+
+  def test_windows_line_endings_input(self):
+    self.do_format_test(
+        u"      #[[*********************************************\r\n"
+        u"      * Information line 1\r\n"
+        u"      * Information line 2\r\n"
+        u"      ************************************************]]\r\n", u"""\
+      #[[*********************************************
+      * Information line 1
+      * Information line 2
+      ************************************************]]""")
+
+  def test_windows_line_endings_output(self):
+    config_dict = self.config.as_dict()
+    config_dict['line_ending'] = 'windows'
+    self.config = configuration.Configuration(**config_dict)
+
+    self.do_format_test(
+        u"""\
+      #[[*********************************************
+      * Information line 1
+      * Information line 2
+      ************************************************]]""",
+        u"      #[[*********************************************\r\n"
+        u"      * Information line 1\r\n"
+        u"      * Information line 2\r\n"
+        u"      ************************************************]]\r\n")
 
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)

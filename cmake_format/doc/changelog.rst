@@ -65,6 +65,20 @@ v0.3.3
 .. _cheshirekow/cmake_format#23: https://github.com/cheshirekow/cmake_format/issues/23
 .. _cheshirekow/cmake_format#25: https://github.com/cheshirekow/cmake_format/issues/25
 
+v0.3.4
+------
+
+* Don't use tempfile.NamedTemporaryFile because it has different (and,
+  honestly, buggy behavior) comparied to codecs.open() or io.open()
+* Use io.open() instead of codecs.open(). I'm not sure why to prefer one over
+  the other but since io.open is more or less required for printing to stdout
+  I'll use io.open for everything
+* Lexer consumes windows line endings as line endings
+* Add inplace invocation test
+* Add line ending configuration parameter
+* Add configuration parameter command line documentation
+* Add documentation to python config file dump output
+* Strip trailing whitespace and normalize line endings in bracket comments
 
 ------
 v0.2.0

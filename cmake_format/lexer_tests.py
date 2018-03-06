@@ -43,8 +43,8 @@ class TestSpecificLexings(unittest.TestCase):
     self.assert_tok_types(u" \n", [lexer.WHITESPACE, lexer.NEWLINE])
     self.assert_tok_types(u"\t\n", [lexer.WHITESPACE, lexer.NEWLINE])
     self.assert_tok_types(u"\f\n", [lexer.WHITESPACE, lexer.NEWLINE])
-    self.assert_tok_types(u"\r\n", [lexer.WHITESPACE, lexer.NEWLINE])
     self.assert_tok_types(u"\v\n", [lexer.WHITESPACE, lexer.NEWLINE])
+    self.assert_tok_types(u"\r\n", [lexer.NEWLINE])
 
 
 if __name__ == '__main__':

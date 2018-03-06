@@ -87,10 +87,14 @@ def tokenize(contents):
       # NOTE(josh): I don't think works for nested derefs.
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
        lambda s, t: (DEREF, t)),
-      (r"\n", lambda s, t: (NEWLINE, t)),
+      # NOTE(josh): bare carriage returns are very unlikely to be used but
+      # just for the case of explicitnes, if we ever encounter any we treat
+      # it as a newline
+      (r"\r?\n", lambda s, t: (NEWLINE, t)),
+      (r"\r\n?", lambda s, t: (NEWLINE, t)),
       # NOTE(josh): don't match '\s' here or we'll miss some newline tokens
       # TODO(josh): should we match unicode whitespace too?
-      (r"[ \t\r\f\v]+", lambda s, t: (WHITESPACE, t)),
+      (r"[ \t\f\v]+", lambda s, t: (WHITESPACE, t)),
       (r"#\s*cmake-format: off[^\n]*", lambda s, t: (FORMAT_OFF, t)),
       (r"#\s*cmake-format: on[^\n]*", lambda s, t: (FORMAT_ON, t)),
       # bracket comment

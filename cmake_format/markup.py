@@ -40,6 +40,7 @@ CommentType.VERBATIM = CommentType(7)
 
 
 class CommentItem(object):
+
   def __init__(self, kind):
     self.kind = kind
     self.indent = None

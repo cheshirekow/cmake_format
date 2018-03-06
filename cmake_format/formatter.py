@@ -1,4 +1,5 @@
 import logging
+import re
 
 from cmake_format import lexer
 from cmake_format import markup
@@ -431,15 +432,6 @@ def format_command(config, command, line_width):
   return lines
 
 
-def write_indented(outfile, indent_str, lines):
-  """Write lines to outfile prefixed with indent_str."""
-
-  for line in lines:
-    outfile.write(indent_str)
-    outfile.write(line)
-    outfile.write(u'\n')
-
-
 class TreePrinter(object):
   """
   Maintains printing state and implements node printers for various types of
@@ -496,9 +488,12 @@ class TreePrinter(object):
         assert len(tokens) == 1
 
         # NOTE(josh): I'm not sure we want to format these the way we do regular
-        # line comments... For now, let's just render verbatim.
+        # line comments... For now, let's copy the comment more or less verbatim
+        # but with line-endings normalized and trailing whitespace removed
         self.outfile.write(u' ' * tokens[0].col)
-        self.outfile.write(tokens[0].content)
+        text = re.sub('[ \t\f\v]*((\r?\n)|(\r\n?))', self.config.endl,
+                      tokens[0].content)
+        self.outfile.write(text)
         return
       else:
         # Strip newline tokens and remove the comment char
@@ -516,7 +511,7 @@ class TreePrinter(object):
       for line in lines[:-1]:
         self.outfile.write(self.get_indent())
         self.outfile.write(line.rstrip())
-        self.outfile.write(u'\n')
+        self.outfile.write(self.config.endl)
       self.outfile.write(self.get_indent())
       self.outfile.write(lines[-1].rstrip())
     else:
@@ -540,7 +535,7 @@ class TreePrinter(object):
       if token.type == lexer.FORMAT_OFF:
         self.print_comment_tokens(cache)
         if cache:
-          self.outfile.write(u'\n')
+          self.outfile.write(self.config.endl)
         cache = [token]
         self.active = False
       elif token.type == lexer.FORMAT_ON:
@@ -575,9 +570,9 @@ class TreePrinter(object):
       num_newlines = node.count_newlines()
       # Block-level whitespace is collapsed into exactly one or two newlines
       if num_newlines > 1:
-        self.outfile.write(u'\n\n')
-      elif num_newlines > 0:
-        self.outfile.write(u'\n')
+        self.outfile.write(self.config.endl)
+      if num_newlines > 0:
+        self.outfile.write(self.config.endl)
     else:
       for token in node.content.tokens:
         self.outfile.write(token.content)
@@ -595,7 +590,7 @@ class TreePrinter(object):
       for line in lines[:-1]:
         self.outfile.write(self.get_indent())
         self.outfile.write(line.rstrip())
-        self.outfile.write(u'\n')
+        self.outfile.write(self.config.endl)
       self.outfile.write(self.get_indent())
       self.outfile.write(lines[-1].rstrip())
     else:

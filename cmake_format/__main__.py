@@ -13,7 +13,7 @@ for customization. Run with `--dump-config [yaml|cmake|python]`.
 """
 
 import argparse
-import codecs
+import io
 import json
 import logging
 import os
@@ -21,13 +21,14 @@ import pprint
 import shutil
 import sys
 import tempfile
+import textwrap
 
 from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import parser
 
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 
 
 def process_file(config, infile, outfile):
@@ -75,21 +76,21 @@ def try_get_configdict(configfile_path):
   sentinel to indicate the file format?
   """
   try:
-    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
+    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
       return json.load(config_file)
   except:  # pylint: disable=bare-except
     pass
 
   try:
     import yaml
-    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
+    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
       return yaml.load(config_file)
   except:  # pylint: disable=bare-except
     pass
 
   try:
     config_dict = {}
-    with codecs.open(configfile_path, 'r', encoding='utf8') as infile:
+    with io.open(configfile_path, 'r', encoding='utf-8') as infile:
       # pylint: disable=exec-used
       exec(infile.read(), config_dict)
     return config_dict
@@ -111,7 +112,7 @@ def get_config(infile_path, configfile_path):
 
   config_dict = {}
   if configfile_path:
-    with codecs.open(configfile_path, 'r', encoding='utf8') as config_file:
+    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
       if configfile_path.endswith('.json'):
         config_dict = json.load(config_file)
       elif configfile_path.endswith('.yaml'):
@@ -119,7 +120,7 @@ def get_config(infile_path, configfile_path):
         config_dict = yaml.load(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
-        with codecs.open(configfile_path, 'r', encoding='utf8') as infile:
+        with io.open(configfile_path, 'r', encoding='utf-8') as infile:
           # pylint: disable=exec-used
           exec(infile.read(), config_dict)
       else:
@@ -146,8 +147,15 @@ def dump_config(outfmt, outfile):
 
   ppr = pprint.PrettyPrinter(indent=2)
   for key in cfg.get_field_names():
-    value = configuration.serialize(getattr(cfg, key))
-    outfile.write('{} = {}\n'.format(key, ppr.pformat(value)))
+    helptext = configuration.VARDOCS.get(key, None)
+    if helptext:
+      for line in textwrap.wrap(helptext, 78):
+        outfile.write('# ' + line + '\n')
+    value = getattr(cfg, key)
+    if isinstance(value, dict):
+      outfile.write('{} = {}\n\n'.format(key, json.dumps(value, indent=2)))
+    else:
+      outfile.write('{} = {}\n\n'.format(key, ppr.pformat(value)))
 
 
 USAGE_STRING = """
@@ -160,6 +168,7 @@ cmake-format [-h]
 
 def main():
   """Parse arguments, open files, start work."""
+  # pylint: disable=too-many-statements
 
   # set up main logger, which logs everything. We'll leave this one logging
   # to the console
@@ -193,14 +202,34 @@ def main():
       title='Formatter Configuration',
       description='Override configfile options')
 
-  for key, value in configuration.Configuration().as_dict().items():
-    flag = '--{}'.format(key.replace('_', '-'))
-    if isinstance(value, (dict, list)):
-      continue
+  default_config = configuration.Configuration().as_dict()
+  if sys.version_info[0] >= 3:
+    value_types = (str, int, float)
+  else:
+    value_types = (str, unicode, int, float)
+
+  for key in configuration.Configuration.get_field_names():
+    value = default_config[key]
+    helptext = configuration.VARDOCS.get(key, None)
+    # NOTE(josh): argparse store_true isn't what we want here because we want
+    # to distinguish between "not specified" = "default" and "specified"
     if key == 'additional_commands':
       continue
-    optgroup.add_argument(flag, type=type(value), default=argparse.SUPPRESS)
-
+    elif isinstance(value, bool):
+      optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
+                            default=None, const=True,
+                            type=configuration.parse_bool, help=helptext)
+    elif isinstance(value, value_types) or value is None:
+      optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),
+                            help=helptext,
+                            choices=configuration.VARCHOICES.get(key, None))
+    # NOTE(josh): argparse behavior is that if the flag is not specified on
+    # the command line the value will be None, whereas if it's specified with
+    # no arguments then the value will be an empty list. This exactly what we
+    # want since we can ignore `None` values.
+    elif isinstance(value, (list, tuple)):
+      optgroup.add_argument('--' + key.replace('_', '-'), nargs='*',
+                            help=helptext)
   args = arg_parser.parse_args()
 
   if args.dump_config:
@@ -218,27 +247,34 @@ def main():
 
   for infile_path in args.infilepaths:
     config_dict = get_config(infile_path, args.config_file)
-    config_dict.update(vars(args))
+    for key, value in vars(args).items():
+      if (key in configuration.Configuration.get_field_names()
+          # pylint: disable=bad-continuation
+              and value is not None):
+        config_dict[key] = value
+
     cfg = configuration.Configuration(**config_dict)
     if args.in_place:
-      outfile = tempfile.NamedTemporaryFile(delete=False, mode='w')
+      ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
+      os.close(ofd)
+      outfile = io.open(tempfile_path, 'w', encoding='utf-8', newline='')
     else:
       if args.outfile_path == '-':
         # NOTE(josh): The behavior or sys.stdout is different in python2 and
-        # python3. Annoyingly, if stdout is not a terminal (i.e. it is a pipe)
-        # and the encoding is not set, then the file object in python3 expects
-        # only strings on write() and will not accept the output of a
-        # codecs.StreamWriter
-        if str(sys.stdout.encoding).lower() in ['utf-8', 'utf8']:
-          outfile = sys.stdout
-        else:
-          outfile = codecs.getwriter('utf8')(sys.stdout)
+        # python3. sys.stdout is opened in 'w' mode which means that write()
+        # takes strings in python2 and python3 and, in particular, in python3
+        # it does not take byte arrays. io.StreamWriter will write to
+        # it with byte arrays (assuming it was opened with 'wb'). So we use
+        # io.open instead of io.open in this case
+        outfile = io.open(sys.stdout.fileno(), mode='w', encoding='utf-8',
+                          newline='')
       else:
-        outfile = codecs.open(args.outfile_path, 'w', encoding='utf8')
+        outfile = io.open(args.outfile_path, 'w', encoding='utf-8',
+                          newline='')
 
     parse_ok = True
     try:
-      with codecs.open(infile_path, 'r', encoding='utf8') as infile:
+      with io.open(infile_path, 'r', encoding='utf-8') as infile:
         try:
           process_file(cfg, infile, outfile)
         except:
@@ -253,9 +289,11 @@ def main():
       if args.in_place:
         outfile.close()
         if parse_ok:
-          shutil.move(outfile.name, infile_path)
+          shutil.move(tempfile_path, infile_path)
       else:
-        if args.outfile_path != '-':
+        if args.outfile_path == '-':
+          outfile.flush()
+        else:
           outfile.close()
 
   return 0

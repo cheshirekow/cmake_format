@@ -3,14 +3,15 @@ set(cmake_format_py_files
     __main__.py
     commands.py
     configuration.py
-    formatter.py
-    lexer.py
-    markup.py
-    parser.py
-    lexer_tests.py
-    markup_tests.py
-    parser_tests.py
     format_tests.py
+    formatter.py
+    invocation_tests.py
+    lexer_tests.py
+    lexer.py
+    markup_tests.py
+    markup.py
+    parser_tests.py
+    parser.py
     tests.py)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_format.stamp

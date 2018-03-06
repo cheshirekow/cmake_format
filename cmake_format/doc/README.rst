@@ -64,31 +64,50 @@ An example configuration file is given here. Additional flags and additional
 kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
-.. code:: yaml
+.. code::
 
     # How wide to allow formatted cmake files
-    line_width: 80
+    line_width = 80
 
     # How many spaces to tab for indent
-    tab_size: 2
+    tab_size = 2
 
-    # If arglists are longer than this, break them always.
-    max_subargs_per_line: 3
+    # If arglists are longer than this, break them always
+    max_subargs_per_line = 3
 
-    # If true, separate control flow names from their parentheses with a space
-    separate_ctrl_name_with_space : false
+    # If true, separate flow control names from their parentheses with a space
+    separate_ctrl_name_with_space = False
 
-    # If true, separate function names from their parentheses with a space
-    separate_fn_name_with_space : false
+    # If true, separate function names from parentheses with a space
+    separate_fn_name_with_space = False
 
-    # Additional FLAGS and KWARGS for custom commands
-    additional_commands:
-      foo:
-        flags: [BAR, BAZ]
-        kwargs:
-          HEADERS : '*'
-          SOURCES : '*'
-          DEPENDS : '*'
+    # If a statement is wrapped to more than one line, than dangle the closing
+    # parenthesis on it's own line
+    dangle_parens = False
+
+    # What character to use for bulleted lists
+    bullet_char = u'*'
+
+    # What character to use as punctuation after numerals in an enumerated list
+    enum_char = u'.'
+
+    # What style line endings to use in the output.
+    line_ending = u'unix'
+
+    # Specify structure for custom cmake functions
+    additional_commands = {
+      "foo": {
+        "flags": [
+          "BAR",
+          "BAZ"
+        ],
+        "kwargs": {
+          "HEADERS": "*",
+          "DEPENDS": "*",
+          "SOURCES": "*"
+        }
+      }
+    }
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry
@@ -386,4 +405,3 @@ into this:
     foo(some_arg some_arg "
         This string is on multiple lines
     ")
-
