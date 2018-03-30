@@ -15,7 +15,10 @@ def strip_indent(content, indent=6):
   within the python code that they are embedded. Remove those 6-spaces from
   the front of each line before running the tests.
   """
-  return '\n'.join([line[indent:] for line in content.splitlines()])
+
+  # NOTE(josh): don't use splitlines() so that we get the same result
+  # regardless of windows or unix line endings in content.
+  return '\n'.join([line[indent:] for line in content.split('\n')])
 
 
 class TestCanonicalFormatting(unittest.TestCase):
@@ -698,7 +701,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       #[[*********************************************
       * Information line 1
       * Information line 2
-      ************************************************]]""")
+      ************************************************]]\n""")
 
   def test_windows_line_endings_output(self):
     config_dict = self.config.as_dict()
@@ -714,7 +717,7 @@ class TestCanonicalFormatting(unittest.TestCase):
         u"      #[[*********************************************\r\n"
         u"      * Information line 1\r\n"
         u"      * Information line 2\r\n"
-        u"      ************************************************]]\r\n")
+        u"      ************************************************]]")
 
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)

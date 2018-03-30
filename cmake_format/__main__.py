@@ -28,7 +28,7 @@ from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import parser
 
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 
 
 def process_file(config, infile, outfile):

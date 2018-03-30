@@ -12,7 +12,7 @@ include_directories(${CMAKE_SOURCE_DIR}/third_party/re2)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
-add_custom_target(format ALL)
+add_custom_target(format)
 add_custom_target(lint ALL)
 add_custom_target(doc ALL)
 

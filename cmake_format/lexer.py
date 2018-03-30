@@ -68,10 +68,12 @@ def tokenize(contents):
   # behavior of the lexer
   scanner = re.Scanner([
       # double quoted string
-      (r'(?<![^\s\(])"([^\"]|\\[\"])*[^\\]?"(?![^\s\)])',
+      # NOTE(josh): regex borrowed from
+      # https://stackoverflow.com/a/37379449/141023
+      (r'(?<![^\s\(])"[^"\\]*(?:\\.[^"\\]*)*"(?![^\s\)])',
        lambda s, t: (QUOTED_LITERAL, t)),
       # single quoted string
-      (r"(?<![^\s\(])'([^\']|\\[\'])*[^\\]?'(?![^\s\)])",
+      (r"(?<![^\s\(])'[^'\\]*(?:\\.[^'\\]*)*'(?![^\s\)])",
        lambda s, t: (QUOTED_LITERAL, t)),
       # bracket argument
       (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import unittest
 
 from cmake_format import __main__
@@ -33,6 +34,38 @@ class TestSpecificLexings(unittest.TestCase):
       #    it is preserved verbatim, but trailing
       #    whitespace is removed.]==]
       """, [lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.NEWLINE,
+            lexer.WHITESPACE])
+
+  def test_string(self):
+    self.assert_tok_types(u"""\
+      foo(bar "this is a string")
+      """, [lexer.WHITESPACE, lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
+            lexer.WHITESPACE, lexer.QUOTED_LITERAL, lexer.RIGHT_PAREN,
+            lexer.NEWLINE, lexer.WHITESPACE])
+
+  def test_string_with_quotes(self):
+    self.assert_tok_types(r"""
+      "this is a \"string"
+      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
+            lexer.NEWLINE, lexer.WHITESPACE])
+
+    self.assert_tok_types(r"""
+      'this is a \'string'
+      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
+            lexer.NEWLINE, lexer.WHITESPACE])
+
+  def test_complicated_string_with_quotes(self):
+    # NOTE(josh): compacted example from bug report
+    # https://github.com/cheshirekow/cmake_format/issues/28
+    self.assert_tok_types(r"""
+      install(CODE "message(\"foo ${bar}/${baz}...\")
+        subfun(COMMAND ${WHEEL_COMMAND}
+                       ERROR_MESSAGE \"error ${bar}/${baz}\"
+               )"
+      )
+      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.WORD, lexer.LEFT_PAREN,
+            lexer.WORD, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
+            lexer.NEWLINE, lexer.WHITESPACE, lexer.RIGHT_PAREN, lexer.NEWLINE,
             lexer.WHITESPACE])
 
   def test_mixed_whitespace(self):

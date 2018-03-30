@@ -2,7 +2,7 @@ import io
 from setuptools import setup
 
 GITHUB_URL = 'https://github.com/cheshirekow/cmake_format'
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 
 with io.open('README.rst', encoding='utf8') as infile:
   long_description = infile.read()

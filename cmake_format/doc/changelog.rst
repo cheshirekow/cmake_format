@@ -20,6 +20,11 @@ v0.3.0
   five or more non-alphanum characters will be preserved verbatim.
 * Improve python3 support by using ``print_function``
 
+.. _cheshirekow/cmake_format#2: https://github.com/cheshirekow/cmake_format/issues/2
+.. _cheshirekow/cmake_format#3: https://github.com/cheshirekow/cmake_format/issues/3
+.. _cheshirekow/cmake_format#7: https://github.com/cheshirekow/cmake_format/issues/7
+.. _cheshirekow/cmake_format#9: https://github.com/cheshirekow/cmake_format/issues/9
+
 v0.3.1
 ------
 
@@ -54,10 +59,6 @@ v0.3.3
   extra newline or missing indentation space.
 * Fix `cheshirekow/cmake_format#25`_: cannot invoke cmake-format with python3
 
-.. _cheshirekow/cmake_format#2: https://github.com/cheshirekow/cmake_format/issues/2
-.. _cheshirekow/cmake_format#3: https://github.com/cheshirekow/cmake_format/issues/3
-.. _cheshirekow/cmake_format#7: https://github.com/cheshirekow/cmake_format/issues/7
-.. _cheshirekow/cmake_format#9: https://github.com/cheshirekow/cmake_format/issues/9
 .. _cheshirekow/cmake_format#13: https://github.com/cheshirekow/cmake_format/issues/13
 .. _cheshirekow/cmake_format#16: https://github.com/cheshirekow/cmake_format/issues/16
 .. _cheshirekow/cmake_format#17: https://github.com/cheshirekow/cmake_format/issues/17
@@ -79,6 +80,16 @@ v0.3.4
 * Add configuration parameter command line documentation
 * Add documentation to python config file dump output
 * Strip trailing whitespace and normalize line endings in bracket comments
+
+v0.3.5
+------
+
+* Fix `cheshirekow/cmake_format#28`_: lexing pattern for quoted strings with
+  escaped quotes
+* Add lex tests for quoted strings with escaped quotes
+* Fix windows format test
+
+.. _cheshirekow/cmake_format#28: https://github.com/cheshirekow/cmake_format/issues/28
 
 ------
 v0.2.0
