@@ -23,12 +23,20 @@ import sys
 import tempfile
 import textwrap
 
+import cmake_format
 from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import parser
 
-VERSION = '0.3.5'
+
+def detect_line_endings(infile_content):
+  windows_count = infile_content.count('\r\n')
+  unix_count = infile_content.count('\n') - windows_count
+  if windows_count > unix_count:
+    return 'windows'
+
+  return 'unix'
 
 
 def process_file(config, infile, outfile):
@@ -37,7 +45,11 @@ def process_file(config, infile, outfile):
   """
 
   pretty_printer = formatter.TreePrinter(config, outfile)
-  tokens = lexer.tokenize(infile.read())
+  infile_content = infile.read()
+  if config.line_ending == 'auto':
+    detected = detect_line_endings(infile_content)
+    config.set_line_ending(detected)
+  tokens = lexer.tokenize(infile_content)
   tok_seqs = parser.digest_tokens(tokens)
   fst = parser.construct_fst(tok_seqs)
   pretty_printer.print_node(fst)
@@ -49,7 +61,11 @@ def find_config_file(infile_path):
   one exists.
   """
   realpath = os.path.realpath(infile_path)
-  head, _ = os.path.split(realpath)
+  if os.path.isdir(infile_path):
+    head = infile_path
+  else:
+    head, _ = os.path.split(realpath)
+
   while head:
     for filename in ['.cmake-format',
                      '.cmake-format.py',
@@ -184,7 +200,7 @@ def main():
       usage=USAGE_STRING)
 
   arg_parser.add_argument('-v', '--version', action='version',
-                          version=VERSION)
+                          version=cmake_format.VERSION)
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
@@ -242,11 +258,22 @@ def main():
           or (args.in_place is True or args.outfile_path == '-')), \
       ("if more than one input file is specified, then formatting must be done"
        " in-place or written to stdout")
+
   if args.outfile_path is None:
     args.outfile_path = '-'
 
+  if '-' in args.infilepaths:
+    assert len(args.infilepaths) == 1, \
+        "You cannot mix stdin as an input with other input files"
+    assert args.outfile_path == '-', \
+        "If stdin is the input file, then stdout must be the output file"
+
   for infile_path in args.infilepaths:
-    config_dict = get_config(infile_path, args.config_file)
+    if infile_path == '-':
+      config_dict = get_config(os.getcwd(), args.config_file)
+    else:
+      config_dict = get_config(infile_path, args.config_file)
+
     for key, value in vars(args).items():
       if (key in configuration.Configuration.get_field_names()
           # pylint: disable=bad-continuation
@@ -273,14 +300,19 @@ def main():
                           newline='')
 
     parse_ok = True
+    if infile_path == '-':
+      infile = io.open(sys.stdin.fileno(), mode='r', encoding='utf-8',
+                       newline='')
+    else:
+      infile = io.open(infile_path, 'r', encoding='utf-8')
+
     try:
-      with io.open(infile_path, 'r', encoding='utf-8') as infile:
+      with infile:
         try:
           process_file(cfg, infile, outfile)
         except:
           sys.stderr.write('Error while processing {}\n'.format(infile_path))
           raise
-
     except:
       parse_ok = False
       sys.stderr.write('While processing {}\n'.format(infile_path))

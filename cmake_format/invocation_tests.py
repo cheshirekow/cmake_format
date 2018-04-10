@@ -28,7 +28,11 @@ class TestInvocations(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.tempdir)
 
-  def test_pipe_invocation(self):
+  def test_pipeout_invocation(self):
+    """
+    Test invocation with an infile path and output to stdout.
+    """
+
     thisdir = os.path.realpath(os.path.dirname(__file__))
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
     expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
@@ -50,6 +54,10 @@ class TestInvocations(unittest.TestCase):
       raise AssertionError('\n'.join(delta_lines[2:]))
 
   def test_fileout_invocation(self):
+    """
+    Test invocation with an infile path and outfile path
+    """
+
     thisdir = os.path.realpath(os.path.dirname(__file__))
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
     expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
@@ -70,6 +78,10 @@ class TestInvocations(unittest.TestCase):
       raise AssertionError('\n'.join(delta_lines[2:]))
 
   def test_inplace_invocation(self):
+    """
+    Test invocation for inplace format of a file
+    """
+
     thisdir = os.path.realpath(os.path.dirname(__file__))
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
     expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
@@ -83,6 +95,46 @@ class TestInvocations(unittest.TestCase):
 
     with io.open(os.path.join(tmpfile_path), 'r', encoding='utf8') as infile:
       actual_text = infile.read()
+    with io.open(expectfile_path, 'r', encoding='utf8') as infile:
+      expected_text = infile.read()
+
+    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
+                                            expected_text.split('\n')))
+    if delta_lines:
+      raise AssertionError('\n'.join(delta_lines[2:]))
+
+  def test_stream_invocation(self):
+    """
+    Test invocation with stdin as the infile and stdout as the outifle
+    """
+
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
+    expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
+
+    stdinpipe = os.pipe()
+    stdoutpipe = os.pipe()
+
+    def preexec():
+      os.close(stdinpipe[1])
+      os.close(stdoutpipe[0])
+
+    proc = subprocess.Popen([sys.executable, '-Bm', 'cmake_format', '-'],
+                            stdin=stdinpipe[0], stdout=stdoutpipe[1],
+                            cwd=self.tempdir, env=self.env, preexec_fn=preexec)
+    os.close(stdinpipe[0])
+    os.close(stdoutpipe[1])
+
+    with io.open(infile_path, 'r', encoding='utf-8') as infile:
+      with io.open(stdinpipe[1], 'w', encoding='utf-8') as outfile:
+        for line in infile:
+          outfile.write(line)
+
+    with io.open(stdoutpipe[0], 'r', encoding='utf-8') as infile:
+      actual_text = infile.read()
+
+    proc.wait()
+
     with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 

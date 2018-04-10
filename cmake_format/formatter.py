@@ -346,19 +346,29 @@ def is_control_statement(command_name):
   ]
 
 
+def format_command_name(config, command_name):
+  if config.command_case == u"lower":
+    return command_name.lower()
+  elif config.command_case == u"upper":
+    return command_name.upper()
+
+  return command_name
+
+
 def format_command(config, command, line_width):
   """
   Formats a cmake command call into a block with at most line_width chars.
   Returns a list of lines.
   """
+  command_start = format_command_name(config, command.name)
 
   if (config.separate_fn_name_with_space or
       # pylint: disable=bad-continuation
       (is_control_statement(command.name)
           and config.separate_ctrl_name_with_space)):
-    command_start = command.name + u' ('
+    command_start += u' ('
   else:
-    command_start = command.name + u'('
+    command_start += u'('
 
   # If there are no args then return just the command
   if len(command.body) < 1:

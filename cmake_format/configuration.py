@@ -83,10 +83,12 @@ class Configuration(ConfigObject):
                bullet_char=None,
                enum_char=None,
                line_ending=None,
+               command_case=None,
                additional_commands=None, **_):
 
     self.line_width = line_width
     self.tab_size = tab_size
+
     # TODO(josh): make this conditioned on certain commands / kwargs
     # because things like execute_process(COMMAND...) are less readable
     # formatted as a single list. In fact... special case COMMAND to break on
@@ -106,6 +108,9 @@ class Configuration(ConfigObject):
       self.enum_char = u'.'
 
     self.line_ending = get_default(line_ending, u"unix")
+    self.command_case = get_default(command_case, u"lower")
+    assert self.command_case in (u"lower", u"upper", u"unchanged")
+
     self.additional_commands = get_default(additional_commands, {
         'foo': {
             'flags': ['BAR', 'BAZ'],
@@ -122,10 +127,11 @@ class Configuration(ConfigObject):
       for command_name, spec in additional_commands.items():
         commands.decl_command(self.fn_spec, command_name, **spec)
 
-    assert self.line_ending in (u"windows", u"unix"), \
-        r"Line ending must be either 'windows' or 'unix'"
+    assert self.line_ending in (u"windows", u"unix", u"auto"), \
+        r"Line ending must be either 'windows', 'unix', or 'auto'"
     self.endl = {u'windows': u'\r\n',
-                 u'unix': u'\n'}[self.line_ending]
+                 u'unix': u'\n',
+                 u'auto': u'\n'}[self.line_ending]
 
   def clone(self):
     """
@@ -133,9 +139,14 @@ class Configuration(ConfigObject):
     """
     return Configuration(**self.as_dict())
 
+  def set_line_ending(self, detected):
+    self.endl = {u'windows': u'\r\n',
+                 u'unix': u'\n'}[detected]
+
 
 VARCHOICES = {
-    'line_ending': ['windows', 'unix']
+    'line_ending': ['windows', 'unix', 'auto'],
+    'command_case': ['lower', 'upper', 'unchanged'],
 }
 
 VARDOCS = {
@@ -158,6 +169,8 @@ VARDOCS = {
     " list",
     "line_ending":
     "What style line endings to use in the output.",
+    "command_case":
+    "Format command names consistently as 'lower' or 'upper' case",
     "additional_commands":
     "Specify structure for custom cmake functions"
 }

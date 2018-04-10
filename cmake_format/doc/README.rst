@@ -94,6 +94,10 @@ pleasant way.
     # What style line endings to use in the output.
     line_ending = u'unix'
 
+    # Format command names with this case. Options are "lower", "upper",
+    # "unchanged"
+    command_case = u'lower'
+
     # Specify structure for custom cmake functions
     additional_commands = {
       "foo": {

@@ -719,6 +719,51 @@ class TestCanonicalFormatting(unittest.TestCase):
         u"      * Information line 2\r\n"
         u"      ************************************************]]")
 
+  def test_auto_line_endings(self):
+    config_dict = self.config.as_dict()
+    config_dict['line_ending'] = 'auto'
+    self.config = configuration.Configuration(**config_dict)
+
+    self.do_format_test(
+        u"      #[[*********************************************\r\n"
+        u"      * Information line 1\r\n"
+        u"      * Information line 2\r\n"
+        u"      ************************************************]]",
+        u"      #[[*********************************************\r\n"
+        u"      * Information line 1\r\n"
+        u"      * Information line 2\r\n"
+        u"      ************************************************]]")
+
+  def test_command_case(self):
+    self.do_format_test(
+        u"""\
+      FOO(bar baz)
+      """, """\
+      foo(bar baz)
+      """)
+
+    config_dict = self.config.as_dict()
+    config_dict['command_case'] = 'upper'
+    self.config = configuration.Configuration(**config_dict)
+
+    self.do_format_test(
+        u"""\
+      foo(bar baz)
+      """, """\
+      FOO(bar baz)
+      """)
+
+    config_dict = self.config.as_dict()
+    config_dict['command_case'] = 'unchanged'
+    self.config = configuration.Configuration(**config_dict)
+
+    self.do_format_test(
+        u"""\
+      FoO(bar baz)
+      """, """\
+      FoO(bar baz)
+      """)
+
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')

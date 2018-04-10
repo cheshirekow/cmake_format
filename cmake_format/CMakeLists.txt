@@ -35,8 +35,6 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_lint.stamp
 add_custom_target(cmake_format_lint
                   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_lint.stamp)
 
-# NOTE(josh): format before lint-check, avoid choking on style lint
-add_dependencies(cmake_format_lint cmake_format_format)
 add_dependencies(lint cmake_format_lint)
 
 add_test(NAME cmake_format-format_tests

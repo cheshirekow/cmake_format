@@ -91,6 +91,17 @@ v0.3.5
 
 .. _cheshirekow/cmake_format#28: https://github.com/cheshirekow/cmake_format/issues/28
 
+v0.3.6
+------
+
+* Implement "auto" line ending option `cheshirekow/cmake_format#27`
+* Implement command casing `cheshirekow/cmake_format#29`
+* Implement stdin as an input file `cheshirekow/cmake_format#30`
+
+.. _cheshirekow/cmake_format#27: https://github.com/cheshirekow/cmake_format/issues/27
+.. _cheshirekow/cmake_format#29: https://github.com/cheshirekow/cmake_format/issues/29
+.. _cheshirekow/cmake_format#30: https://github.com/cheshirekow/cmake_format/issues/30
+
 ------
 v0.2.0
 ------
