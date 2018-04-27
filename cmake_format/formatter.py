@@ -68,7 +68,7 @@ def arg_exists_with_comment(args):
 def format_single_arg(config,  # pylint: disable=unused-argument
                       line_width, arg):
   """
-  Return a list of lines that reflow the single arg and all it's comments
+  Return a list of lines that reflow the single arg and all its comments
   into a block with width at most line_width.
   """
   if arg.comments:
@@ -204,7 +204,7 @@ def format_kwarglist(config, line_width, command_name, args):
     return [kwarg] + indent_list(tabbed_indent_str, lines_tabbed)
 
   if not lines_aligned[0]:
-    logging.warn("BUG! format_arglist returned empty firstline!")
+    logging.warn("BUG! format_arglist returned empty first line!")
 
   return ([kwarg + u' ' + lines_aligned[0]]
           + indent_list(aligned_indent_str, lines_aligned[1:]))
@@ -212,14 +212,13 @@ def format_kwarglist(config, line_width, command_name, args):
 
 def format_nonkwarglist(config, line_width, args):
   """
-  Given a list arguments containing no KWARGS, format into a list of lines
+  Given a list of arguments containing no KWARGS, format into a list of lines
   """
   indent_str = ''
   lines = ['']
 
-  # if the there are "lots" of arguments in the list, put one per line,
-  # but we can't reuse the logic below since we do want to append to the
-  # first line.
+  # if there are "lots" of arguments in the list, put one per line, but we
+  # can't reuse the logic below since we do want to append to the first line.
   if len(args) > config.max_subargs_per_line:
     first_lines = format_single_arg(config, line_width - len(indent_str),
                                     args[0])
@@ -386,7 +385,7 @@ def format_command(config, command, line_width):
                           line_width - config.tab_size,
                           command.name, command.body)
 
-    # If the version aligned with the comand start + indent has *alot*
+    # If the version aligned with the comand start + indent has *a lot*
     # fewer lines than the version aligned with the command end, then
     # use this one. Also use it if the first option exceeds line width.
     chosen = None
