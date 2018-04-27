@@ -84,6 +84,7 @@ class Configuration(ConfigObject):
                enum_char=None,
                line_ending=None,
                command_case=None,
+               break_before_args=False,
                additional_commands=None, **_):
 
     self.line_width = line_width
@@ -110,6 +111,8 @@ class Configuration(ConfigObject):
     self.line_ending = get_default(line_ending, u"unix")
     self.command_case = get_default(command_case, u"lower")
     assert self.command_case in (u"lower", u"upper", u"unchanged")
+
+    self.break_before_args = break_before_args
 
     self.additional_commands = get_default(additional_commands, {
         'foo': {
@@ -171,6 +174,8 @@ VARDOCS = {
     "What style line endings to use in the output.",
     "command_case":
     "Format command names consistently as 'lower' or 'upper' case",
+    "break_before_args":
+    "Always add a linebreak between a keyword and its arguments",
     "additional_commands":
     "Specify structure for custom cmake functions"
 }

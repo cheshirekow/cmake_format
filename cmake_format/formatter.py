@@ -199,7 +199,8 @@ def format_kwarglist(config, line_width, command_name, args):
                                   command_name, args[1:])
 
   # If aligned doesn't fit, then use tabbed.
-  if get_block_width(lines_aligned) > line_width - len(aligned_indent_str):
+  if get_block_width(lines_aligned) > line_width - len(aligned_indent_str) \
+     or config.break_before_args:
     return [kwarg] + indent_list(tabbed_indent_str, lines_tabbed)
 
   if not lines_aligned[0]:
