@@ -707,6 +707,88 @@ class TestCanonicalFormatting(unittest.TestCase):
       )
     """)
 
+  def test_dangle_parens_alignment(self):
+    self.config.dangle_parens = 'always'
+    self.config.dangle_parens_alignment = 'contents'
+    self.do_format_test(u"""\
+      foo_command()
+      foo_command(arg1)
+      foo_command(arg1) # comment
+    """, u"""\
+      foo_command()
+      foo_command(arg1)
+      foo_command(arg1) # comment
+    """)
+
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(
+        longargname longargname longargname longargname longargname
+        )
+    """)
+
+    self.do_format_test(u"""\
+      if(foo)
+        some_long_command_name(longargname longargname longargname longargname longargname)
+      endif()
+    """, u"""\
+      if(foo)
+        some_long_command_name(
+          longargname longargname longargname longargname longargname
+          )
+      endif()
+    """)
+
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             )
+    """)
+
+    self.do_format_test(u"""\
+      target_include_directories(target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>)
+      """, u"""\
+      target_include_directories(
+        target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+        )
+      """)
+
+    self.config.dangle_parens_alignment = 'parens'
+    self.do_format_test(u"""\
+      if(foo)
+        some_long_command_name(longargname longargname longargname longargname longargname)
+      endif()
+    """, u"""\
+      if(foo)
+        some_long_command_name(
+          longargname longargname longargname longargname longargname
+          )
+      endif()
+    """)
+
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                            )
+    """)
+
   def test_windows_line_endings_input(self):
     self.do_format_test(
         u"      #[[*********************************************\r\n"

@@ -85,6 +85,10 @@ pleasant way.
     # statement is wrapped to more than one line, or always
     dangle_parens = 'never'
 
+    # When dangling parentheses, whether they should they be left-aligned, or
+    # aligned with the open paren, or with the contents of the command
+    dangle_parens_alignment = 'left'
+
     # What character to use for bulleted lists
     bullet_char = u'*'
 
