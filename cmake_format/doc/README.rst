@@ -37,7 +37,7 @@ Usage
     optional arguments:
       -h, --help            show this help message and exit
       --dump-config {yaml,json,python}
-                            If specified, print the default configuration to
+                            If specified, print the current configuration to
                             stdout and exit
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
@@ -124,7 +124,7 @@ A automatically detected configuration files may have any name that matches
 If you'd like to create a new configuration file, ``cmake-format`` can help
 by dumping out the default configuration in your preferred format. You can run
 ``cmake-format --dump-config [yaml|json|python]`` to print the default
-configuration ``stdout`` and use that as a starting point.
+configuration to ``stdout`` and use that as a starting point.
 
 -------
 Markup
