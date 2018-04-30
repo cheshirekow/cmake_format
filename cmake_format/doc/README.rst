@@ -98,6 +98,12 @@ pleasant way.
     # "unchanged"
     command_case = u'lower'
 
+    # Always add a linebreak between a keyword and its arguments
+    break_before_args = False
+
+    # Indent all argument lists to match the longest keyword argument
+    align_kwarg_lists = False
+
     # Specify structure for custom cmake functions
     additional_commands = {
       "foo": {

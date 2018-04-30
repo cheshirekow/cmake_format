@@ -32,7 +32,8 @@ class TestCanonicalFormatting(unittest.TestCase):
                           'foo', flags=['BAR', 'BAZ'], kwargs={
                               "HEADERS": '*',
                               "SOURCES": '*',
-                              "DEPENDS": '*'
+                              "DEPENDS": '*',
+                              "LONG_KWARG": '*',
                           })
 
   def tearDown(self):
@@ -762,6 +763,65 @@ class TestCanonicalFormatting(unittest.TestCase):
       FoO(bar baz)
       """, """\
       FoO(bar baz)
+      """)
+
+  def test_break_before_args(self):
+    self.config.break_before_args = True
+    self.do_format_test(u"""\
+      # This command should break after every kwarg
+      foo(nonkwarg_a nonkwarg_b HEADERS a.h b.h c.h d.h e.h f.h SOURCES a.cc b.cc d.cc DEPENDS foo bar baz)
+      """, u"""\
+      # This command should break after every kwarg
+      foo(nonkwarg_a nonkwarg_b
+          HEADERS
+            a.h
+            b.h
+            c.h
+            d.h
+            e.h
+            f.h
+          SOURCES
+            a.cc b.cc d.cc
+          DEPENDS
+            foo bar baz)
+      """)
+
+  def test_align_kwarg_lists(self):
+    self.config.align_kwarg_lists = True
+    self.do_format_test(u"""\
+      # This command should align all arg lists
+      foo(nonkwarg_a nonkwarg_b HEADERS a.h b.h c.h d.h e.h f.h SOURCES a.cc b.cc d.cc LONG_KWARG foo bar baz)
+      """, u"""\
+      # This command should align all arg lists
+      foo(nonkwarg_a nonkwarg_b
+          HEADERS    a.h
+                     b.h
+                     c.h
+                     d.h
+                     e.h
+                     f.h
+          SOURCES    a.cc b.cc d.cc
+          LONG_KWARG foo bar baz)
+      """)
+
+    self.config.break_before_args = True
+    self.do_format_test(u"""\
+      # This command should align all arg lists on a new line
+      foo(nonkwarg_a nonkwarg_b HEADERS a.h b.h c.h d.h e.h f.h SOURCES a.cc b.cc d.cc LONG_KWARG foo bar baz)
+      """, u"""\
+      # This command should align all arg lists on a new line
+      foo(nonkwarg_a nonkwarg_b
+          HEADERS
+                    a.h
+                    b.h
+                    c.h
+                    d.h
+                    e.h
+                    f.h
+          SOURCES
+                    a.cc b.cc d.cc
+          LONG_KWARG
+                    foo bar baz)
       """)
 
   def test_example_file(self):
