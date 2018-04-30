@@ -150,7 +150,10 @@ def dump_config(outfmt, outfile):
   Dump the default configuration to stdout
   """
 
-  cfg = configuration.Configuration()
+  config_dict = get_config(os.getcwd(), None)
+
+  cfg = configuration.Configuration(**config_dict)
+
   if outfmt == 'yaml':
     import yaml
     yaml.dump(cfg.as_dict(), sys.stdout, indent=2,
@@ -204,7 +207,7 @@ def main():
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
-                     help='If specified, print the default configuration to '
+                     help='If specified, print the current configuration to '
                           'stdout and exit')
   mutex.add_argument('-i', '--in-place', action='store_true')
   mutex.add_argument('-o', '--outfile-path', default=None,
@@ -249,6 +252,8 @@ def main():
   args = arg_parser.parse_args()
 
   if args.dump_config:
+    assert not args.infilepaths, \
+      "Error: can't supply input files when dumping config."
     dump_config(args.dump_config, sys.stdout)
     sys.exit(0)
 
