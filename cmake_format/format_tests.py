@@ -640,7 +640,7 @@ class TestCanonicalFormatting(unittest.TestCase):
     """)
 
   def test_dangle_parens(self):
-    self.config.dangle_parens = True
+    self.config.dangle_parens = 'wrapped'
     self.do_format_test(u"""\
       foo_command()
       foo_command(arg1)
@@ -691,6 +691,21 @@ class TestCanonicalFormatting(unittest.TestCase):
         target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
       )
       """)
+
+    self.config.dangle_parens = 'always'
+    self.do_format_test(u"""\
+      some_long_command_name(longargname longargname longargname longargname longargname longargname longargname longargname)
+    """, u"""\
+      some_long_command_name(longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+                             longargname
+      )
+    """)
 
   def test_windows_line_endings_input(self):
     self.do_format_test(

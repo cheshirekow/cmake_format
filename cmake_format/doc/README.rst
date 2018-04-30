@@ -81,9 +81,9 @@ pleasant way.
     # If true, separate function names from parentheses with a space
     separate_fn_name_with_space = False
 
-    # If a statement is wrapped to more than one line, than dangle the closing
-    # parenthesis on it's own line
-    dangle_parens = False
+    # Put the end parenthesis on the next line either never, or when a
+    # statement is wrapped to more than one line, or always
+    dangle_parens = 'never'
 
     # What character to use for bulleted lists
     bullet_char = u'*'

@@ -79,7 +79,7 @@ class Configuration(ConfigObject):
                max_subargs_per_line=3,
                separate_ctrl_name_with_space=False,
                separate_fn_name_with_space=False,
-               dangle_parens=False,
+               dangle_parens='never',
                bullet_char=None,
                enum_char=None,
                line_ending=None,
@@ -147,6 +147,7 @@ class Configuration(ConfigObject):
 VARCHOICES = {
     'line_ending': ['windows', 'unix', 'auto'],
     'command_case': ['lower', 'upper', 'unchanged'],
+    'dangle_parens': ['never', 'wrapped', 'always'],
 }
 
 VARDOCS = {
@@ -160,8 +161,8 @@ VARDOCS = {
     "separate_fn_name_with_space":
     "If true, separate function names from parentheses with a space",
     "dangle_parens":
-    "If a statement is wrapped to more than one line, than dangle the closing"
-    " parenthesis on it's own line",
+    "Put the end parenthesis on the next line either never, or when a"
+    " statement is wrapped to more than one line, or always",
     "bullet_char":
     "What character to use for bulleted lists",
     "enum_char":

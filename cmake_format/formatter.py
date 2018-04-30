@@ -405,7 +405,8 @@ def format_command(config, command, line_width):
       for line in lines_a[1:]:
         lines.append(indent_str + line)
 
-    if chosen is lines_b and config.dangle_parens:
+    if (chosen is lines_b and config.dangle_parens == 'wrapped') \
+       or config.dangle_parens == 'always':
       # If we're configured to dangle newlines but there's one line worth of
       # stuff then don't dangle
       if (len(lines) == 1 and len(lines[-1]) < line_width
