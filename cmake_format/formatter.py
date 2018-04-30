@@ -40,7 +40,7 @@ def split_args_by_kwargs(fn_spec, command_name, args):
   """
   Takes in a list of arguments and returns a list of lists. Each sublist
   is either a list of positional arguments, a list containg a kwarg
-  followed by it's sub arguments, or a list containing a consecutive
+  followed by its sub arguments, or a list containing a consecutive
   sequence of flags.
   """
   arg_split = [[]]
@@ -55,6 +55,18 @@ def split_args_by_kwargs(fn_spec, command_name, args):
     arg_split[-1].append(arg)
 
   return arg_split
+
+
+def get_max_kwarg_length(fn_spec, command_name, arg_split):
+  """
+  Takes in a split list of arguments, and returns the length of the longest
+  kwarg.
+  """
+  max_kwarg_length = 0
+  for arglist in arg_split:
+    if is_kwarg(fn_spec, command_name, arglist[0].contents):
+      max_kwarg_length = max(max_kwarg_length, len(arglist[0].contents))
+  return max_kwarg_length
 
 
 def arg_exists_with_comment(args):
@@ -127,7 +139,7 @@ def format_shell_command(config, line_width, command_name, args):
 
   for arg_sublist in arg_multilist_filtered:
     sublist_lines = format_arglist(config, line_width, command_name,
-                                   arg_sublist)
+                                   arg_sublist, None)
     lines.extend(sublist_lines)
 
   return lines
@@ -151,7 +163,7 @@ def join_parens(args):
   return out
 
 
-def format_kwarglist(config, line_width, command_name, args):
+def format_kwarglist(config, line_width, command_name, args, indent):
   """
   Given a list of arguments containing a KWARG in position [0], format into
   a list of lines.
@@ -161,6 +173,9 @@ def format_kwarglist(config, line_width, command_name, args):
   if len(args) == 1:
     return [kwarg]
 
+  aligned_indent_str = u' ' + u' ' * (indent or len(kwarg))
+  tabbed_indent_str = u' ' * (indent or config.tab_size)
+
   # If the KWARG is 'COMMAND' then let's not put one entry per line,
   # but fit as many command args per line as possible.
   if kwarg == u'COMMAND':
@@ -168,9 +183,6 @@ def format_kwarglist(config, line_width, command_name, args):
     config = config.clone()
     # pylint: disable=attribute-defined-outside-init
     config.max_subargs_per_line = 1e6
-
-    aligned_indent_str = u' ' * (len(kwarg) + 1)
-    tabbed_indent_str = u' ' * config.tab_size
 
     # Lines to append if we put them aligned with the end of the kwarg
     line_width_aligned = line_width - len(aligned_indent_str)
@@ -184,19 +196,16 @@ def format_kwarglist(config, line_width, command_name, args):
                                         args[1].contents, args[1:])
 
   else:
-    aligned_indent_str = u' ' * (len(kwarg) + 1)
-    tabbed_indent_str = u' ' * config.tab_size
-
     # Lines to append if we put them aligned with the end of the kwarg
     line_width_aligned = line_width - len(aligned_indent_str)
     lines_aligned = format_arglist(config, line_width_aligned,
-                                   command_name, args[1:])
+                                   command_name, args[1:], None)
 
     # Lines to append if we put them on lines after the kwarg and
     # indented one block higher
     line_width_tabbed = line_width - len(tabbed_indent_str)
     lines_tabbed = format_arglist(config, line_width_tabbed,
-                                  command_name, args[1:])
+                                  command_name, args[1:], None)
 
   # If aligned doesn't fit, then use tabbed.
   if get_block_width(lines_aligned) > line_width - len(aligned_indent_str) \
@@ -206,7 +215,11 @@ def format_kwarglist(config, line_width, command_name, args):
   if not lines_aligned[0]:
     logging.warn("BUG! format_arglist returned empty first line!")
 
-  return ([kwarg + u' ' + lines_aligned[0]]
+  kwarg_arg_gap = u' '
+  if indent:
+    kwarg_arg_gap += u' ' * (indent - len(kwarg))
+
+  return ([kwarg + kwarg_arg_gap + lines_aligned[0]]
           + indent_list(aligned_indent_str, lines_aligned[1:]))
 
 
@@ -277,16 +290,16 @@ def format_nonkwarglist(config, line_width, args):
   return lines
 
 
-def format_arglist(config, line_width, command_name, args):
+def format_arglist(config, line_width, command_name, args, indent):
   """
-  Given a list arguments containing at most one KWARG (in position [0]
+  Given a list of arguments containing at most one KWARG (in position [0]
   if it exists), format into a list of lines.
   """
   if len(args) < 1:
     return []
 
   if is_kwarg(config.fn_spec, command_name, args[0].contents):
-    return format_kwarglist(config, line_width, command_name, args)
+    return format_kwarglist(config, line_width, command_name, args, indent)
 
   return format_nonkwarglist(config, line_width, args)
 
@@ -315,16 +328,21 @@ def format_args(config, line_width, command_name, args):
     else:
       arg_multilist_filtered.append(arg_sublist)
 
+  max_kwarg_length = None
+  if config.align_kwarg_lists:
+    max_kwarg_length = get_max_kwarg_length(config.fn_spec, command_name,
+                                            arg_multilist_filtered)
+
   for idx, arg_sublist in enumerate(arg_multilist_filtered):
     if idx + 1 == len(arg_multilist_filtered):
       # NOTE(josh): reserve one character in the final arglist for the
       # parenthesis. This is not the right way to deal with this problem
       # but it'll work until the tree-format refactor.
       sublist_lines = format_arglist(config, line_width - 1, command_name,
-                                     arg_sublist)
+                                     arg_sublist, max_kwarg_length)
     else:
       sublist_lines = format_arglist(config, line_width, command_name,
-                                     arg_sublist)
+                                     arg_sublist, max_kwarg_length)
     lines.extend(sublist_lines)
 
   return lines
