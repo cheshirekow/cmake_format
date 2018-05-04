@@ -130,6 +130,24 @@ class TestCanonicalFormatting(unittest.TestCase):
           source_g.cc)
       """)
 
+  def test_always_wrap(self):
+    commands.decl_command(self.config.fn_spec,
+                          'always_wrap',  always_wrap=True,
+                              flags=['BAR', 'BAZ'],
+                              kwargs={
+                                  "HEADERS": '*',
+                                  "SOURCES": '*',
+                                  "DEPENDS": '*'
+                          })
+    self.do_format_test(u"""\
+      # This short command should be split to multiple lines
+      always_wrap(HEADERS a.h b.h c.h SOURCES a.c b.c c.c)
+      """, u"""\
+      # This short command should be split to multiple lines
+      always_wrap(HEADERS a.h b.h c.h
+                  SOURCES a.c b.c c.c)
+      """)
+
   # TODO(josh): figure out why this test elicits different behavior than the
   # whole-file demo.
   def test_string_preserved_during_split(self):
