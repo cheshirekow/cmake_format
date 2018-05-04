@@ -7,7 +7,7 @@ ONE_OR_MORE = '+'
 
 
 class FnSpec:
-  def __init__(self, pargs=None, flags=None, kwargs=None):
+  def __init__(self, pargs=None, flags=None, kwargs=None, always_wrap=False):
     if pargs is None:
       pargs = 0
     if flags is None:
@@ -18,6 +18,12 @@ class FnSpec:
     self._kwargs = dict(kwargs)
     self._pargs = pargs
     self._flags = flags
+    self._always_wrap = always_wrap
+
+  @property
+  def always_wrap(self):
+    """Return true if this function's kwargs should always be wrapped."""
+    return self._always_wrap
 
   def is_flag(self, arg):
     """Return true if the given argument is a flag."""
@@ -28,8 +34,9 @@ class FnSpec:
     return arg in self._kwargs
 
 
-def decl_command(fn_spec, command_name, pargs=None, flags=None, kwargs=None):
-  fn_spec[command_name] = FnSpec(pargs, flags, kwargs)
+def decl_command(fn_spec, command_name, pargs=None, flags=None, kwargs=None,
+                 always_wrap=False):
+  fn_spec[command_name] = FnSpec(pargs, flags, kwargs, always_wrap)
 
 
 def get_fn_spec():

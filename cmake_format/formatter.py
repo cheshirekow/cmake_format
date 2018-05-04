@@ -26,6 +26,13 @@ def format_comment_block(config, line_width,  # pylint: disable=unused-argument
           for line in markup.format_items(config, line_width - 2, items)]
 
 
+def always_wrap(fn_spec, command_name):
+  """Return true if this function's kwargs should always be wrapped."""
+  if command_name in fn_spec:
+    return fn_spec[command_name].always_wrap
+  return False
+
+
 def is_flag(fn_spec, command_name, arg):
   """Return true if the given argument is a flag."""
   if command_name in fn_spec:
@@ -299,8 +306,10 @@ def format_args(config, line_width, command_name, args):
   """Format arguments into a block with at most line_width chars."""
 
   # If there are no arguments that contain a comment, then attempt to
-  # pack all of the arguments onto a single line
-  if not arg_exists_with_comment(args):
+  # pack all of the arguments onto a single line if our config allows
+  # that for this command.
+  if not arg_exists_with_comment(args) \
+     and not always_wrap(config.fn_spec, command_name):
     single_line = u' '.join(join_parens([arg.contents for arg in args]))
     if len(single_line) < line_width:
       return [single_line]
