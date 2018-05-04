@@ -28,12 +28,16 @@ def format_comment_block(config, line_width,  # pylint: disable=unused-argument
 
 def is_flag(fn_spec, command_name, arg):
   """Return true if the given argument is a flag."""
-  return fn_spec.get(command_name, {}).get(arg, 1) == 0
+  if command_name in fn_spec:
+    return fn_spec[command_name].is_flag(arg)
+  return False
 
 
 def is_kwarg(fn_spec, command_name, arg):
   """Return true if the given argument is a kwarg."""
-  return fn_spec.get(command_name, {}).get(arg, 0) != 0
+  if command_name in fn_spec:
+    return fn_spec[command_name].is_kwarg(arg)
+  return False
 
 
 def split_args_by_kwargs(fn_spec, command_name, args):

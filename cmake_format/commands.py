@@ -6,19 +6,30 @@ ZERO_OR_MORE = '*'
 ONE_OR_MORE = '+'
 
 
-def decl_command(fn_spec, command_name, pargs=None, flags=None, kwargs=None):
-  if pargs is None:
-    pargs = 0
-  if flags is None:
-    flags = []
-  if kwargs is None:
-    kwargs = {}
+class FnSpec:
+  def __init__(self, pargs=None, flags=None, kwargs=None):
+    if pargs is None:
+      pargs = 0
+    if flags is None:
+      flags = []
+    if kwargs is None:
+      kwargs = {}
 
-  decl = dict(kwargs)
-  decl['pargs'] = pargs
-  for flag in flags:
-    decl[flag] = 0
-  fn_spec[command_name] = decl
+    self._kwargs = dict(kwargs)
+    self._pargs = pargs
+    self._flags = flags
+
+  def is_flag(self, arg):
+    """Return true if the given argument is a flag."""
+    return arg in self._flags
+
+  def is_kwarg(self, arg):
+    """Return true if the given argument is a kwarg."""
+    return arg in self._kwargs
+
+
+def decl_command(fn_spec, command_name, pargs=None, flags=None, kwargs=None):
+  fn_spec[command_name] = FnSpec(pargs, flags, kwargs)
 
 
 def get_fn_spec():
