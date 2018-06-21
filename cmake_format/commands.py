@@ -347,6 +347,25 @@ def get_fn_spec():
                    "TOUPPER": ZERO_OR_MORE
                })
 
+  decl_command(fn_spec, "target_compile_options", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
+  decl_command(fn_spec, "target_include_directories", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
+  decl_command(fn_spec, "target_link_libraries", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
+
   decl_command(fn_spec, "try_compile", flags=[], kwargs={
       "CMAKE_FLAGS": ZERO_OR_MORE,
       "COMPILE_DEFINITIONS": ZERO_OR_MORE,
