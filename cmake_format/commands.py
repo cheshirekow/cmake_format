@@ -237,11 +237,12 @@ def get_fn_spec():
 
   decl_command(fn_spec, "install",
                flags=["NAMELINK_ONLY", "NAMELINK_SKIP", "OPTIONAL",
-                      "USE_SOURCE_PERMISSIONS"],
+                      "USE_SOURCE_PERMISSIONS", "MESSAGE_NEVER",
+                      "FILES_MATCHING", "EXCLUDE"],
                kwargs={
                    "ARCHIVE": ZERO_OR_MORE,
                    "BUNDLE": ZERO_OR_MORE,
-                   "COMPONENT": ZERO_OR_MORE,
+                   "COMPONENT": 1,
                    "CONFIGURATIONS": ZERO_OR_MORE,
                    "DIRECTORY": ZERO_OR_MORE,
                    "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,
@@ -250,8 +251,11 @@ def get_fn_spec():
                    "FILES_MATCHING": ZERO_OR_MORE,
                    "FILE_PERMISSIONS": ZERO_OR_MORE,
                    "FRAMEWORK": ZERO_OR_MORE,
+                   "INCLUDES": ZERO_OR_MORE,
                    "INCLUDESPERMISSIONS": ZERO_OR_MORE,
                    "LIBRARY": ZERO_OR_MORE,
+                   "PATTERN": ZERO_OR_MORE,
+                   "PERMISSIONS": ZERO_OR_MORE,
                    "PRIVATE_HEADER": ZERO_OR_MORE,
                    "PROGRAMS": ZERO_OR_MORE,
                    "PUBLIC_HEADER": ZERO_OR_MORE,
@@ -342,6 +346,25 @@ def get_fn_spec():
                    "TOLOWER": ZERO_OR_MORE,
                    "TOUPPER": ZERO_OR_MORE
                })
+
+  decl_command(fn_spec, "target_compile_options", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
+  decl_command(fn_spec, "target_include_directories", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
+  decl_command(fn_spec, "target_link_libraries", flags=[], kwargs={
+      "PRIVATE": ONE_OR_MORE,
+      "PUBLIC": ONE_OR_MORE,
+      "INTERFACE": ONE_OR_MORE
+  })
+
 
   decl_command(fn_spec, "try_compile", flags=[], kwargs={
       "CMAKE_FLAGS": ZERO_OR_MORE,
