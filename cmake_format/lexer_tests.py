@@ -4,6 +4,7 @@ import unittest
 
 from cmake_format import __main__
 from cmake_format import lexer
+from cmake_format.lexer import TokenType
 
 
 class TestSpecificLexings(unittest.TestCase):
@@ -18,41 +19,41 @@ class TestSpecificLexings(unittest.TestCase):
                      [tok.type for tok in lexer.tokenize(input_str)])
 
   def test_bracket_arguments(self):
-    self.assert_tok_types(u"foo(bar [=[hello world]=] baz)", [
-        lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
-        lexer.WHITESPACE, lexer.BRACKET_ARGUMENT, lexer.WHITESPACE,
-        lexer.WORD, lexer.RIGHT_PAREN])
+    self.assert_tok_types("foo(bar [=[hello world]=] baz)", [
+        TokenType.WORD, TokenType.LEFT_PAREN, TokenType.WORD,
+        TokenType.WHITESPACE, TokenType.BRACKET_ARGUMENT, TokenType.WHITESPACE,
+        TokenType.WORD, TokenType.RIGHT_PAREN])
 
   def test_bracket_comments(self):
-    self.assert_tok_types(u"foo(bar #[=[hello world]=] baz)", [
-        lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
-        lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.WHITESPACE,
-        lexer.WORD, lexer.RIGHT_PAREN])
+    self.assert_tok_types("foo(bar #[=[hello world]=] baz)", [
+        TokenType.WORD, TokenType.LEFT_PAREN, TokenType.WORD,
+        TokenType.WHITESPACE, TokenType.BRACKET_COMMENT, TokenType.WHITESPACE,
+        TokenType.WORD, TokenType.RIGHT_PAREN])
 
-    self.assert_tok_types(u"""\
+    self.assert_tok_types("""\
       #[==[This is a bracket comment at some nested level
       #    it is preserved verbatim, but trailing
       #    whitespace is removed.]==]
-      """, [lexer.WHITESPACE, lexer.BRACKET_COMMENT, lexer.NEWLINE,
-            lexer.WHITESPACE])
+      """, [TokenType.WHITESPACE, TokenType.BRACKET_COMMENT, TokenType.NEWLINE,
+            TokenType.WHITESPACE])
 
   def test_string(self):
-    self.assert_tok_types(u"""\
+    self.assert_tok_types("""\
       foo(bar "this is a string")
-      """, [lexer.WHITESPACE, lexer.WORD, lexer.LEFT_PAREN, lexer.WORD,
-            lexer.WHITESPACE, lexer.QUOTED_LITERAL, lexer.RIGHT_PAREN,
-            lexer.NEWLINE, lexer.WHITESPACE])
+      """, [TokenType.WHITESPACE, TokenType.WORD, TokenType.LEFT_PAREN,
+            TokenType.WORD, TokenType.WHITESPACE, TokenType.QUOTED_LITERAL,
+            TokenType.RIGHT_PAREN, TokenType.NEWLINE, TokenType.WHITESPACE])
 
   def test_string_with_quotes(self):
     self.assert_tok_types(r"""
       "this is a \"string"
-      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
-            lexer.NEWLINE, lexer.WHITESPACE])
+      """, [TokenType.NEWLINE, TokenType.WHITESPACE, TokenType.QUOTED_LITERAL,
+            TokenType.NEWLINE, TokenType.WHITESPACE])
 
     self.assert_tok_types(r"""
       'this is a \'string'
-      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
-            lexer.NEWLINE, lexer.WHITESPACE])
+      """, [TokenType.NEWLINE, TokenType.WHITESPACE, TokenType.QUOTED_LITERAL,
+            TokenType.NEWLINE, TokenType.WHITESPACE])
 
   def test_complicated_string_with_quotes(self):
     # NOTE(josh): compacted example from bug report
@@ -63,21 +64,31 @@ class TestSpecificLexings(unittest.TestCase):
                        ERROR_MESSAGE \"error ${bar}/${baz}\"
                )"
       )
-      """, [lexer.NEWLINE, lexer.WHITESPACE, lexer.WORD, lexer.LEFT_PAREN,
-            lexer.WORD, lexer.WHITESPACE, lexer.QUOTED_LITERAL,
-            lexer.NEWLINE, lexer.WHITESPACE, lexer.RIGHT_PAREN, lexer.NEWLINE,
-            lexer.WHITESPACE])
+      """, [TokenType.NEWLINE, TokenType.WHITESPACE, TokenType.WORD,
+            TokenType.LEFT_PAREN, TokenType.WORD, TokenType.WHITESPACE,
+            TokenType.QUOTED_LITERAL, TokenType.NEWLINE, TokenType.WHITESPACE,
+            TokenType.RIGHT_PAREN, TokenType.NEWLINE, TokenType.WHITESPACE])
 
   def test_mixed_whitespace(self):
     """
     Ensure that if a newline is part of a whitespace sequence then it is
     tokenized separately.
     """
-    self.assert_tok_types(u" \n", [lexer.WHITESPACE, lexer.NEWLINE])
-    self.assert_tok_types(u"\t\n", [lexer.WHITESPACE, lexer.NEWLINE])
-    self.assert_tok_types(u"\f\n", [lexer.WHITESPACE, lexer.NEWLINE])
-    self.assert_tok_types(u"\v\n", [lexer.WHITESPACE, lexer.NEWLINE])
-    self.assert_tok_types(u"\r\n", [lexer.NEWLINE])
+    self.assert_tok_types(" \n", [TokenType.WHITESPACE, TokenType.NEWLINE])
+    self.assert_tok_types("\t\n", [TokenType.WHITESPACE, TokenType.NEWLINE])
+    self.assert_tok_types("\f\n", [TokenType.WHITESPACE, TokenType.NEWLINE])
+    self.assert_tok_types("\v\n", [TokenType.WHITESPACE, TokenType.NEWLINE])
+    self.assert_tok_types("\r\n", [TokenType.NEWLINE])
+
+  def test_indented_comment(self):
+    self.assert_tok_types("""\
+      # This multiline-comment should be reflowed
+      # into a single comment
+      # on one line
+      """, [TokenType.WHITESPACE, TokenType.COMMENT, TokenType.NEWLINE,
+            TokenType.WHITESPACE, TokenType.COMMENT, TokenType.NEWLINE,
+            TokenType.WHITESPACE, TokenType.COMMENT, TokenType.NEWLINE,
+            TokenType.WHITESPACE])
 
 
 if __name__ == '__main__':

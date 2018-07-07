@@ -1,9 +1,11 @@
+from __future__ import unicode_literals
+
+
 class EnumObject(object):
   """
   Simple enumeration base. Design inspired by clang python bindings
-  BaseEnumeration. Subclasses must provide class members _kinds and _name_map;
+  BaseEnumeration. Subclasses must provide class member _id_map.
   """
-
   _id_map = {}
 
   @classmethod
@@ -37,6 +39,16 @@ class EnumObject(object):
       if isinstance(obj, cls):
         return obj
     raise ValueError("{} is not a valid {} enum".format(name, cls.__name__))
+
+  @classmethod
+  def get(cls, name, default=None):
+    if hasattr(cls, name):
+      obj = getattr(cls, name)
+      if isinstance(obj, cls):
+        return obj
+      else:
+        raise ValueError("{} is not a valid {} enum".format(name, cls.__name__))
+    return default
 
   def __init__(self, value):
     self.value = value
@@ -80,3 +92,4 @@ def stable_wrap(wrapper, paragraph_text):
 
   assert False, ("textwrap failed to converge on:\n\n {}"
                  .format('\n\n'.join(history)))
+  return []

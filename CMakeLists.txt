@@ -13,8 +13,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
 add_custom_target(format)
-add_custom_target(lint ALL)
-add_custom_target(doc ALL)
+add_custom_target(lint)
+add_custom_target(doc)
 
 set(ENV{PYTHONPATH} ${CMAKE_SOURCE_DIR})
 set(CTEST_ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}")

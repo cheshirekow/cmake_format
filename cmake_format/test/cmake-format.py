@@ -18,9 +18,9 @@ additional_commands = {
   "foo" : {
     "flags" : ["BAR", "BAZ"],
     "kwargs" : {
-      "HEADERS" : '*',
-      "SOURCES" : '*',
-      "DEPENDS" : '*',
+      "HEADERS": '*',
+      "SOURCES": '*',
+      "DEPENDS": '*',
     }
   }
 }

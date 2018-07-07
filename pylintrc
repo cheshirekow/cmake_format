@@ -56,6 +56,7 @@ disable=
     star-args,
     too-few-public-methods,
     too-many-ancestors,
+    too-many-boolean-expressions,
     unidiomatic-typecheck,
 
 

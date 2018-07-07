@@ -2,6 +2,7 @@ set(cmake_format_py_files
     __init__.py
     __main__.py
     commands.py
+    common.py
     configuration.py
     format_tests.py
     formatter.py
@@ -43,6 +44,9 @@ add_test(NAME cmake_format-format_tests
 add_test(NAME cmake_format-invocation_tests
          COMMAND python -m cmake_format.invocation_tests
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME cmake_format-layout_tests
+         COMMAND python -m cmake_format.layout_tests
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME cmake_format-lexer_tests
          COMMAND python -m cmake_format.lexer_tests
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -58,6 +62,9 @@ add_test(NAME cmake_format-format_tests_py3
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME cmake_format-invocation_tests_py3
          COMMAND python3 -m cmake_format.invocation_tests
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME cmake_format-layout_tests_py3
+         COMMAND python3 -m cmake_format.layout_tests
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME cmake_format-lexer_tests_py3
          COMMAND python3 -m cmake_format.lexer_tests

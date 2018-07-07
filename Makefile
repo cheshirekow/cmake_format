@@ -14,22 +14,34 @@
 #   autopep8
 #   pylint
 #   sphinx
+#
+#   flask
+#   oauth2client
+#   pygerrit2
+#   sqlalchemy
+
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
+
+export PYTHONPATH=$(current_dir)
 
 % : .build/cmake_clang/Makefile \
     .build/cmake_gnu/Makefile
 	@echo ""
 	@echo "clang-build"
 	@echo "-----------"
-	cd .build/cmake_clang && env -u MAKELEVEL make $@
+	cd .build/cmake_clang && env -u MAKELEVEL $(MAKE) $@
 
 	@echo ""
 	@echo "GNU-build"
 	@echo "-----------"
-	cd .build/cmake_gnu && env -u MAKELEVEL make $@
+	cd .build/cmake_gnu && env -u MAKELEVEL $(MAKE) $@
 
 all:
 
 test: all
+
+
 
 .build/cmake_clang/Makefile:
 	@echo ""
@@ -46,6 +58,3 @@ test: all
 	cd .build/cmake_gnu \
     && env cmake -DCMAKE_BUILD_TYPE=Debug ../../
 	touch .build/cmake_gnu/CMakeCache.txt
-
-
-

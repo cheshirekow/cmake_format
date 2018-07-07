@@ -1,4 +1,11 @@
-set(cmake_format_docs conf.py changelog.rst index.rst todo.rst README.rst)
+set(cmake_format_docs
+    conf.py
+    changelog.rst
+    index.rst
+    format_algorithm.rst
+    parse_tree.rst
+    todo.rst
+    README.rst)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
                    COMMAND sphinx-build -M html ${CMAKE_CURRENT_SOURCE_DIR}

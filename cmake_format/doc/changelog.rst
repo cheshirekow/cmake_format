@@ -3,6 +3,42 @@ Changelog
 =========
 
 ------
+v0.4.0
+------
+
+* Overhaul parser into a cleaner single-pass implementation that generates a
+  more complete representation of the syntax tree.
+* Parser now recognizes arbitrary nested command specifications. Keyword
+  argument groups are formatted like statements.
+* Complete rewrite of formatter (see docs for design)
+* Support line comments inside statements and argument groups
+* Add some additional command specifications
+* Add ``--dump [lex|parse|layout]`` debug commands
+* ``--dump-config`` dumps the active configuration (after loading)
+* Add keyword case correction
+* Improve layout of complicated boolean expressions
+
+* Implements `_cheshirekow/cmake_format#10`
+* Fixes `_cheshirekow/cmake_format#34`
+* Implements `_cheshirekow/cmake_format#37`
+* Implements `_cheshirekow/cmake_format#39`
+* Fixes `_cheshirekow/cmake_format#46`
+* Fixes `_cheshirekow/cmake_format#47`
+* Implements `_cheshirekow/cmake_format#48`
+* Fixes `_cheshirekow/cmake_format#49`
+* Fixes `_cheshirekow/cmake_format#50`
+
+.. _cheshirekow/cmake_format#10: https://github.com/cheshirekow/cmake_format/issues/10
+.. _cheshirekow/cmake_format#34: https://github.com/cheshirekow/cmake_format/issues/34
+.. _cheshirekow/cmake_format#37: https://github.com/cheshirekow/cmake_format/issues/37
+.. _cheshirekow/cmake_format#39: https://github.com/cheshirekow/cmake_format/issues/39
+.. _cheshirekow/cmake_format#46: https://github.com/cheshirekow/cmake_format/issues/46
+.. _cheshirekow/cmake_format#47: https://github.com/cheshirekow/cmake_format/issues/47
+.. _cheshirekow/cmake_format#48: https://github.com/cheshirekow/cmake_format/issues/48
+.. _cheshirekow/cmake_format#49: https://github.com/cheshirekow/cmake_format/issues/49
+.. _cheshirekow/cmake_format#50: https://github.com/cheshirekow/cmake_format/issues/50
+
+------
 v0.3.0
 ------
 

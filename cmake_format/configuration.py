@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import inspect
 import logging
 import sys
@@ -84,7 +85,10 @@ class Configuration(ConfigObject):
                enum_char=None,
                line_ending=None,
                command_case=None,
-               additional_commands=None, **_):
+               keyword_case=None,
+               additional_commands=None,
+               always_wrap=None,
+               **_):
 
     self.line_width = line_width
     self.tab_size = tab_size
@@ -101,16 +105,20 @@ class Configuration(ConfigObject):
 
     self.bullet_char = str(bullet_char)[0]
     if bullet_char is None:
-      self.bullet_char = u'*'
+      self.bullet_char = '*'
 
     self.enum_char = str(enum_char)[0]
     if enum_char is None:
-      self.enum_char = u'.'
+      self.enum_char = '.'
 
-    self.line_ending = get_default(line_ending, u"unix")
-    self.command_case = get_default(command_case, u"lower")
-    assert self.command_case in (u"lower", u"upper", u"unchanged")
+    self.line_ending = get_default(line_ending, "unix")
+    self.command_case = get_default(command_case, "lower")
+    assert self.command_case in ("lower", "upper", "unchanged")
 
+    self.keyword_case = get_default(keyword_case, "unchanged")
+    assert self.keyword_case in ("lower", "upper", "unchanged")
+
+    self.always_wrap = get_default(always_wrap, [])
     self.additional_commands = get_default(additional_commands, {
         'foo': {
             'flags': ['BAR', 'BAZ'],
@@ -125,13 +133,15 @@ class Configuration(ConfigObject):
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
       for command_name, spec in additional_commands.items():
-        commands.decl_command(self.fn_spec, command_name, **spec)
+        self.fn_spec.add(command_name, **spec)
 
-    assert self.line_ending in (u"windows", u"unix", u"auto"), \
+    assert self.line_ending in ("windows", "unix", "auto"), \
         r"Line ending must be either 'windows', 'unix', or 'auto'"
-    self.endl = {u'windows': u'\r\n',
-                 u'unix': u'\n',
-                 u'auto': u'\n'}[self.line_ending]
+    self.endl = {'windows': '\r\n',
+                 'unix': '\n',
+                 'auto': '\n'}[self.line_ending]
+
+
 
   def clone(self):
     """
@@ -140,13 +150,18 @@ class Configuration(ConfigObject):
     return Configuration(**self.as_dict())
 
   def set_line_ending(self, detected):
-    self.endl = {u'windows': u'\r\n',
-                 u'unix': u'\n'}[detected]
+    self.endl = {'windows': '\r\n',
+                 'unix': '\n'}[detected]
+
+  @property
+  def linewidth(self):
+    return self.line_width
 
 
 VARCHOICES = {
     'line_ending': ['windows', 'unix', 'auto'],
     'command_case': ['lower', 'upper', 'unchanged'],
+    'keyword_case': ['lower', 'upper', 'unchanged'],
 }
 
 VARDOCS = {
@@ -171,6 +186,10 @@ VARDOCS = {
     "What style line endings to use in the output.",
     "command_case":
     "Format command names consistently as 'lower' or 'upper' case",
+    "keyword_case":
+    "Format keywords consistently as 'lower' or 'upper' case",
+    "always_wrap":
+    "A list of command names which should always be wrapped",
     "additional_commands":
     "Specify structure for custom cmake functions"
 }

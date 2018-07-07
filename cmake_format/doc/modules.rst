@@ -28,6 +28,14 @@ cmake\_format\.commands module
     :undoc-members:
     :show-inheritance:
 
+cmake\_format\.common module
+----------------------------
+
+.. automodule:: cmake_format.common
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cmake\_format\.formatter module
 -------------------------------
 
@@ -44,6 +52,14 @@ cmake\_format\.lexer module
     :undoc-members:
     :show-inheritance:
 
+cmake\_format\.markup module
+----------------------------
+
+.. automodule:: cmake_format.markup
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cmake\_format\.parser module
 ----------------------------
 
@@ -52,18 +68,3 @@ cmake\_format\.parser module
     :undoc-members:
     :show-inheritance:
 
-cmake\_format\.lexer_tests module
----------------------------------
-
-.. automodule:: cmake_format.lexer_tests
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cmake\_format\.format_tests module
-----------------------------------
-
-.. automodule:: cmake_format.format_tests
-    :members:
-    :undoc-members:
-    :show-inheritance:

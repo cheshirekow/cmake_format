@@ -5,9 +5,11 @@ import unittest
 
 from cmake_format.format_tests import *
 from cmake_format.invocation_tests import *
+from cmake_format.layout_tests import *
 from cmake_format.lexer_tests import *
 from cmake_format.markup_tests import *
 from cmake_format.parser_tests import *
+
 
 if __name__ == '__main__':
   unittest.main()

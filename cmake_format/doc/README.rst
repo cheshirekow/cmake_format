@@ -31,17 +31,29 @@ Usage
 
     Parse cmake listfiles and format them nicely.
 
+    Formatting is configurable by providing a configuration file. The configuration
+    file can be in json, yaml, or python format. If no configuration file is
+    specified on the command line, cmake-format will attempt to find a suitable
+    configuration for each ``inputpath`` by checking recursively checking it's
+    parent directory up to the root of the filesystem. It will return the first
+    file it finds with a filename that matches '\.?cmake-format(.yaml|.json|.py)'.
+
+    cmake-format can spit out the default configuration for you as starting point
+    for customization. Run with `--dump-config [yaml|cmake|python]`.
+
     positional arguments:
       infilepaths
 
     optional arguments:
       -h, --help            show this help message and exit
-      --dump-config {yaml,json,python}
+      -v, --version         show program's version number and exit
+      --dump-config [{yaml,json,python}]
                             If specified, print the default configuration to
                             stdout and exit
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
+      --dump {lex,parse,layout}
       -c CONFIG_FILE, --config-file CONFIG_FILE
                             path to configuration file
 
@@ -49,10 +61,34 @@ Usage
       Override configfile options
 
       --line-width LINE_WIDTH
-      --separate-fn-name-with-space SEPARATE_FN_NAME_WITH_SPACE
-      --separate-ctrl-name-with-space SEPARATE_CTRL_NAME_WITH_SPACE
+                            How wide to allow formatted cmake files
+      --tab-size TAB_SIZE   How many spaces to tab for indent
       --max-subargs-per-line MAX_SUBARGS_PER_LINE
-      --tab-size TAB_SIZE
+                            If arglists are longer than this, break them always
+      --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
+                            If true, separate flow control names from their
+                            parentheses with a space
+      --separate-fn-name-with-space [SEPARATE_FN_NAME_WITH_SPACE]
+                            If true, separate function names from parentheses with
+                            a space
+      --dangle-parens [DANGLE_PARENS]
+                            If a statement is wrapped to more than one line, than
+                            dangle the closing parenthesis on it's own line
+      --bullet-char BULLET_CHAR
+                            What character to use for bulleted lists
+      --enum-char ENUM_CHAR
+                            What character to use as punctuation after numerals in
+                            an enumerated list
+      --line-ending {windows,unix,auto}
+                            What style line endings to use in the output.
+      --command-case {lower,upper,unchanged}
+                            Format command names consistently as 'lower' or
+                            'upper' case
+      --keyword-case {lower,upper,unchanged}
+                            Format keywords consistently as 'lower' or 'upper'
+                            case
+      --always-wrap [ALWAYS_WRAP [ALWAYS_WRAP ...]]
+                            A list of command names which should always be wrapped
 
 
 -------------
@@ -94,9 +130,11 @@ pleasant way.
     # What style line endings to use in the output.
     line_ending = u'unix'
 
-    # Format command names with this case. Options are "lower", "upper",
-    # "unchanged"
+    # Format command names consistently as 'lower' or 'upper' case
     command_case = u'lower'
+
+    # Format keywords consistently as 'lower' or 'upper' case
+    keyword_case = u'unchanged'
 
     # Specify structure for custom cmake functions
     additional_commands = {
@@ -112,6 +150,9 @@ pleasant way.
         }
       }
     }
+
+    # A list of command names which should always be wrapped
+    always_wrap = []
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry

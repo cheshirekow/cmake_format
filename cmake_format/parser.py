@@ -1,182 +1,79 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
+from __future__ import unicode_literals
 
+import io
+import sys
+
+
+from cmake_format import commands
+from cmake_format import common
 from cmake_format import lexer
 
 
-def make_enum_map(names):
+# --------------------------------------------------
+# Middle Layer Parse: digest tokens into block nodes
+# --------------------------------------------------
+
+
+class NodeType(common.EnumObject):
   """
-  Construct the inverse map from enum values to names
+  Enumeration for AST nodes
   """
-  return {globals()[name]: name for name in names}
+  _id_map = {}
 
 
-# Token sequence types
-STATEMENT = 0
-WHITESPACE = 1
-COMMENT = 2
+NodeType.BODY = NodeType(0)
+NodeType.WHITESPACE = NodeType(1)
+NodeType.COMMENT = NodeType(2)
+NodeType.STATEMENT = NodeType(3)
+NodeType.FLOW_CONTROL = NodeType(4)
+NodeType.FUNNAME = NodeType(10)
+NodeType.ARGGROUP = NodeType(5)
+NodeType.KWARGGROUP = NodeType(6)
+NodeType.ARGUMENT = NodeType(7)
+NodeType.KEYWORD = NodeType(8)
+NodeType.FLAG = NodeType(9)
+NodeType.ONOFFSWITCH = NodeType(11)
 
-kSeqTypeToStr = make_enum_map(["STATEMENT", "WHITESPACE", "COMMENT"])
+# NOTE(josh): These aren't really semantic, but they have structural
+# significance that is important in formatting. Since they will have a presence
+# in the format tree, we give them a presence in the parse tree as well.
+NodeType.LPAREN = NodeType(12)
+NodeType.RPAREN = NodeType(13)
 
-WHITESPACE_TOKENS = [lexer.WHITESPACE,
-                     lexer.NEWLINE]
-
-COMMENT_TOKENS = [lexer.COMMENT,
-                  lexer.FORMAT_OFF,
-                  lexer.FORMAT_ON]
-
-
-class TokenSequence(object):
+class FlowType(common.EnumObject):
   """
-  A sequence of tokens composing one of:
-  1. a cmake statement
-  2. a cmake comment
-  3. some whitespace
+  Enumeration for flow control types
   """
-
-  def __init__(self, seq_type, tokens):
-    self.type = seq_type
-    self.tokens = tokens
-
-  def __repr__(self):
-    return ("{}: {}:{}"
-            .format(kSeqTypeToStr.get(self.type),
-                    self.tokens[0].line, self.tokens[0].col))
+  _id_map = {}
 
 
-def consume_whitespace(tokens):
-  """
-  Consume sequential whitespace, removing tokens from the iniput list and
-  returning a whitespace TokenSequence
-  """
-
-  whitespace_tokens = []
-  while tokens and tokens[0].type in WHITESPACE_TOKENS:
-    whitespace_tokens.append(tokens.pop(0))
-  return TokenSequence(WHITESPACE, whitespace_tokens)
+FlowType.IF = FlowType(0)
+FlowType.WHILE = FlowType(1)
+FlowType.FOREACH = FlowType(2)
+FlowType.FUNCTION = FlowType(3)
+FlowType.MACRO = FlowType(4)
 
 
-def consume_comment(tokens):
-  """
-  Consume sequential comment lines, removing tokens from the input list and
-  returning a comment TokenSequence
-  """
+WHITESPACE_TOKENS = (lexer.TokenType.WHITESPACE,
+                     lexer.TokenType.NEWLINE)
 
-  comment_tokens = []
-  while tokens and tokens[0].type in COMMENT_TOKENS:
-    comment_tokens.append(tokens.pop(0))
-    # pylint: disable=bad-continuation
-    if (len(tokens) > 2
-        and tokens[0].type == lexer.NEWLINE
-        and tokens[1].type in COMMENT_TOKENS
-        ):
-      comment_tokens.append(tokens.pop(0))
-  return TokenSequence(COMMENT, comment_tokens)
+# TODO(josh): Don't include FORMAT_OFF and FORMAT_ON in comment tokens. They
+# wont get reflowed within a comment block so there is no reason to parse them
+# as such.
+COMMENT_TOKENS = (lexer.TokenType.COMMENT,)
+ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
+                lexer.TokenType.FORMAT_OFF)
 
 
-def consume_statement(tokens):
-  """
-  Consume a complete statement, removint tokens from the input list and
-  returning a statement TokenSequence
-  """
-  stmt_tokens = [tokens.pop(0)]
-  while tokens[0].type in WHITESPACE_TOKENS:
-    stmt_tokens.append(tokens.pop(0))
+def make_conditional_spec():
+  flags = ['NOT', 'EXISTS', 'MATCHES', 'VERSION_LESS']
+  spec = commands.CommandSpec('<conditional>', pargs='+', flags=list(flags))
+  return commands.CommandSpec('<conditional>', pargs='+', flags=list(flags),
+                              kwargs={'AND': spec, 'OR': spec})
 
-  assert tokens[0].type == lexer.LEFT_PAREN, \
-      ("Unexpected {} token at {}:{}, expecting l-paren, got {}"
-       .format(lexer.token_type_to_str(tokens[0].type), tokens[0].line,
-               tokens[0].col, tokens[0].content))
-
-  stmt_tokens.append(tokens.pop(0))
-  paren_count = 1
-
-  while tokens and paren_count > 0:
-    if tokens[0].type == lexer.LEFT_PAREN:
-      paren_count += 1
-    elif tokens[0].type == lexer.RIGHT_PAREN:
-      paren_count -= 1
-    stmt_tokens.append(tokens.pop(0))
-
-  assert paren_count == 0, \
-      ("Missing terminating r-paren for statement starting at {}:{}\n"
-       .format(stmt_tokens[0].line, stmt_tokens[0].col))
-
-  while tokens:
-    if tokens[0].type in [lexer.COMMENT,
-                          lexer.BRACKET_COMMENT,
-                          lexer.WHITESPACE]:
-      stmt_tokens.append(tokens.pop(0))
-    else:
-      break
-
-  while (len(tokens) > 2
-         and tokens[0].type == lexer.NEWLINE
-         and tokens[1].type == lexer.WHITESPACE
-         and tokens[2].type in (lexer.COMMENT, lexer.BRACKET_COMMENT)):
-    stmt_tokens.append(tokens.pop(0))
-    stmt_tokens.append(tokens.pop(0))
-    stmt_tokens.append(tokens.pop(0))
-
-  return TokenSequence(STATEMENT, stmt_tokens)
-
-
-def digest_tokens(tokens):
-  """
-  Consume tokens and output collections of tokens (as TokenSequence) objects
-  representing one of the following classes:
-
-  1. whitespace
-  2. comment
-  3. statement
-  """
-
-  tokens = list(tokens)
-  tok_seqs = []
-
-  while tokens:
-    if tokens[0].type in WHITESPACE_TOKENS:
-      tok_seqs.append(consume_whitespace(tokens))
-    elif tokens[0].type in COMMENT_TOKENS:
-      tok_seqs.append(consume_comment(tokens))
-    elif tokens[0].type == lexer.BRACKET_COMMENT:
-      tok_seqs.append(TokenSequence(COMMENT, [tokens.pop(0)]))
-    elif tokens[0].type == lexer.WORD:
-      tok_seqs.append(consume_statement(tokens))
-    else:
-      assert False, ("Unexpected token of type {} at {}:{}"
-                     .format(lexer.token_type_to_str(tokens[0].type),
-                             tokens[0].line, tokens[0].col))
-
-  return tok_seqs
-
-
-def dump_digest(tok_seqs):
-  """
-  Print a series of token_sequences for debugging purposes
-  """
-  for tok_seq in tok_seqs:
-    print(tok_seq)
-
-
-# Node Types
-BLOCK_NODE = 0
-COMMENT_NODE = 1
-WHITESPACE_NODE = 2
-STATEMENT_NODE = 3
-
-kNodeTypeToStr = make_enum_map(["BLOCK_NODE", "COMMENT_NODE",
-                                "WHITESPACE_NODE", "STATEMENT_NODE"])
-
-# Block Node subtypes
-ROOT = 4
-IF_BLOCK = 5
-WHILE = 6
-FOREACH = 7
-FUNCTION_DEF = 8
-MACRO_DEF = 9
-
-kBlockTypeToStr = make_enum_map(["ROOT", "IF_BLOCK", "WHILE", "FOREACH",
-                                 "FUNCTION_DEF", "MACRO_DEF"])
+CONDITIONAL_KWARGS = make_conditional_spec()
 
 
 class TreeNode(object):
@@ -186,263 +83,602 @@ class TreeNode(object):
 
   def __init__(self, node_type):
     self.node_type = node_type
+    self.children = []
 
   def get_location(self):
     """
     Return the (line, col) of the first token in the subtree rooted at this
     node.
     """
-    if hasattr(self, 'content'):
-      token = getattr(self, 'content').tokens[0]
-      return token.line, token.col
-    elif hasattr(self, 'children') and getattr(self, 'children'):
-      return getattr(self, 'children')[0].get_location()
+    if self.children:
+      return self.children[0].get_location()
 
-    return -1, -1
-
-  def __repr__(self):
-    line, col = self.get_location()
-    return '{}:{}:{}'.format(kNodeTypeToStr.get(self.node_type),
-                             line, col)
-
-
-class Block(TreeNode):
-  """
-  A node with children but no content. A block node is used to represent the top
-  level of a listfile, as well as any kind of logical "scope" constructs like
-  conditional statements or loops. In the case of a scope-block the children
-  of this node are the statements that define the scope (if, elseif,
-  else, endif) and not the statements within the body of the scope.
-  """
-
-  def __init__(self, block_type, children=None):
-    super(Block, self).__init__(BLOCK_NODE)
-    self.block_type = block_type
-    self.children = children if children else []
-
-  def __repr__(self):
-    line, col = self.get_location()
-    return '{}({}):{}:{}'.format(kNodeTypeToStr.get(self.node_type),
-                                 kBlockTypeToStr.get(self.block_type),
-                                 line, col)
-
-
-class Comment(TreeNode):
-  """
-  Has a ``content`` field containing a TokenSequence of comment tokens.
-  Represents a continuous sequence of comment lines up to the first blank line
-  or cmake statment. The ``content`` contains the full TokenSequence, including
-  lexer.NEWLINE objects between each comment line.
-  """
-
-  def __init__(self, content=None):
-    super(Comment, self).__init__(COMMENT_NODE)
-    self.content = content
-
-
-class Whitespace(TreeNode):
-  """
-  Has a ``content`` field containing a TokenSequence of whitespace tokens.
-  Represents a continuous sequence of whitespace (either lexer.Newline or
-  lexer.Whitespace) between a comment or a cmake statement. Note that
-  ``content`` contains the full TokenSequence, including trailing whitespace
-  or multiple newlines.
-  """
-
-  def __init__(self, content=None):
-    super(Whitespace, self).__init__(WHITESPACE_NODE)
-    self.content = content
+    return lexer.SourceLocation((0, 0, 0))
 
   def count_newlines(self):
     newline_count = 0
-    for token in self.content.tokens:
-      newline_count += token.content.count('\n')
+    for child in self.children:
+      newline_count += child.count_newlines()
     return newline_count
 
+  def __repr__(self):
+    return '{}: {}'.format(self.node_type.name, self.get_location())
 
-class Argument(object):
+
+def consume_whitespace(tokens):
   """
-  A single semantic argument of a cmake statement (command/function-call). It
-  is composed of nominally one token, but may also be associated with a list
-  of comment strings which are digested stripped out of comment tokens.
-  """
-
-  def __init__(self, token, comments=None):
-    self.tokens = [token]
-    self.comments = comments if comments else []
-    self.contents = token.content
-
-
-class Statement(TreeNode):
-  """
-  A single cmake statement. A statement has at most one child (stored in
-  ``children``). Note that some statements are "simple" function calls
-  while other statements (like ``if``, or ``while``) open a new logical block.
-  Simple statements have no children and logical block statements have one
-  child.
-
-  The arguments of a statement are stored in the ``content`` list of this
-  node as a sequence of ``Argument`` objects.
+  Consume sequential whitespace, removing tokens from the iniput list and
+  returning a whitespace BlockNode
   """
 
-  def __init__(self, content=None, child=None):
-    super(Statement, self).__init__(STATEMENT_NODE)
-    self.content = content
-    self.children = list(child) if child else []
-    self.prefix_tokens = []
-    self.postfix_tokens = []
+  node = TreeNode(NodeType.WHITESPACE)
+  whitespace_tokens = node.children
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    whitespace_tokens.append(tokens.pop(0))
 
-    tokens = list(content.tokens)
-    assert tokens[0].type == lexer.WORD
-    self.prefix_tokens.append(tokens.pop(0))
-    self.name = self.prefix_tokens[0].content
-    self.body = []
-    while tokens and tokens[0].type != lexer.LEFT_PAREN:
-      self.prefix_tokens.append(tokens.pop(0))
-    assert tokens
-    self.prefix_tokens.append(tokens.pop(0))
+  return node
 
-    paren_count = 1
 
-    while tokens and paren_count > 0:
-      token = tokens.pop(0)
-      if token.type in WHITESPACE_TOKENS:
-        if self.body:
-          self.body[-1].tokens.append(token)
-        else:
-          self.prefix_tokens.append(token)
-      elif token.type == lexer.COMMENT:
-        assert self.body
-        self.body[-1].tokens.append(token)
-        self.body[-1].comments.append(token.content)
-      elif token.type == lexer.LEFT_PAREN:
-        paren_count += 1
-        self.body.append(Argument(token))
-      elif token.type == lexer.RIGHT_PAREN:
-        paren_count -= 1
-        if paren_count > 0:
-          self.body.append(Argument(token))
-        else:
-          self.postfix_tokens.append(token)
+def consume_comment(tokens):
+  """
+  Consume sequential comment lines, removing tokens from the input list and
+  returning a comment Block
+  """
+
+  node = TreeNode(NodeType.COMMENT)
+  comment_tokens = node.children
+  while tokens and tokens[0].type in COMMENT_TOKENS:
+    comment_tokens.append(tokens.pop(0))
+
+    # Multiple comments separated by only one newline are joined together into
+    # a single block
+    if (len(tokens) > 1
+        # pylint: disable=bad-continuation
+        and tokens[0].type == lexer.TokenType.NEWLINE
+            and tokens[1].type in COMMENT_TOKENS):
+      comment_tokens.append(tokens.pop(0))
+
+    # Multiple comments separated only by one newline and some whitespace are
+    # joined together into a single block
+    # TODO(josh): maybe match only on comment tokens that start at the same
+    # column
+    elif (len(tokens) > 2
+          # pylint: disable=bad-continuation
+          and tokens[0].type == lexer.TokenType.NEWLINE
+          and tokens[1].type == lexer.TokenType.WHITESPACE
+          and tokens[2].type in COMMENT_TOKENS):
+      comment_tokens.append(tokens.pop(0))
+      comment_tokens.append(tokens.pop(0))
+  return node
+
+
+def consume_onoff(tokens):
+  """
+  Consume a 'cmake-format: [on|off]' comment
+  """
+
+  node = TreeNode(NodeType.ONOFFSWITCH)
+  node.children.append(tokens.pop(0))
+  return node
+
+
+def next_is_trailing_comment(tokens):
+  """
+  Return true if there is a trailing comment in the token stream
+  """
+
+  if not tokens:
+    return False
+
+  if tokens[0].type in [lexer.TokenType.COMMENT,
+                        lexer.TokenType.BRACKET_COMMENT]:
+    return True
+
+  if len(tokens) < 2:
+    return False
+
+  if (tokens[0].type == lexer.TokenType.WHITESPACE
+      and tokens[1].type in [lexer.TokenType.COMMENT,
+                             lexer.TokenType.BRACKET_COMMENT]):
+    return True
+
+  return False
+
+
+def consume_trailing_comment(parent, tokens):
+  """
+  Consume sequential comment lines, removing tokens from the input list and
+  appending the resulting node as a child to the provided parent
+  """
+  if not next_is_trailing_comment(tokens):
+    return
+
+  if tokens[0].type == lexer.TokenType.WHITESPACE:
+    parent.children.append(tokens.pop(0))
+
+  node = TreeNode(NodeType.COMMENT)
+  parent.children.append(node)
+
+  match_tokens = (lexer.TokenType.COMMENT,
+                  lexer.TokenType.BRACKET_COMMENT)
+  comment_tokens = node.children
+
+  while tokens and tokens[0].type in match_tokens:
+    comment_tokens.append(tokens.pop(0))
+
+    # Multiple comments separated by only one newline are joined together into
+    # a single block
+    if (len(tokens) > 1
+        # pylint: disable=bad-continuation
+        and tokens[0].type == lexer.TokenType.NEWLINE
+            and tokens[1].type in match_tokens):
+      comment_tokens.append(tokens.pop(0))
+
+    # Multiple comments separated only by one newline and some whitespace are
+    # joined together into a single block
+    # TODO(josh): maybe match only on comment tokens that start at the same
+    # column?
+    elif (len(tokens) > 2
+          # pylint: disable=bad-continuation
+          and tokens[0].type == lexer.TokenType.NEWLINE
+          and tokens[1].type == lexer.TokenType.WHITESPACE
+          and tokens[2].type in match_tokens):
+      comment_tokens.append(tokens.pop(0))
+      comment_tokens.append(tokens.pop(0))
+
+
+def get_normalized_kwarg(token):
+  """
+  Return uppercase token spelling if it is a word, otherwise return None
+  """
+
+  if (token.type == lexer.TokenType.UNQUOTED_LITERAL
+      and token.spelling.startswith('-')):
+    return token.spelling.lower()
+
+  if token.type != lexer.TokenType.WORD:
+    return None
+
+  return token.spelling.upper()
+
+
+def kwarg_breaks_stack(kwarg, argstack=None):
+  if argstack is None:
+    return False
+
+  if kwarg is None:
+    return False
+
+  for cmdspec in argstack[::-1]:
+    if (isinstance(cmdspec, commands.CommandSpec)
+        and cmdspec.name == 'COMMAND'
+        and kwarg.startswith('--')):
+      return True
+
+    if isinstance(cmdspec, dict) and kwarg in cmdspec:
+      return True
+
+  return False
+
+
+def token_is_flag(normalized_token, cmdspec):
+  if normalized_token is None:
+    return False
+
+  if not isinstance(cmdspec, commands.CommandSpec):
+    return False
+
+  if (cmdspec.name == 'COMMAND'
+      and len(normalized_token) > 1
+      and normalized_token[0] == '-'
+      and normalized_token[1] != '-'):
+    return True
+
+  return cmdspec.is_flag(normalized_token)
+
+
+def token_is_kwarg(normalized_token, cmdspec):
+  if normalized_token is None:
+    return False
+
+  if not isinstance(cmdspec, commands.CommandSpec):
+    return False
+
+  if (cmdspec.name == 'COMMAND'
+      and normalized_token.startswith('--')):
+    return True
+
+  return cmdspec.is_kwarg(normalized_token)
+
+
+def is_full(pargs, spec):
+  """
+  Return true if the current node is full due to command specification
+  """
+
+  if isinstance(spec, int):
+    if pargs >= spec:
+      return True
+  elif hasattr(spec, 'pargs'):
+    spec_pargs = getattr(spec, 'pargs')
+    if isinstance(spec_pargs, int) and pargs >= spec_pargs:
+      return True
+
+  return False
+
+
+def consume_arguments(node, tokens, cmdspec, argstack=None):
+  """
+  Consume a parenthetical group of arguments.
+  """
+
+  if argstack is None:
+    argstack = []
+
+  children = node.children
+
+  # Number of positional arguments accumulated for the current command
+  pargs = 0
+
+  while tokens:
+    if tokens[0].type == lexer.TokenType.LEFT_PAREN:
+      # LEFT_PAREN signals the start of a conditional group
+
+      # NOTE(josh): since parenthetical groups act as positional arguments,
+      # if the current compliment of positional arguments is full, we can
+      # go ahead and close this node...
+      if is_full(pargs, cmdspec):
+        return
+
+      subtree = TreeNode(NodeType.ARGGROUP)
+      lparen = TreeNode(NodeType.LPAREN)
+      lparen.children.append(tokens.pop(0))
+      subtree.children.append(lparen)
+
+      # NOTE(josh): we pass in conditional cmdspec since argument groups
+      # aren't arbitrary and are only allowed for conditional statements.
+      # I have a feeling this might change in the future as the cmake language
+      # develops further.
+      consume_arguments(subtree, tokens, CONDITIONAL_KWARGS)
+      children.append(subtree)
+
+      if tokens[0].type != lexer.TokenType.RIGHT_PAREN:
+        raise ValueError(
+            "Unexpected {} token at {}, expecting r-paren, got {}"
+            .format(tokens[0].type.name, tokens[0].get_location(),
+                    tokens[0].content))
+      rparen = TreeNode(NodeType.RPAREN)
+      rparen.children.append(tokens.pop(0))
+      subtree.children.append(rparen)
+
+      # NOTE(josh): parenthetical groups can have trailing comments because
+      # they have closing punctuation
+      consume_trailing_comment(subtree, tokens)
+      pargs += 1
+      continue
+
+    if tokens[0].type == lexer.TokenType.RIGHT_PAREN:
+      # RIGHT_PARENT signals the end of the currently opened parenthentical
+      # group. This case is handled by the caller.
+      return
+
+    if tokens[0].type in WHITESPACE_TOKENS:
+      children.append(tokens.pop(0))
+      continue
+
+    if tokens[0].type in (lexer.TokenType.COMMENT,
+                          lexer.TokenType.BRACKET_COMMENT):
+
+      # NOTE(josh): if the current command is full, then break out of it and
+      # associate the comment with the parent command
+      if is_full(pargs, cmdspec):
+        return
+
+      child = TreeNode(NodeType.COMMENT)
+      children.append(child)
+      child.children.append(tokens.pop(0))
+      continue
+
+    kwarg = get_normalized_kwarg(tokens[0])
+    if token_is_kwarg(kwarg, cmdspec):
+      subtree = TreeNode(NodeType.KWARGGROUP)
+      children.append(subtree)
+
+      child = TreeNode(NodeType.KEYWORD)
+      subtree.children.append(child)
+      child.children.append(tokens.pop(0))
+      consume_trailing_comment(child, tokens)
+
+      consume_arguments(subtree, tokens, cmdspec.get(kwarg),
+                        argstack + [cmdspec])
+      # NOTE(josh): kwarg groups can't have trailing comments because they
+      # have no closing puncutation
+      continue
+
+    if token_is_flag(kwarg, cmdspec):
+      child = TreeNode(NodeType.FLAG)
+      children.append(child)
+      child.children.append(tokens.pop(0))
+      consume_trailing_comment(child, tokens)
+      continue
+
+    if kwarg_breaks_stack(kwarg, argstack):
+      # NOTE(josh): the next token matches a keyword of some command
+      # higher up in the stack, so we are done here. We will return from
+      # every callee up to the caller with the approprate cmdspec.
+      return
+
+    # The current token is an argument and if it is a WORD then it doesn't
+    # match a keyword of any specification in the stack so it must be
+    # a positional argument
+
+    # If the current node has a full compliment of positional arguments, then
+    # the next argument must belong to a node higher up in the call stack.
+    if is_full(pargs, cmdspec):
+      return
+
+    child = TreeNode(NodeType.ARGUMENT)
+    children.append(child)
+    child.children.append(tokens.pop(0))
+    consume_trailing_comment(child, tokens)
+    pargs += 1
+
+  raise ValueError(
+      "Token stream expired while parsing statement arguments starting at {}"
+      .format(node.get_location()))
+
+
+def consume_statement(tokens, cmdspec):
+  """
+  Consume a complete statement, removing tokens from the input list and
+  returning a statement Block
+  """
+  node = TreeNode(NodeType.STATEMENT)
+
+  # Consume the function name
+  fnname = tokens[0].spelling.lower()
+
+  funnode = TreeNode(NodeType.FUNNAME)
+  funnode.children.append(tokens.pop(0))
+  node.children.append(funnode)
+
+  # Consume whitespace up to the parenthesis
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    node.children.append(tokens.pop(0))
+
+  # TODO(josh): should the parens belong to the statement node or the
+  # group node?
+  if tokens[0].type != lexer.TokenType.LEFT_PAREN:
+    raise ValueError(
+        "Unexpected {} token at {}, expecting l-paren, got {}"
+        .format(tokens[0].type.name, tokens[0].get_location(),
+                repr(tokens[0].content)))
+
+
+  lparen = TreeNode(NodeType.LPAREN)
+  lparen.children.append(tokens.pop(0))
+  node.children.append(lparen)
+
+  subtree = TreeNode(NodeType.ARGGROUP)
+  node.children.append(subtree)
+  consume_arguments(subtree, tokens, cmdspec.get(fnname, None), [])
+
+  # NOTE(josh): technically we may have a statement specification with
+  # an exact number of arguments. At this point we have broken out of that
+  # statement but we might have some comments or whitespace to consume
+
+  while tokens and tokens[0].type != lexer.TokenType.RIGHT_PAREN:
+    if tokens[0].type in WHITESPACE_TOKENS:
+      node.children.append(tokens.pop(0))
+      continue
+
+    if tokens[0].type in COMMENT_TOKENS:
+      cnode = consume_comment(tokens)
+      node.children.append(cnode)
+      continue
+
+    raise ValueError(
+        "Unexpected {} token at {}, expecting r-paren, got {}"
+        .format(tokens[0].type.name, tokens[0].get_location(),
+                repr(tokens[0].content)))
+
+  assert tokens, "Unexpected end of token stream while parsing statement"
+  assert tokens[0].type == lexer.TokenType.RIGHT_PAREN, \
+      ("Unexpected {} token at {}, expecting r-paren, got {}"
+       .format(tokens[0].type.name, tokens[0].get_location(),
+               repr(tokens[0].content)))
+
+  rparen = TreeNode(NodeType.RPAREN)
+  rparen.children.append(tokens.pop(0))
+  node.children.append(rparen)
+  consume_trailing_comment(node, tokens)
+
+  return node
+
+
+def consume_ifblock(tokens, cmdspec):
+  """
+  Consume tokens and return a flow control tree. ``IF`` statements are special
+  because they have interior ``ELSIF`` and ``ELSE`` blocks, while all other
+  flow control have a single body.
+  """
+
+  node = TreeNode(NodeType.FLOW_CONTROL)
+  children = node.children
+  breakset = ("ELSE", "ELSEIF", "ENDIF")
+
+  while tokens and tokens[0].spelling.upper() != "ENDIF":
+    stmt = consume_statement(tokens, cmdspec)
+    children.append(stmt)
+    body = consume_body(tokens, cmdspec, breakset)
+    children.append(body)
+  stmt = consume_statement(tokens, cmdspec)
+  children.append(stmt)
+
+  return node
+
+
+def consume_flowcontrol(tokens, cmdspec):
+  """
+  Consume tokens and return a flow control tree. A flow control tree starts
+  and ends with a statement node, and contains one or more body nodes. An if
+  statement is the only flow control that includes multiple body nodes and they
+  are separated by either else or elseif nodes.
+  """
+  flowtype = FlowType.from_name(tokens[0].spelling.upper())
+  if flowtype is FlowType.IF:
+    return consume_ifblock(tokens, cmdspec)
+
+  node = TreeNode(NodeType.FLOW_CONTROL)
+  children = node.children
+  endflow = 'END' + flowtype.name
+  stmt = consume_statement(tokens, cmdspec)
+  children.append(stmt)
+  body = consume_body(tokens, cmdspec, (endflow,))
+  children.append(body)
+  stmt = consume_statement(tokens, cmdspec)
+  children.append(stmt)
+
+  return node
+
+
+def consume_body(tokens, cmdspec, breakset=None):
+  """
+  Consume tokens and return a tree of nodes. Top-level consumer parsers
+  comments, whitespace, statements, and flow control blocks.
+  """
+  if breakset is None:
+    breakset = ()
+
+  tree = TreeNode(NodeType.BODY)
+  blocks = tree.children
+
+  while tokens:
+    token = tokens[0]
+    if token.type in WHITESPACE_TOKENS:
+      node = consume_whitespace(tokens)
+      blocks.append(node)
+    elif token.type in COMMENT_TOKENS:
+      node = consume_comment(tokens)
+      blocks.append(node)
+    elif token.type in ONOFF_TOKENS:
+      node = consume_onoff(tokens)
+      blocks.append(node)
+    elif token.type == lexer.TokenType.BRACKET_COMMENT:
+      node = TreeNode(NodeType.COMMENT)
+      node.children = [tokens.pop(0)]
+      blocks.append(node)
+    elif token.type == lexer.TokenType.WORD:
+      upper = token.spelling.upper()
+      if upper in breakset:
+        return tree
+      elif FlowType.get(upper) is not None:
+        subtree = consume_flowcontrol(tokens, cmdspec)
+        blocks.append(subtree)
       else:
-        self.body.append(Argument(token))
-    self.comment = ""
-    while tokens:
-      self.postfix_tokens.append(tokens.pop(0))
-      if self.postfix_tokens[-1].type == lexer.COMMENT:
-        if self.comment:
-          self.comment += "\n"
-        self.comment += self.postfix_tokens[-1].content.strip().lstrip('#')
+        subtree = consume_statement(tokens, cmdspec)
+        blocks.append(subtree)
+    else:
+      assert False, ("Unexpected {} token at {}:{}"
+                     .format(tokens[0].type.name,
+                             tokens[0].begin.line, tokens[0].begin.col))
+
+  return tree
+
+# ------------------
+# Frontend utilities
+# ------------------
 
 
-def construct_fst(token_seqs):
+def parse(tokens, cmdspec=None):
   """
-  Given a list of token sequences (the output of digest_tokens), construct the
-  Full Syntax Tree
+  digest tokens, then layout the digested blocks.
+  """
+  if cmdspec is None:
+    cmdspec = commands.get_fn_spec()
+
+  return consume_body(tokens, cmdspec)
+
+
+def dump_tree(nodes, outfile=None, indent=None):
+  """
+  Print a tree of node objects for debugging purposes
   """
 
-  # TODO(josh): figure out a cleaner way to deal with this switch/case logic
-  # pylint: disable=too-many-statements
-  block_stack = [Block(ROOT)]
-  token_seqs = list(token_seqs)
-  while token_seqs:
-    tok_seq = token_seqs.pop(0)
-    if tok_seq.type == COMMENT:
-      block_stack[-1].children.append(Comment(tok_seq))
-    elif tok_seq.type == WHITESPACE:
-      block_stack[-1].children.append(Whitespace(tok_seq))
-    elif tok_seq.type == STATEMENT:
-      if tok_seq.tokens[0].content.lower() == 'if':
-        block = Block(IF_BLOCK)
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(block)
-        block.children.append(stmt)
-        block_stack.append(block)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() in ['elseif', 'else']:
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == IF_BLOCK
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() == 'endif':
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == IF_BLOCK
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.pop(-1)
-      elif tok_seq.tokens[0].content.lower() == 'while':
-        block = Block(WHILE)
-        stmt = Statement(tok_seq)
-        block.children.append(stmt)
-        block_stack.append(block)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() == 'endwhile':
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == WHILE
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.pop(-1)
-      elif tok_seq.tokens[0].content.lower() == 'foreach':
-        block = Block(FOREACH)
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(block)
-        block.children.append(stmt)
-        block_stack.append(block)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() == 'endforeach':
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == FOREACH
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.pop(-1)
-      elif tok_seq.tokens[0].content.lower() == 'function':
-        block = Block(FUNCTION_DEF)
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(block)
-        block.children.append(stmt)
-        block_stack.append(block)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() == 'endfunction':
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == FUNCTION_DEF
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.pop(-1)
-      elif tok_seq.tokens[0].content.lower() == 'macro':
-        block = Block(MACRO_DEF)
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(block)
-        block.children.append(stmt)
-        block_stack.append(block)
-        block_stack.append(stmt)
-      elif tok_seq.tokens[0].content.lower() == 'endmacro':
-        assert block_stack and block_stack.pop(-1)
-        assert block_stack and block_stack[-1].block_type == MACRO_DEF
-        stmt = Statement(tok_seq)
-        block_stack[-1].children.append(stmt)
-        block_stack.pop(-1)
-      else:
-        block_stack[-1].children.append(Statement(tok_seq))
+  if indent is None:
+    indent = ''
 
-  if len(block_stack) != 1:
-    for block in block_stack[::-1]:
-      if block.node_type == BLOCK_NODE:
-        raise AssertionError("Unclosed block of type: {} opened at {}:{}"
-                             .format(kBlockTypeToStr.get(block.block_type),
-                                     block.children[0].line,
-                                     block.children[0].col))
+  if outfile is None:
+    outfile = sys.stdout
 
-    raise AssertionError('Unclosed node of type: {}'
-                         .format(block_stack[-1].node_type))
+  for idx, node in enumerate(nodes):
+    outfile.write(indent)
+    if idx + 1 == len(nodes):
+      outfile.write('└─ ')
+    else:
+      outfile.write('├─ ')
+    noderep = repr(node)
+    if sys.version_info[0] < 3:
+      # python2
+      outfile.write(getattr(noderep, 'decode')('utf-8'))
+    else:
+      # python3
+      outfile.write(noderep)
+    outfile.write('\n')
 
-  return block_stack[0]
+    if not hasattr(node, 'children'):
+      continue
+
+    if idx + 1 == len(nodes):
+      dump_tree(node.children, outfile, indent + '    ')
+    else:
+      dump_tree(node.children, outfile, indent + '│   ')
 
 
-def dump_fst(node, depth=0):
-  print('{}{}'.format('  ' * depth, node))
-  for child in getattr(node, 'children', []):
-    dump_fst(child, depth + 1)
+def tree_string(nodes):
+  outfile = io.StringIO()
+  dump_tree(nodes, outfile)
+  return outfile.getvalue()
+
+
+def has_nontoken_children(node):
+  if not hasattr(node, 'children'):
+    return False
+
+  for child in node.children:
+    if isinstance(child, TreeNode):
+      return True
+
+  return False
+
+
+def dump_tree_for_test(nodes, outfile=None, indent=None):
+  """
+  Print a tree of node objects for debugging purposes
+  """
+
+  if indent is None:
+    indent = ''
+
+  if outfile is None:
+    outfile = sys.stdout
+
+  for node in nodes:
+    if not isinstance(node, TreeNode):
+      continue
+    outfile.write(indent)
+    outfile.write('({}, ['.format(node.node_type))
+    if has_nontoken_children(node):
+      outfile.write('\n')
+      dump_tree_for_test(node.children, outfile, indent + '    ')
+      outfile.write(indent)
+    outfile.write(']),\n')
+
+
+def test_string(nodes):
+  outfile = io.StringIO()
+  dump_tree_for_test(nodes, outfile, indent=(' ' * 10))
+  return outfile.getvalue()
 
 
 def main():
@@ -452,23 +688,13 @@ def main():
   import argparse
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('infile')
-  subparsers = parser.add_subparsers(dest='command')
-  subparsers.add_parser('dump-digest')
-  subparsers.add_parser('dump-tree')
-
   args = parser.parse_args()
+
   with open(args.infile, 'r') as infile:
     tokens = lexer.tokenize(infile.read())
-    tok_seqs = digest_tokens(tokens)
-    fst = construct_fst(tok_seqs)
+    rootnode = parse(tokens)
 
-  if args.command == 'dump-digest':
-    for seq in tok_seqs:
-      print(seq)
-  elif args.command == 'dump-tree':
-    dump_fst(fst)
-  else:
-    assert False, "Unkown command {}".format(args.command)
+  dump_tree([rootnode], sys.stdout)
 
 
 if __name__ == '__main__':

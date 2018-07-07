@@ -94,7 +94,8 @@ foo(nonkwarg_a nonkwarg_b
             e.h
             f.h
     SOURCES a.cc b.cc d.cc
-    DEPENDS foo bar baz)
+    DEPENDS foo
+    bar baz)
 
 # This command uses a string with escaped quote chars
 foo(some_arg some_arg "This is a \"string\" within a string")

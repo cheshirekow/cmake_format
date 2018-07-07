@@ -1,6 +1,10 @@
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import re
+import sys
+
+from cmake_format import common
 
 # NOTE(josh): inspiration and some bits taken from cmakeast_ and
 # cmakelistparsing_
@@ -9,31 +13,48 @@ import re
 # .. _cmakelist_parsing: https://github.com/ijt/cmakelists_parsing
 
 
-# Token types... enum is slow
-QUOTED_LITERAL = 0
-LEFT_PAREN = 1
-RIGHT_PAREN = 2
-WORD = 3
-NUMBER = 4
-DEREF = 5
-WHITESPACE = 6
-NEWLINE = 7
-COMMENT = 8
-UNQUOTED_LITERAL = 9
-FORMAT_OFF = 10
-FORMAT_ON = 11
-BRACKET_ARGUMENT = 12
-BRACKET_COMMENT = 13
+class TokenType(common.EnumObject):
+  _id_map = {}
 
 
-def token_type_to_str(query):
+TokenType.QUOTED_LITERAL = TokenType(0)
+TokenType.LEFT_PAREN = TokenType(1)
+TokenType.RIGHT_PAREN = TokenType(2)
+TokenType.WORD = TokenType(3)
+TokenType.NUMBER = TokenType(4)
+TokenType.DEREF = TokenType(5)
+TokenType.WHITESPACE = TokenType(6)
+TokenType.NEWLINE = TokenType(7)
+TokenType.COMMENT = TokenType(8)
+TokenType.UNQUOTED_LITERAL = TokenType(9)
+TokenType.FORMAT_OFF = TokenType(10)
+TokenType.FORMAT_ON = TokenType(11)
+TokenType.BRACKET_ARGUMENT = TokenType(12)
+TokenType.BRACKET_COMMENT = TokenType(13)
+
+
+class SourceLocation(tuple):
   """
-  Return the string name of a token type enum value.
+  Named tuple of (line, col, offset)
   """
-  for name, value in globals().items():
-    if name[0].upper() == name[0] and value == query:
-      return name
-  return None
+
+  # def __init__(self, line, col, offset):
+  #   super(SourceLocation, self).__init__((line, col, offset))
+
+  @property
+  def line(self):
+    return self[0]
+
+  @property
+  def col(self):
+    return self[1]
+
+  @property
+  def offset(self):
+    return self[2]
+
+  def __repr__(self):
+    return '{}:{}'.format(self.line, self.col)
 
 
 class Token(object):
@@ -41,22 +62,34 @@ class Token(object):
   Lexical unit of a listfile.
   """
 
-  def __init__(self, tok_type, content, line, col, index):
+  def __init__(self, tok_type, spelling, index, begin, end):
     self.type = tok_type
-    self.content = content
-    self.line = line
-    self.col = col
+    self.spelling = spelling
     self.index = index
+    self.begin = begin
+    self.end = end
+
+  @property
+  def content(self):
+    return self.spelling
+
+  # TODO(josh): get rid of this? Is it used or did I accidentally add it when
+  # I meant to add get_location()?
+  def location(self):
+    return self.begin
+
+  def get_location(self):
+    return self.begin
+
+  def count_newlines(self):
+    return self.spelling.count('\n')
 
   def __repr__(self):
     """A string representation of this token."""
     return ("Token(type={0}, "
             "content={1}, "
             "line={2}, "
-            "col={3})").format(token_type_to_str(self.type),
-                               self.content,
-                               self.line,
-                               self.col)
+            "col={3})").format(self.type.name, repr(self.spelling), *self.begin)
 
 
 def tokenize(contents):
@@ -71,41 +104,41 @@ def tokenize(contents):
       # NOTE(josh): regex borrowed from
       # https://stackoverflow.com/a/37379449/141023
       (r'(?<![^\s\(])"[^"\\]*(?:\\.[^"\\]*)*"(?![^\s\)])',
-       lambda s, t: (QUOTED_LITERAL, t)),
+       lambda s, t: (TokenType.QUOTED_LITERAL, t)),
       # single quoted string
       (r"(?<![^\s\(])'[^'\\]*(?:\\.[^'\\]*)*'(?![^\s\)])",
-       lambda s, t: (QUOTED_LITERAL, t)),
+       lambda s, t: (TokenType.QUOTED_LITERAL, t)),
       # bracket argument
       (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",
-       lambda s, t: (BRACKET_ARGUMENT, t)),
+       lambda s, t: (TokenType.BRACKET_ARGUMENT, t)),
       (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])",
-       lambda s, t: (NUMBER, t)),
-      (r"\(", lambda s, t: (LEFT_PAREN, t)),
-      (r"\)", lambda s, t: (RIGHT_PAREN, t)),
+       lambda s, t: (TokenType.NUMBER, t)),
+      (r"\(", lambda s, t: (TokenType.LEFT_PAREN, t)),
+      (r"\)", lambda s, t: (TokenType.RIGHT_PAREN, t)),
       # Either a valid function name or variable name.
       (r"(?<![^\s\(])[a-zA-z_][a-zA-Z0-9_]*(?![^\s\)\(])",
-       lambda s, t: (WORD, t)),
+       lambda s, t: (TokenType.WORD, t)),
       # Variable dereference. Borrowed from cmakeast.
       # NOTE(josh): I don't think works for nested derefs.
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
-       lambda s, t: (DEREF, t)),
+       lambda s, t: (TokenType.DEREF, t)),
       # NOTE(josh): bare carriage returns are very unlikely to be used but
       # just for the case of explicitnes, if we ever encounter any we treat
       # it as a newline
-      (r"\r?\n", lambda s, t: (NEWLINE, t)),
-      (r"\r\n?", lambda s, t: (NEWLINE, t)),
+      (r"\r?\n", lambda s, t: (TokenType.NEWLINE, t)),
+      (r"\r\n?", lambda s, t: (TokenType.NEWLINE, t)),
       # NOTE(josh): don't match '\s' here or we'll miss some newline tokens
       # TODO(josh): should we match unicode whitespace too?
-      (r"[ \t\f\v]+", lambda s, t: (WHITESPACE, t)),
-      (r"#\s*cmake-format: off[^\n]*", lambda s, t: (FORMAT_OFF, t)),
-      (r"#\s*cmake-format: on[^\n]*", lambda s, t: (FORMAT_ON, t)),
+      (r"[ \t\f\v]+", lambda s, t: (TokenType.WHITESPACE, t)),
+      (r"#\s*cmake-format: off[^\n]*", lambda s, t: (TokenType.FORMAT_OFF, t)),
+      (r"#\s*cmake-format: on[^\n]*", lambda s, t: (TokenType.FORMAT_ON, t)),
       # bracket comment
-      (r"#\[(=*)\[.*\]\1\]", lambda s, t: (BRACKET_COMMENT, t)),
+      (r"#\[(=*)\[.*\]\1\]", lambda s, t: (TokenType.BRACKET_COMMENT, t)),
       # line comment
-      (r"#[^\n]*", lambda s, t: (COMMENT, t)),
+      (r"#[^\n]*", lambda s, t: (TokenType.COMMENT, t)),
       # Catch-all for literals which are compound statements.
       (r"([^\s\(\)]+|[^\s\(]*[^\)]|[^\(][^\s\)]*)",
-       lambda s, t: (UNQUOTED_LITERAL, t))
+       lambda s, t: (TokenType.UNQUOTED_LITERAL, t))
   ], re.DOTALL)
 
   tokens, remainder = scanner.scan(contents)
@@ -120,18 +153,25 @@ def tokenize(contents):
   tokens_return = []
   lineno = 1
   col = 0
-  for token_index, (token_type, token_contents) in enumerate(tokens):
-    tokens_return.append(Token(tok_type=token_type,
-                               content=token_contents,
-                               line=lineno,
-                               col=col,
-                               index=token_index))
-    newlines = token_contents.count('\n')
+  offset = 0
+  for tok_index, (tok_type, spelling) in enumerate(tokens):
+    if sys.version_info[0] < 3:
+      assert isinstance(spelling, unicode)
+    begin = SourceLocation((lineno, col, offset))
+
+    newlines = spelling.count('\n')
     lineno += newlines
     if newlines:
-      col = len(token_contents.rsplit('\n', 1)[1])
+      col = len(spelling.rsplit('\n', 1)[1])
     else:
-      col += len(token_contents)
+      col += len(spelling)
+
+    offset += len(bytearray(spelling, 'utf-8'))
+    tokens_return.append(Token(tok_type=tok_type,
+                               spelling=spelling,
+                               index=tok_index,
+                               begin=begin,
+                               end=SourceLocation((lineno, col, offset))))
 
   return tokens_return
 

@@ -1,7 +1,7 @@
 """
 Functions for parsing comments in markup
 """
-
+from __future__ import unicode_literals
 import math
 import textwrap
 import re
@@ -203,6 +203,10 @@ def format_item(config, line_width, item):
       outlines.append(fmt.format(idx + 1) + increment_lines[0])
       outlines.extend(indent + iline for iline in increment_lines[1:])
     return outlines
+  else:
+    raise AssertionError('Unexepected case')
+
+  return []
 
 
 def format_items(config, line_width, items):

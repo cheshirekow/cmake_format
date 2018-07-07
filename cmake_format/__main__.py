@@ -11,6 +11,7 @@ file it finds with a filename that matches '\\.?cmake-format(.yaml|.json|.py)'.
 cmake-format can spit out the default configuration for you as starting point
 for customization. Run with `--dump-config [yaml|cmake|python]`.
 """
+from __future__ import unicode_literals
 
 import argparse
 import io
@@ -39,20 +40,31 @@ def detect_line_endings(infile_content):
   return 'unix'
 
 
-def process_file(config, infile, outfile):
+def process_file(config, infile, outfile, dump=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
   """
 
-  pretty_printer = formatter.TreePrinter(config, outfile)
   infile_content = infile.read()
   if config.line_ending == 'auto':
     detected = detect_line_endings(infile_content)
+    config = config.clone()
     config.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
-  tok_seqs = parser.digest_tokens(tokens)
-  fst = parser.construct_fst(tok_seqs)
-  pretty_printer.print_node(fst)
+  if dump == 'lex':
+    for token in tokens:
+      outfile.write('{}\n'.format(token))
+    return
+  parse_tree = parser.parse(tokens, config.fn_spec)
+  if dump == 'parse':
+    parser.dump_tree([parse_tree], outfile)
+    return
+  box_tree = formatter.layout_tree(parse_tree, config)
+  if dump == 'layout':
+    formatter.dump_tree([box_tree], outfile)
+    return
+  text = formatter.write_tree(box_tree, config, infile_content)
+  outfile.write(text)
 
 
 def find_config_file(infile_path):
@@ -145,12 +157,20 @@ def get_config(infile_path, configfile_path):
   return config_dict
 
 
-def dump_config(outfmt, outfile):
+def dump_config(args, outfile):
   """
   Dump the default configuration to stdout
   """
 
-  cfg = configuration.Configuration()
+  outfmt = args.dump_config
+
+  config_dict = {}
+  for key, value in vars(args).items():
+    if (key in configuration.Configuration.get_field_names()
+        and value is not None):
+      config_dict[key] = value
+
+  cfg = configuration.Configuration(**config_dict)
   if outfmt == 'yaml':
     import yaml
     yaml.dump(cfg.as_dict(), sys.stdout, indent=2,
@@ -204,12 +224,16 @@ def main():
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
+                     default=None, const='python', nargs='?',
                      help='If specified, print the default configuration to '
                           'stdout and exit')
   mutex.add_argument('-i', '--in-place', action='store_true')
   mutex.add_argument('-o', '--outfile-path', default=None,
                      help='Where to write the formatted file. '
                           'Default is stdout.')
+  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout'],
+                     default=None)
+
   arg_parser.add_argument('-c', '--config-file',
                           help='path to configuration file')
   arg_parser.add_argument('infilepaths', nargs='*')
@@ -249,13 +273,13 @@ def main():
   args = arg_parser.parse_args()
 
   if args.dump_config:
-    dump_config(args.dump_config, sys.stdout)
+    dump_config(args, sys.stdout)
     sys.exit(0)
 
   assert args.in_place is False or args.outfile_path is None, \
       "if inplace is specified than outfile is invalid"
   assert (len(args.infilepaths) == 1
-          or (args.in_place is True or args.outfile_path == '-')), \
+          or (args.in_place is True or args.outfile_path is None)), \
       ("if more than one input file is specified, then formatting must be done"
        " in-place or written to stdout")
 
@@ -269,6 +293,8 @@ def main():
         "If stdin is the input file, then stdout must be the output file"
 
   for infile_path in args.infilepaths:
+    # NOTE(josh): have to load config once for every file, because we may pick
+    # up a new config file location for each path
     if infile_path == '-':
       config_dict = get_config(os.getcwd(), args.config_file)
     else:
@@ -276,8 +302,7 @@ def main():
 
     for key, value in vars(args).items():
       if (key in configuration.Configuration.get_field_names()
-          # pylint: disable=bad-continuation
-              and value is not None):
+          and value is not None):
         config_dict[key] = value
 
     cfg = configuration.Configuration(**config_dict)
@@ -292,41 +317,31 @@ def main():
         # takes strings in python2 and python3 and, in particular, in python3
         # it does not take byte arrays. io.StreamWriter will write to
         # it with byte arrays (assuming it was opened with 'wb'). So we use
-        # io.open instead of io.open in this case
-        outfile = io.open(sys.stdout.fileno(), mode='w', encoding='utf-8',
-                          newline='')
+        # io.open instead of open in this case
+        outfile = io.open(os.dup(sys.stdout.fileno()),
+                          mode='w', encoding='utf-8', newline='')
       else:
         outfile = io.open(args.outfile_path, 'w', encoding='utf-8',
                           newline='')
 
     parse_ok = True
     if infile_path == '-':
-      infile = io.open(sys.stdin.fileno(), mode='r', encoding='utf-8',
-                       newline='')
+      infile = io.open(os.dup(sys.stdin.fileno()),
+                       mode='r', encoding='utf-8', newline='')
     else:
       infile = io.open(infile_path, 'r', encoding='utf-8')
 
     try:
       with infile:
-        try:
-          process_file(cfg, infile, outfile)
-        except:
-          sys.stderr.write('Error while processing {}\n'.format(infile_path))
-          raise
+        process_file(cfg, infile, outfile, args.dump)
     except:
       parse_ok = False
       sys.stderr.write('While processing {}\n'.format(infile_path))
       raise
     finally:
-      if args.in_place:
-        outfile.close()
-        if parse_ok:
-          shutil.move(tempfile_path, infile_path)
-      else:
-        if args.outfile_path == '-':
-          outfile.flush()
-        else:
-          outfile.close()
+      outfile.close()
+      if args.in_place and parse_ok:
+        shutil.move(tempfile_path, infile_path)
 
   return 0
 
