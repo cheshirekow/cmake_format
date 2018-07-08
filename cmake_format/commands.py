@@ -522,7 +522,16 @@ def get_fn_spec():
       "if", flags=[], kwargs={
           "NOT": ONE_OR_MORE,
           "AND": ONE_OR_MORE,
-          "OR": ONE_OR_MORE
+          "OR": ONE_OR_MORE,
+          "COMMAND": 1,
+          "DEFINED": 1,
+          "EXISTS": 1,
+          "IS_ABSOLUTE": 1,
+          "IS_DIRECTORY": 1,
+          "IS_SYMLINK": 1,
+          "POLICY": 1,
+          "TARGET": 1,
+          "TEST": 1
       }
   )
 
