@@ -512,6 +512,12 @@ def get_fn_spec():
       })
 
   fn_spec.add(
+      "write_basic_package_version_file", flags=[], kwargs={
+          "COMPATIBILITY": 1,
+          "VERSION": 1
+      })
+
+  fn_spec.add(
       "if", flags=[], kwargs={
           "NOT": ONE_OR_MORE,
           "AND": ONE_OR_MORE,
