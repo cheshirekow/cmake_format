@@ -355,6 +355,7 @@ def get_fn_spec():
       kwargs={
           "ARCHIVE": subspec,
           "BUNDLE": subspec,
+          "DESTINATION": 1,
           "DIRECTORY": ZERO_OR_MORE,
           "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,
           "EXCLUDE": ONE_OR_MORE,
