@@ -189,6 +189,18 @@ def get_fn_spec():
       })
 
   fn_spec.add(
+      "export",
+      flags=["APPEND", "EXPORT_LINK_INTERFACE_LIBRARIES"],
+      kwargs={
+          "ANDROID_MK": 1,
+          "EXPORT": 1,
+          "FILE": 1,
+          "NAMESPACE": 1,
+          "PACKAGE": 1,
+          "TARGETS": ONE_OR_MORE
+      })
+
+  fn_spec.add(
       "file",
       flags=["FOLLOW_SYMLINKS", "GENERATE", "HEX", "NEWLINE_CONSUME",
              "NO_HEX_CONVERSION", "SHOW_PROGRESS", "UTC"],
@@ -355,6 +367,7 @@ def get_fn_spec():
       kwargs={
           "ARCHIVE": subspec,
           "BUNDLE": subspec,
+          "DESTINATION": 1,
           "DIRECTORY": ZERO_OR_MORE,
           "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,
           "EXCLUDE": ONE_OR_MORE,
@@ -366,6 +379,7 @@ def get_fn_spec():
           "INCLUDES": ZERO_OR_MORE,
           "INCLUDESPERMISSIONS": ZERO_OR_MORE,
           "LIBRARY": subspec,
+          "NAMESPACE": 1,
           "PATTERN": ZERO_OR_MORE,
           "PRIVATE_HEADER": subspec,
           "PROGRAMS": ZERO_OR_MORE,
@@ -512,10 +526,25 @@ def get_fn_spec():
       })
 
   fn_spec.add(
+      "write_basic_package_version_file", flags=[], kwargs={
+          "COMPATIBILITY": 1,
+          "VERSION": 1
+      })
+
+  fn_spec.add(
       "if", flags=[], kwargs={
           "NOT": ONE_OR_MORE,
           "AND": ONE_OR_MORE,
-          "OR": ONE_OR_MORE
+          "OR": ONE_OR_MORE,
+          "COMMAND": 1,
+          "DEFINED": 1,
+          "EXISTS": 1,
+          "IS_ABSOLUTE": 1,
+          "IS_DIRECTORY": 1,
+          "IS_SYMLINK": 1,
+          "POLICY": 1,
+          "TARGET": 1,
+          "TEST": 1
       }
   )
 
