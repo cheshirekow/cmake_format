@@ -189,6 +189,18 @@ def get_fn_spec():
       })
 
   fn_spec.add(
+      "export",
+      flags=["APPEND", "EXPORT_LINK_INTERFACE_LIBRARIES"],
+      kwargs={
+          "ANDROID_MK": 1,
+          "EXPORT": 1,
+          "FILE": 1,
+          "NAMESPACE": 1,
+          "PACKAGE": 1,
+          "TARGETS": ONE_OR_MORE
+      })
+
+  fn_spec.add(
       "file",
       flags=["FOLLOW_SYMLINKS", "GENERATE", "HEX", "NEWLINE_CONSUME",
              "NO_HEX_CONVERSION", "SHOW_PROGRESS", "UTC"],
