@@ -379,6 +379,7 @@ def get_fn_spec():
           "INCLUDES": ZERO_OR_MORE,
           "INCLUDESPERMISSIONS": ZERO_OR_MORE,
           "LIBRARY": subspec,
+          "NAMESPACE": 1,
           "PATTERN": ZERO_OR_MORE,
           "PRIVATE_HEADER": subspec,
           "PROGRAMS": ZERO_OR_MORE,
