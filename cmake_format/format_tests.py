@@ -195,6 +195,22 @@ class TestCanonicalFormatting(unittest.TestCase):
           header_d.h)
       """)
 
+  def test_argcomments_force_reflow(self):
+    self.config.line_width = 140
+    self.do_format_test("""\
+      cmake_parse_arguments(ARG
+                      "SILENT" # optional keywords
+                      "" # one value keywords
+                      "" # multi value keywords
+                      ${ARGN})
+    """, """\
+      cmake_parse_arguments(ARG
+                            "SILENT" # optional keywords
+                            "" # one value keywords
+                            "" # multi value keywords
+                            ${ARGN})
+    """)
+
   def test_format_off(self):
     self.do_format_test("""\
       # This part of the comment should

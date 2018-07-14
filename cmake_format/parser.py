@@ -68,7 +68,7 @@ ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
 
 
 def make_conditional_spec():
-  flags = ['NOT', 'EXISTS', 'MATCHES', 'VERSION_LESS']
+  flags = list(commands.CONDITIONAL_FLAGS)
   spec = commands.CommandSpec('<conditional>', pargs='+', flags=list(flags))
   return commands.CommandSpec('<conditional>', pargs='+', flags=list(flags),
                               kwargs={'AND': spec, 'OR': spec})

@@ -35,6 +35,6 @@ setup(
         'YAML': ["pyyaml"],
     },
     install_requires=[
-        'sortedcontainers'
+        'numpy'
     ]
 )

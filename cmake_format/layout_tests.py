@@ -223,7 +223,7 @@ class TestCanonicalLayout(unittest.TestCase):
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
                   (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
                   (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 4, 78, [
+                  (NodeType.ARGUMENT, WrapAlgo.VPACK, 2, 4, 78, [
                       (NodeType.COMMENT, WrapAlgo.HPACK, 2, 15, 78, []),
                   ]),
                   (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 4, 14, []),
@@ -272,7 +272,7 @@ class TestCanonicalLayout(unittest.TestCase):
                         (NodeType.LPAREN, WrapAlgo.HPACK, 3, 15, 16, []),
                         (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
                         (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 16, 76, [
+                        (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
                             (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
                         ]),
                         (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),

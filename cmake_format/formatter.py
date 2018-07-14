@@ -183,6 +183,9 @@ class LayoutNode(object):
         self.position[0], self.position[1],
         self.colextent)
 
+  def has_terminal_comment(self):
+    return False
+
   def get_depth(self):
     """
     Compute and return the depth of the subtree rooted at this node. The
@@ -297,6 +300,10 @@ class ParenNode(LayoutNode):
 
 class ScalarNode(LayoutNode):
 
+  def has_terminal_comment(self):
+    return (self.children
+            and self.children[-1].pnode.children[0].type == TokenType.COMMENT)
+
   def _reflow(self, config, cursor, passno):
     """
     Update the size of a single-token box node by computing the size of the
@@ -326,6 +333,11 @@ class ScalarNode(LayoutNode):
       assert child.type == NodeType.COMMENT
       cursor = child.reflow(config, cursor, passno)
       self._colextent = max(self._colextent, child.colextent)
+      # NOTE(josh): if we have a line-comment child associated with this
+      # argument, then we cannot vpack
+      if (child.pnode.children[0].type != TokenType.BRACKET_COMMENT
+          and self.wrap == WrapAlgo.HPACK):
+        self._colextent = config.linewidth + 100
 
     assert not children
     return cursor
@@ -357,6 +369,9 @@ class ScalarNode(LayoutNode):
 
 
 class OnOffSwitchNode(LayoutNode):
+
+  def has_terminal_comment(self):
+    return True
 
   def _reflow(self, config, cursor, passno):
     """
@@ -552,6 +567,10 @@ class StatementNode(LayoutNode):
     elif prev.type == NodeType.COMMENT:
       column_cursor[0] += 1
       cursor = np.array(column_cursor)
+    elif prev.has_terminal_comment():
+      column_cursor[0] += 1
+      cursor = np.array(column_cursor)
+
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -580,6 +599,9 @@ class StatementNode(LayoutNode):
 
 
 class KwargGroupNode(LayoutNode):
+
+  def has_terminal_comment(self):
+    return self.children[-1].has_terminal_comment()
 
   def _reflow(self, config, cursor, passno):
     """
@@ -669,6 +691,16 @@ class KwargGroupNode(LayoutNode):
 
 
 class ArgGroupNode(LayoutNode):
+
+  def has_terminal_comment(self):
+    children = list(self.children)
+    while children and children[0].type != NodeType.RPAREN:
+      children.pop(0)
+    children.pop(0)
+
+    return (children
+            and children[-1].pnode.children[0].type == TokenType.COMMENT)
+
 
   def _reflow(self, config, cursor, passno):
     """
@@ -772,6 +804,9 @@ class ArgGroupNode(LayoutNode):
       column_cursor[0] += 1
       cursor = np.array(column_cursor)
     elif prev.type == NodeType.COMMENT:
+      column_cursor[0] += 1
+      cursor = np.array(column_cursor)
+    elif prev.has_terminal_comment():
       column_cursor[0] += 1
       cursor = np.array(column_cursor)
 
@@ -889,6 +924,7 @@ class CommentNode(LayoutNode):
     allocation = config.linewidth - cursor[1]
     lines = list(format_comment_lines(self.pnode, config, allocation))
     self._colextent = cursor[1] + max(len(line) for line in lines)
+
     return cursor + (len(lines) - 1, len(lines[-1]))
 
   def _write(self, config, ctx):

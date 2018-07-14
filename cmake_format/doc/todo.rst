@@ -32,11 +32,10 @@ TODO
   comments. Argument comments must be reflowed to (config.linewidth-1) if
   dangle_parens is false, while block level and statement comments may reflow
   up to (config.linewidth). Can probably just make this a flag in the
-  CommentNode class rather than implementing a separate class for it. Throw
-  an exception from CommentNode._reflow() if passno is zero and .isarg=True
+  CommentNode class rather than implementing a separate class for it. This
+  can help to eliminate the need for, or at least simplify, the
+  has_terminal_comment() hack.
 * Deal with the case that the command name is so long or that the statement is
   nested so far that the open paren doesn't fit on the line and needs to be
   wrapped.
-
-Where you left off:
-* Restore the old console command heuristic layout
+* Improve error messages for exceptions/assertions caused by malformed input.

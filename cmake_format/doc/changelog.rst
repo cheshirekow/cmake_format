@@ -3,6 +3,27 @@ Changelog
 =========
 
 ------
+v0.4.1
+------
+
+* Add missing numpy dependency to setup.py
+* Fix arg comments dont force vpack
+* Fix arg comments dont force dangle parenthesis
+* Add some missing function specifications
+
+* Fixes `_cheshirekow/cmake_format#53`
+* Closes `_cheshirekow/cmake_format#54`
+* Fixes `_cheshirekow/cmake_format#55`
+* Fixes `_cheshirekow/cmake_format#56`
+* Fixes `_cheshirekow/cmake_format#59`
+
+.. _cheshirekow/cmake_format#53: https://github.com/cheshirekow/cmake_format/issues/53
+.. _cheshirekow/cmake_format#54: https://github.com/cheshirekow/cmake_format/issues/54
+.. _cheshirekow/cmake_format#55: https://github.com/cheshirekow/cmake_format/issues/55
+.. _cheshirekow/cmake_format#56: https://github.com/cheshirekow/cmake_format/issues/56
+.. _cheshirekow/cmake_format#59: https://github.com/cheshirekow/cmake_format/issues/59
+
+------
 v0.4.0
 ------
 

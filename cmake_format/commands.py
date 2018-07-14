@@ -13,6 +13,30 @@ if sys.version_info[0] < 3:
 else:
   STRING_TYPES = (str,)
 
+CONDITIONAL_FLAGS = [
+    "COMMAND",
+    "DEFINED",
+    "EQUAL",
+    "EXISTS",
+    "GREATER",
+    "LESS",
+    "IS_ABSOLUTE",
+    "IS_DIRECTORY",
+    "IS_NEWER_THAN",
+    "IS_SYMLINK",
+    "MATCHES",
+    "NOT",
+    "POLICY",
+    "STRLESS",
+    "STRGREATER",
+    "STREQUAL",
+    "TARGET",
+    "TEST",
+    "VERSION_EQUAL",
+    "VERSION_GREATER",
+    "VERSION_LESS",
+]
+
 
 class CommandSpec(dict):
   """
@@ -189,6 +213,18 @@ def get_fn_spec():
       })
 
   fn_spec.add(
+      "export",
+      flags=["APPEND", "EXPORT_LINK_INTERFACE_LIBRARIES"],
+      kwargs={
+          "ANDROID_MK": 1,
+          "EXPORT": 1,
+          "FILE": 1,
+          "NAMESPACE": 1,
+          "PACKAGE": 1,
+          "TARGETS": ONE_OR_MORE
+      })
+
+  fn_spec.add(
       "file",
       flags=["FOLLOW_SYMLINKS", "GENERATE", "HEX", "NEWLINE_CONSUME",
              "NO_HEX_CONVERSION", "SHOW_PROGRESS", "UTC"],
@@ -355,6 +391,7 @@ def get_fn_spec():
       kwargs={
           "ARCHIVE": subspec,
           "BUNDLE": subspec,
+          "DESTINATION": 1,
           "DIRECTORY": ZERO_OR_MORE,
           "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,
           "EXCLUDE": ONE_OR_MORE,
@@ -366,6 +403,7 @@ def get_fn_spec():
           "INCLUDES": ZERO_OR_MORE,
           "INCLUDESPERMISSIONS": ZERO_OR_MORE,
           "LIBRARY": subspec,
+          "NAMESPACE": 1,
           "PATTERN": ZERO_OR_MORE,
           "PRIVATE_HEADER": subspec,
           "PROGRAMS": ZERO_OR_MORE,
@@ -512,10 +550,11 @@ def get_fn_spec():
       })
 
   fn_spec.add(
-      "if", flags=[], kwargs={
-          "NOT": ONE_OR_MORE,
-          "AND": ONE_OR_MORE,
-          "OR": ONE_OR_MORE
+      "if",
+      flags=list(CONDITIONAL_FLAGS),
+      kwargs={
+        "AND": ONE_OR_MORE,
+        "OR": ONE_OR_MORE,
       }
   )
 
