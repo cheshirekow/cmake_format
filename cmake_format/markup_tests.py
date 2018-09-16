@@ -5,9 +5,16 @@ from cmake_format import __main__
 from cmake_format import markup
 
 
+class MockConfig(object):
+  def __init__(self, fence_pattern=None, ruler_pattern=None):
+    self.fence_pattern = fence_pattern
+    self.ruler_pattern = ruler_pattern
+
+
 class TestSpecificParses(unittest.TestCase):
 
-  def assert_item_types(self, input_str, expected_types, strip_indent=6):
+  def assert_item_types(self, input_str, expected_types, strip_indent=6,
+                        config=None):
     """
     Run the lexer on the input string and assert that the result tokens match
     the expected
@@ -15,7 +22,7 @@ class TestSpecificParses(unittest.TestCase):
 
     lines = [line[strip_indent:] for line in input_str.split('\n')]
     self.assertEqual(expected_types,
-                     [item.kind for item in markup.parse(lines)])
+                     [item.kind for item in markup.parse(lines, config)])
 
   def test_paragraphs(self):
     self.assert_item_types("""\
@@ -100,6 +107,35 @@ class TestSpecificParses(unittest.TestCase):
             markup.CommentType.VERBATIM,
             markup.CommentType.FENCE,
             markup.CommentType.SEPARATOR])
+
+  def test_custom_fences(self):
+    self.assert_item_types("""\
+      ###
+      this is some
+         verbatim text
+      that should not
+         be changed
+      ###
+      """, [markup.CommentType.PARAGRAPH,
+            markup.CommentType.SEPARATOR])
+
+    config = MockConfig(
+        fence_pattern=r'^\s*([#`~]{3}[#`~]*)(.*)$',
+        ruler_pattern=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$')
+    self.assert_item_types(
+        """\
+      ###
+      this is some
+         verbatim text
+      that should not
+         be changed
+      ###
+      """,
+        [markup.CommentType.FENCE,
+         markup.CommentType.VERBATIM,
+         markup.CommentType.FENCE,
+         markup.CommentType.SEPARATOR],
+        config=config)
 
 
 if __name__ == '__main__':

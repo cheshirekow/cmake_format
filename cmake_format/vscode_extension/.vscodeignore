@@ -1,0 +1,14 @@
+.gitattributes
+.gitignore
+.vscode/**
+.vscode-test/**
+images/*.xcf
+images/Selection_*.png
+notes.md
+out/**/*.map
+out/test/**
+node_modules/**
+package-lock.json
+src/**
+tsconfig.json
+tslint.json

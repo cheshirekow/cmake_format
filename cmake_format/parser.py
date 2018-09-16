@@ -67,13 +67,7 @@ ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
                 lexer.TokenType.FORMAT_OFF)
 
 
-def make_conditional_spec():
-  flags = list(commands.CONDITIONAL_FLAGS)
-  spec = commands.CommandSpec('<conditional>', pargs='+', flags=list(flags))
-  return commands.CommandSpec('<conditional>', pargs='+', flags=list(flags),
-                              kwargs={'AND': spec, 'OR': spec})
-
-CONDITIONAL_KWARGS = make_conditional_spec()
+CONDITIONAL_KWARGS = commands.make_conditional_spec()
 
 
 class TreeNode(object):
@@ -242,11 +236,14 @@ def get_normalized_kwarg(token):
   return token.spelling.upper()
 
 
-def kwarg_breaks_stack(kwarg, argstack=None):
+def kwarg_breaks_stack(kwarg, currspec, argstack=None):
   if argstack is None:
     return False
 
   if kwarg is None:
+    return False
+
+  if isinstance(currspec, dict) and kwarg in currspec:
     return False
 
   for cmdspec in argstack[::-1]:
@@ -256,6 +253,8 @@ def kwarg_breaks_stack(kwarg, argstack=None):
       return True
 
     if isinstance(cmdspec, dict) and kwarg in cmdspec:
+      if kwarg == "STREQUAL":
+        print(currspec)
       return True
 
   return False
@@ -402,7 +401,7 @@ def consume_arguments(node, tokens, cmdspec, argstack=None):
       consume_trailing_comment(child, tokens)
       continue
 
-    if kwarg_breaks_stack(kwarg, argstack):
+    if kwarg_breaks_stack(kwarg, cmdspec, argstack):
       # NOTE(josh): the next token matches a keyword of some command
       # higher up in the stack, so we are done here. We will return from
       # every callee up to the caller with the approprate cmdspec.

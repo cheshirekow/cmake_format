@@ -55,6 +55,7 @@ def process_file(config, infile, outfile, dump=None):
     for token in tokens:
       outfile.write('{}\n'.format(token))
     return
+  config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_tree = parser.parse(tokens, config.fn_spec)
   if dump == 'parse':
     parser.dump_tree([parse_tree], outfile)
@@ -152,7 +153,7 @@ def get_config(infile_path, configfile_path):
           # pylint: disable=exec-used
           exec(infile.read(), config_dict)
       else:
-        try_get_configdict(configfile_path)
+        config_dict = try_get_configdict(configfile_path)
 
   return config_dict
 
@@ -211,7 +212,6 @@ def main():
   format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'
   logging.basicConfig(level=logging.INFO,
                       format=format_str,
-                      datefmt='%Y-%m-%d %H:%M:%S',
                       filemode='w')
 
   arg_parser = argparse.ArgumentParser(
@@ -257,7 +257,7 @@ def main():
       continue
     elif isinstance(value, bool):
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
-                            default=None, const=True,
+                            default=value, const=(not value),
                             type=configuration.parse_bool, help=helptext)
     elif isinstance(value, value_types) or value is None:
       optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),

@@ -21,7 +21,7 @@ BULLET_REGEX = re.compile(r'^(\s*)([\*-])( .+)$')
 # Matches lines that start an itemized list
 ENUM_REGEX = re.compile(r'^(\s*)\d+([.:])( .+)$')
 
-# Matches a verbatim fense
+# Matches a verbatim fence
 FENCE_REGEX = re.compile(r'^\s*([`~]{3}[`~]*)(.*)$')
 
 
@@ -47,7 +47,7 @@ class CommentItem(object):
     self.lines = []
 
 
-def parse(lines):
+def parse(lines, config=None):
   """
   Parse comment lines. Returns objects of different formatable entities
   """
@@ -57,8 +57,15 @@ def parse(lines):
   state = None
   bullet_regex = None
 
+  if config is None:
+    fence_re = FENCE_REGEX
+    ruler_re = RULER_REGEX
+  else:
+    fence_re = re.compile(config.fence_pattern)
+    ruler_re = re.compile(config.ruler_pattern)
+
   for line in lines:
-    fence_match = FENCE_REGEX.match(line)
+    fence_match = fence_re.match(line)
     if fence_match:
       obj_list.append(CommentItem(CommentType.FENCE))
       obj_list[-1].lines.append(fence_match.group(1).strip())
@@ -124,7 +131,7 @@ def parse(lines):
         state = CommentType.NOTE
         continue
 
-      if RULER_REGEX.match(line):
+      if ruler_re.match(line):
         obj_list.append(CommentItem(CommentType.RULER))
         obj_list[-1].lines.append(line.strip())
         state = CommentType.RULER

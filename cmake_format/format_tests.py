@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
+
 from __future__ import unicode_literals
 import difflib
 import io
@@ -921,9 +923,6 @@ class TestCanonicalFormatting(unittest.TestCase):
                       COMPONENT baz)
       """)
 
-
-
-
   def test_complicated_boolean(self):
     self.config.max_subargs_per_line = 10
     self.do_format_test("""\
@@ -955,6 +954,120 @@ class TestCanonicalFormatting(unittest.TestCase):
       endif()
     """)
 
+  def test_algoorder_preference(self):
+    self.config.max_subargs_per_line = 10
+    self.do_format_test("""\
+      some_long_command_name(longargument longargument longargument longargument
+        longargument longargument)
+      """, """\
+      some_long_command_name(longargument longargument longargument longargument
+                             longargument longargument)
+      """)
+
+    self.config.algorithm_order = [0, 2]
+    self.do_format_test("""\
+      some_long_command_name(longargument longargument longargument longargument
+        longargument longargument)
+      """, """\
+      some_long_command_name(
+        longargument longargument longargument longargument longargument longargument)
+      """)
+
+  def test_elseif(self):
+    self.do_format_test("""\
+      if(MSVC)
+
+      elseif((CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            OR CMAKE_COMPILER_IS_GNUCC
+            OR CMAKE_COMPILER_IS_GNUCXX)
+
+      endif()
+    """, """\
+      if(MSVC)
+
+      elseif((CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+             OR CMAKE_COMPILER_IS_GNUCC
+             OR CMAKE_COMPILER_IS_GNUCXX)
+
+      endif()
+    """)
+
+  def test_elseif_else_control_space(self):
+    self.config.separate_ctrl_name_with_space = True
+    self.do_format_test("""\
+      if(foo)
+      elseif(bar)
+      else()
+      endif()
+    """, """\
+      if (foo)
+
+      elseif (bar)
+
+      else ()
+
+      endif ()
+    """)
+
+  def test_disable_markup(self):
+    self.config.enable_markup = False
+    self.do_format_test("""\
+      # don't reflow
+      # or parse markup
+      # for these lines
+    """, """\
+      # don't reflow
+      # or parse markup
+      # for these lines
+    """)
+
+  def test_literal_first_comment(self):
+    self.do_format_test("""\
+      # This comment
+      # is reflowed
+
+      # This comment
+      # is reflowed
+    """, """\
+      # This comment is reflowed
+
+      # This comment is reflowed
+    """)
+
+    self.config.first_comment_is_literal = True
+    self.do_format_test("""\
+      # This comment
+      # is not reflowed
+
+      # This comment
+      # is reflowed
+    """, """\
+      # This comment
+      # is not reflowed
+
+      # This comment is reflowed
+    """)
+
+  def test_preserve_copyright(self):
+    self.do_format_test("""\
+      # Copyright 2018: Josh Bialkowski
+      # This text should not be reflowed
+      # because it's a copyright
+    """, """\
+      # Copyright 2018: Josh Bialkowski This text should not be reflowed because it's
+      # a copyright
+    """)
+
+    self.config.literal_comment_pattern = " Copyright.*"
+    self.do_format_test("""\
+      # Copyright 2018: Josh Bialkowski
+      # This text should not be reflowed
+      # because it's a copyright
+    """, """\
+      # Copyright 2018: Josh Bialkowski
+      # This text should not be reflowed
+      # because it's a copyright
+    """)
 
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)
@@ -968,7 +1081,22 @@ class TestCanonicalFormatting(unittest.TestCase):
 
     self.do_format_test(infile_text, outfile_text, strip_len=0)
 
-
+  def test_one_char_short_hpack_rparen_case(self):
+    # This was a particularly rare edge case. The situation is that the
+    # the arguments are one character shy of fitting in the configured line
+    # width, the statement column is the same as the indent column, and
+    # all the arguments are positional. The problem was that the hpack if
+    # possible logic did not account for the final paren. A fix is in place.
+    self.config.line_width = 132
+    self.config.tab_size = 4
+    self.do_format_test("""
+      set(cubepp_HDRS
+          ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/AppDelegate.h
+          ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
+    """, """\
+      set(cubepp_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/AppDelegate.h
+          ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
+    """)
 
 
 if __name__ == '__main__':

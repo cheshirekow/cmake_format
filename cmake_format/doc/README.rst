@@ -91,6 +91,16 @@ Usage
                             A list of command names which should always be wrapped
 
 
+------------
+Integrations
+------------
+
+* There is an official `vscode extension`__
+* Someone also created a `sublime plugin`__
+
+.. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
+.. __: https://packagecontrol.io/packages/CMakeFormat
+
 -------------
 Configuration
 -------------
@@ -229,11 +239,30 @@ Issues
 -------
 
 If you encounter any bugs or regressions or if ``cmake-format`` doesn't behave
-in the way that you expect, please post an issue on the `github issue tracker`_.
-It is especially helpful if you can provide cmake listfile snippets that
-demonstrate any issues you encounter.
+in the way that you expect, please post an issue on the
+`github issue tracker`_. It is especially helpful if you can provide cmake
+listfile snippets that demonstrate any issues you encounter.
 
 .. _`github issue tracker`: https://github.com/cheshirekow/cmake_format/issues
+
+----------
+Developers
+----------
+
+Some notes for anyone who wants hack on ``cmake-format``:
+
+1. Please use ``pylint`` to check your code. There is a pylint config file in
+   the repo.
+2. There is a test suite in ``tests.py``. Run with
+   ``python -Bm cmake-format.tests`` (ensure modified code is on the python
+   path).
+3. There's an ``autopep8`` config file in the repo as well. Feel free to use
+   that to format the code. Note that ``autopep8`` and ``pylint`` disagree
+   in a few places so using ``autopep8`` may require some manual edits
+   afterward.
+4. There's a cmake configuration for the project. Since this is a python
+   project there isn't much that it really does but it provides targets for
+   ``format``, ``lint`` and ``test`` if you'd like to use them.
 
 -------
 Example

@@ -4,6 +4,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import io
+import logging
 import re
 import sys
 
@@ -71,9 +72,22 @@ def format_comment_lines(node, config, line_width):
     if token.type == TokenType.COMMENT:
       inlines.append(token.spelling.strip().lstrip('#'))
 
-  items = markup.parse(inlines)
+  if not config.enable_markup:
+    return ["#" + line.rstrip() for line in inlines]
+
+  if config.literal_comment_pattern is not None:
+    literal_comment_regex = re.compile(config.literal_comment_pattern)
+    if literal_comment_regex.match('\n'.join(inlines)):
+      return ["#" + line.rstrip() for line in inlines]
+
+  if config.first_comment_is_literal and node.children[0] is config.first_token:
+    return ["#" + line.rstrip() for line in inlines]
+
+  items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
   return ["#" + (" " * len(line[:1])) + line for line in markup_lines]
+
+
 
 
 def normalize_line_endings(instr):
@@ -103,6 +117,8 @@ WrapAlgo.PNVPACK = WrapAlgo(3)  # parentheses nested vertical packing
 # of the other options, while the dangle paren is probably the last thing we
 # want to do ever (i.e. if we're already wrapped as much as possible and the
 # paren still wont fit).
+# TODO(josh): also add an algorithm that just simply wraps all tokens
+# in a naive way. Some people might want this for some statements.
 
 
 def need_paren_space(spelling, config):
@@ -114,6 +130,8 @@ def need_paren_space(spelling, config):
   if FlowType.get(upper) is not None:
     return config.separate_ctrl_name_with_space
   elif upper.startswith('END') and FlowType.get(upper[3:]) is not None:
+    return config.separate_ctrl_name_with_space
+  elif upper in ["ELSE", "ELSEIF"]:
     return config.separate_ctrl_name_with_space
 
   return config.separate_fn_name_with_space
@@ -219,11 +237,13 @@ class LayoutNode(object):
   # TODO(josh): can probably just inline this now that StatementNode overrides
   # _reflow() and reflow() both
   def _get_wrap(self, config, passno):
-    algoid = clamp(passno, 0, 3)
+    algoidx = clamp(passno, 0, len(config.algorithm_order))
+    algoid = config.algorithm_order[algoidx]
 
     # No vpack if dangling parens
     if config.dangle_parens and algoid == WrapAlgo.VPACK.value:
-      algoid += 1
+      algoidx += 1
+      algoid = config.algorithm_order[algoidx]
     return WrapAlgo.from_id(algoid)
 
   def _reflow(self, config, cursor, passno):
@@ -397,17 +417,20 @@ class OnOffSwitchNode(LayoutNode):
 
     if token.type == TokenType.FORMAT_ON:
       spelling = "# cmake-format: on"
-      assert ctx.offswitch_location
-      ctx.infile.seek(ctx.offswitch_location, 0)
-      copy_size = token.begin.offset - ctx.offswitch_location
-      copy_bytes = ctx.infile.read(copy_size)
-      copy_text = copy_bytes.decode('utf-8')
-      ctx.outfile.write(copy_text)
-      ctx.offswitch_location = None
-      ctx.outfile.forge_cursor(self.position)
+      if ctx.offswitch_location is None:
+        logging.warn("'#cmake-format: on' with no corresponding 'off' at %d:%d",
+                     token.begin.line, token.begin.col)
+      else:
+        ctx.infile.seek(ctx.offswitch_location.offset, 0)
+        copy_size = token.begin.offset - ctx.offswitch_location.offset
+        copy_bytes = ctx.infile.read(copy_size)
+        copy_text = copy_bytes.decode('utf-8')
+        ctx.outfile.write(copy_text)
+        ctx.offswitch_location = None
+        ctx.outfile.forge_cursor(self.position)
     elif token.type == TokenType.FORMAT_OFF:
       spelling = "# cmake-format: off"
-      ctx.offswitch_location = token.end.offset
+      ctx.offswitch_location = token.end
 
     ctx.outfile.write_at(self.position, spelling)
 
@@ -534,9 +557,14 @@ class StatementNode(LayoutNode):
         cursor[1] += len(' ')
 
         # But if the cursor has overflowed the line width allocation, then
-        # we cannot
+        # we cannot. Note that if this is the last argument in a statement,
+        # then we will pack an RPAREN at it's end... so we should include the
+        # size of that RPAREN when determining if we overflow.
         cursor = child.reflow(config, cursor, passno)
-        if child.colextent > config.linewidth:
+        realized_extent = child.colextent
+        if children[0].type == NodeType.RPAREN:
+          realized_extent += 1
+        if realized_extent > config.linewidth:
           column_cursor[0] += 1
           cursor = np.array(column_cursor)
           cursor = child.reflow(config, cursor, passno)
@@ -570,7 +598,6 @@ class StatementNode(LayoutNode):
     elif prev.has_terminal_comment():
       column_cursor[0] += 1
       cursor = np.array(column_cursor)
-
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -700,7 +727,6 @@ class ArgGroupNode(LayoutNode):
 
     return (children
             and children[-1].pnode.children[0].type == TokenType.COMMENT)
-
 
   def _reflow(self, config, cursor, passno):
     """
@@ -1252,4 +1278,8 @@ def write_tree(root_box, config, infile_content):
   """
   ctx = Global(config, infile_content)
   root_box.write(config, ctx)
+  if not ctx.is_active():
+    logging.warn("'# cmake-format: off' is never turned back 'on'"
+                 "at %d:%d", ctx.offswitch_location.line,
+                 ctx.offswitch_location.col)
   return ctx.outfile.getvalue()

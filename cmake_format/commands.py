@@ -38,6 +38,15 @@ CONDITIONAL_FLAGS = [
 ]
 
 
+def make_conditional_spec(name=None):
+  if name is None:
+    name = '<conditional>'
+  flags = list(CONDITIONAL_FLAGS)
+  spec = CommandSpec(name, pargs='+', flags=list(flags))
+  return CommandSpec(name, pargs='+', flags=list(flags),
+                     kwargs={'AND': spec, 'OR': spec})
+
+
 class CommandSpec(dict):
   """
   A command specification is primarily a dictionary mapping keyword arguments
@@ -94,6 +103,8 @@ class CommandSpec(dict):
   def add(self, name, pargs=None, flags=None, kwargs=None):
     self[name] = CommandSpec(name, pargs, flags, kwargs)
 
+  def add_conditional(self, name):
+    self[name] = make_conditional_spec(name)
 
 
 def get_fn_spec():
@@ -520,23 +531,23 @@ def get_fn_spec():
 
   fn_spec.add(
       "target_compile_options", flags=[], kwargs={
-        "PRIVATE": ONE_OR_MORE,
-        "PUBLIC": ONE_OR_MORE,
-        "INTERFACE": ONE_OR_MORE
+          "PRIVATE": ONE_OR_MORE,
+          "PUBLIC": ONE_OR_MORE,
+          "INTERFACE": ONE_OR_MORE
       })
 
   fn_spec.add(
       "target_include_directories", flags=[], kwargs={
-        "PRIVATE": ONE_OR_MORE,
-        "PUBLIC": ONE_OR_MORE,
-        "INTERFACE": ONE_OR_MORE
+          "PRIVATE": ONE_OR_MORE,
+          "PUBLIC": ONE_OR_MORE,
+          "INTERFACE": ONE_OR_MORE
       })
 
   fn_spec.add(
       "target_link_libraries", flags=[], kwargs={
-        "PRIVATE": ONE_OR_MORE,
-        "PUBLIC": ONE_OR_MORE,
-        "INTERFACE": ONE_OR_MORE
+          "PRIVATE": ONE_OR_MORE,
+          "PUBLIC": ONE_OR_MORE,
+          "INTERFACE": ONE_OR_MORE
       })
 
   fn_spec.add(
@@ -549,21 +560,24 @@ def get_fn_spec():
           "RUN_OUTPUT_VARIABLE": ZERO_OR_MORE
       })
 
-  fn_spec.add(
-      "if",
-      flags=list(CONDITIONAL_FLAGS),
-      kwargs={
-        "AND": ONE_OR_MORE,
-        "OR": ONE_OR_MORE,
-      }
-  )
+  fn_spec.add_conditional("if")
+  fn_spec.add_conditional("elseif")
+  fn_spec.add_conditional("while")
 
-  fn_spec.add(
-      "while", flags=[], kwargs={
-          "NOT": ONE_OR_MORE,
-          "AND": ONE_OR_MORE,
-          "OR": ONE_OR_MORE
-      }
-  )
+  # TODO(josh): should this be user-enabled? Maybe some kind of plugin/extension
+  # system?
+  add_standard_nonbuiltins(fn_spec)
 
   return fn_spec
+
+
+def add_standard_nonbuiltins(fn_spec):
+  """
+  Add commands provided by "standard" listfiles
+  """
+
+  fn_spec.add(
+      "write_basic_package_version_file", flags=[], kwargs={
+          "COMPATIBILITY": 1,
+          "VERSION": 1
+      })

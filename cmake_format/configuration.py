@@ -70,12 +70,17 @@ def get_default(value, default):
   return value
 
 
+DEFAULT_FENCE_PATTERN = r'^\s*([`~]{3}[`~]*)(.*)$'
+DEFAULT_RULER_PATTERN = r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+
+
 class Configuration(ConfigObject):
   """
   Encapsulates various configuration options/parameters for formatting
   """
 
   # pylint: disable=too-many-arguments
+  # pylint: disable=too-many-instance-attributes
   def __init__(self, line_width=80, tab_size=2,
                max_subargs_per_line=3,
                separate_ctrl_name_with_space=False,
@@ -88,6 +93,12 @@ class Configuration(ConfigObject):
                keyword_case=None,
                additional_commands=None,
                always_wrap=None,
+               algorithm_order=None,
+               enable_markup=True,
+               first_comment_is_literal=False,
+               literal_comment_pattern=None,
+               fence_pattern=None,
+               ruler_pattern=None,
                **_):
 
     self.line_width = line_width
@@ -118,7 +129,6 @@ class Configuration(ConfigObject):
     self.keyword_case = get_default(keyword_case, "unchanged")
     assert self.keyword_case in ("lower", "upper", "unchanged")
 
-    self.always_wrap = get_default(always_wrap, [])
     self.additional_commands = get_default(additional_commands, {
         'foo': {
             'flags': ['BAR', 'BAZ'],
@@ -129,6 +139,14 @@ class Configuration(ConfigObject):
             }
         }
     })
+
+    self.always_wrap = get_default(always_wrap, [])
+    self.algorithm_order = get_default(algorithm_order, [0, 1, 2, 3])
+    self.enable_markup = enable_markup
+    self.first_comment_is_literal = first_comment_is_literal
+    self.literal_comment_pattern = literal_comment_pattern
+    self.fence_pattern = get_default(fence_pattern, DEFAULT_FENCE_PATTERN)
+    self.ruler_pattern = get_default(ruler_pattern, DEFAULT_RULER_PATTERN)
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
@@ -141,7 +159,10 @@ class Configuration(ConfigObject):
                  'unix': '\n',
                  'auto': '\n'}[self.line_ending]
 
-
+    # TODO(josh): this does not belong here! We need some global state for
+    # formatting and the only thing we have accessible through the whole format
+    # stack is this config object... so I'm abusing it by adding this field here
+    self.first_token = None
 
   def clone(self):
     """
@@ -190,6 +211,24 @@ VARDOCS = {
     "Format keywords consistently as 'lower' or 'upper' case",
     "always_wrap":
     "A list of command names which should always be wrapped",
+    "algorithm_order":
+    "Specify the order of wrapping algorithms during successive reflow "
+    "attempts",
+    "enable_markup":
+    "enable comment markup parsing and reflow",
+    "first_comment_is_literal":
+    "If comment markup is enabled, don't reflow the first comment block in each"
+    "listfile. Use this to preserve formatting of your copyright/license"
+    "statements. ",
+    "literal_comment_pattern":
+    "If comment markup is enabled, don't reflow any comment block which matches"
+    "this (regex) pattern. Default is `None` (disabled).",
+    "fence_pattern":
+    ("Regular expression to match preformat fences in comments default=r'{}'"
+     .format(DEFAULT_FENCE_PATTERN)),
+    "ruler_pattern":
+    ("Regular expression to match rulers in comments default=r'{}'"
+     .format(DEFAULT_RULER_PATTERN)),
     "additional_commands":
     "Specify structure for custom cmake functions"
 }

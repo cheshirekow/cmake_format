@@ -1,0 +1,119 @@
+diff --git a/cmake_format/commands.py b/cmake_format/commands.py
+index 77fd83f..e9b1b49 100644
+--- a/cmake_format/commands.py
++++ b/cmake_format/commands.py
+@@ -240,45 +240,50 @@ def get_fn_spec():
+       flags=["FOLLOW_SYMLINKS", "GENERATE", "HEX", "NEWLINE_CONSUME",
+              "NO_HEX_CONVERSION", "SHOW_PROGRESS", "UTC"],
+       kwargs={
+-          "APPEND": ZERO_OR_MORE,
+-          "DOWNLOAD": ZERO_OR_MORE,
+-          "EXPECTED_HASH": ZERO_OR_MORE,
+-          "EXPECTED_MD5": ZERO_OR_MORE,
+-          "GLOB": ZERO_OR_MORE,
+-          "GLOB_RECURSE": ZERO_OR_MORE,
+-          "INACTIVITY_TIMEOUT": ZERO_OR_MORE,
+-          "LENGTH_MAXIMUM": ZERO_OR_MORE,
+-          "LENGTH_MINIMUM": ZERO_OR_MORE,
+-          "LIMIT": ZERO_OR_MORE,
+-          "LIMIT_COUNT": ZERO_OR_MORE,
+-          "LIMIT_INPUT": ZERO_OR_MORE,
+-          "LIMIT_OUTPUT": ZERO_OR_MORE,
+-          "LOG": ZERO_OR_MORE,
+-          "MAKE_DIRECTORY": ZERO_OR_MORE,
+-          "MD5": ZERO_OR_MORE,
+-          "OFFSET": ZERO_OR_MORE,
+-          "OUTPUTINPUTCONTENTCONDITION": ZERO_OR_MORE,
+-          "READ": ZERO_OR_MORE,
+-          "REGEX": ZERO_OR_MORE,
+-          "RELATIVE": ZERO_OR_MORE,
+-          "RELATIVE_PATH": ZERO_OR_MORE,
+-          "REMOVE": ZERO_OR_MORE,
+-          "REMOVE_RECURSE": ZERO_OR_MORE,
+-          "RENAME": ZERO_OR_MORE,
+-          "SHA1": ZERO_OR_MORE,
+-          "SHA256": ZERO_OR_MORE,
+-          "SHA384": ZERO_OR_MORE,
+-          "SHA512": ZERO_OR_MORE,
+-          "STATUS": ZERO_OR_MORE,
+-          "STRINGS": ZERO_OR_MORE,
+-          "TIMEOUT": ZERO_OR_MORE,
+-          "TIMESTAMP": ZERO_OR_MORE,
+-          "TLS_CAINFO": ZERO_OR_MORE,
+-          "TLS_VERIFY": ZERO_OR_MORE,
+-          "TO_CMAKE_PATH": ZERO_OR_MORE,
+-          "TO_NATIVE_PATH": ZERO_OR_MORE,
+-          "UPLOAD": ZERO_OR_MORE,
+-          "WRITE": ZERO_OR_MORE
++          # NOTE(josh): semantically these really act more like kwargs
++          # with one or more arguments but since the subargs are all more or
++          # less unstructured the formatting is nicer if we treat them as
++          # taking a single arg. That way it will be packed together if it can
++          # be.
++          "APPEND": 1,
++          "DOWNLOAD": 1,
++          "EXPECTED_HASH": 1,
++          "EXPECTED_MD5": 1,
++          "GLOB": 1,
++          "GLOB_RECURSE": 1,
++          "INACTIVITY_TIMEOUT": 1,
++          "LENGTH_MAXIMUM": 1,
++          "LENGTH_MINIMUM": 1,
++          "LIMIT": 1,
++          "LIMIT_COUNT": 1,
++          "LIMIT_INPUT": 1,
++          "LIMIT_OUTPUT": 1,
++          "LOG": 1,
++          "MAKE_DIRECTORY": 1,
++          "MD5": 1,
++          "OFFSET": 1,
++          "OUTPUTINPUTCONTENTCONDITION": 1,
++          "READ": 1,
++          "REGEX": 1,
++          "RELATIVE": 1,
++          "RELATIVE_PATH": 1,
++          "REMOVE": 1,
++          "REMOVE_RECURSE": 1,
++          "RENAME": 1,
++          "SHA1": 1,
++          "SHA256": 1,
++          "SHA384": 1,
++          "SHA512": 1,
++          "STATUS": 1,
++          "STRINGS": 1,
++          "TIMEOUT": 1,
++          "TIMESTAMP": 1,
++          "TLS_CAINFO": 1,
++          "TLS_VERIFY": 1,
++          "TO_CMAKE_PATH": 1,
++          "TO_NATIVE_PATH": 1,
++          "UPLOAD": 1,
++          "WRITE": 1
+       })
+ 
+   fn_spec.add(
+diff --git a/cmake_format/format_tests.py b/cmake_format/format_tests.py
+index d6557e2..80cd95d 100644
+--- a/cmake_format/format_tests.py
++++ b/cmake_format/format_tests.py
+@@ -1019,6 +1019,20 @@ class TestCanonicalFormatting(unittest.TestCase):
+       # for these lines
+     """)
+ 
++  def test_file_command(self):
++    # NOTE(josh): because the test uses \n in the strings we need to use a
++    # raw string here. However then we need to pop off the initial line break
++    # so we do that with the `[1:]`.`
++    self.do_format_test(r"""
++      file(WRITE ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}FooBar.txt
++           "this is a long line that should defitely be wrapped below\n"
++           "this is another long line of text content that takes up space\n")
++    """[1:], r"""
++      file(WRITE ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}FooBar.txt
++           "this is a long line that should defitely be wrapped below\n"
++           "this is another long line of text content that takes up space\n")
++    """[1:])
++
+   def test_example_file(self):
+     thisdir = os.path.dirname(__file__)
+     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')

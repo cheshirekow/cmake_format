@@ -2,7 +2,55 @@
 Changelog
 =========
 
+-----------
+v0.4 series
+-----------
+
+v0.4.2
 ------
+
+* Add visual studio code extension
+* Add algorithm order config option
+* Add user specified fence regex config option
+* Add user specified ruler regex config option
+* Add config option to disable comment formatting altogether
+* Fix get_config bug in ``__main__``
+* Fix missing elseif command specification
+* Fix missing elseif/else paren spacing when specified
+* Add enable_markup config option
+* Fix kwargstack early breaking in conditionals
+* Add some notes for developers.
+* Add warning if formatter is inactive at the end of a print
+* Add config options to preserve first comment or any matching a regex
+
+Closed issues:
+
+* Fixes `#34`_: if conditions with many elements
+* Closes `#35`_: break_before_args
+* Implements `#42`_: user specified string for fencing
+* Implements `#43`_: allow custom string for rulers
+* Fixes `#45`_: config file not loaded properly
+* Fixes `#51`_: competing herustics for 2+ argument statements
+* Implements `#60`_: option to not reflow initial comment block
+* Implements `#61`_: add non-builtin commands
+* Fixes `#63`_: elseif like if
+* Implements `#65`_: warn if off doesn't have corresponding on
+* Closes `#67`_: global option to not format comments
+* Fixes `#68`_: seperate-ctrl-name-with-space
+
+.. _#34: https://github.com/cheshirekow/cmake_format/issues/34
+.. _#35: https://github.com/cheshirekow/cmake_format/issues/35
+.. _#42: https://github.com/cheshirekow/cmake_format/issues/42
+.. _#43: https://github.com/cheshirekow/cmake_format/issues/43
+.. _#45: https://github.com/cheshirekow/cmake_format/issues/45
+.. _#51: https://github.com/cheshirekow/cmake_format/issues/51
+.. _#60: https://github.com/cheshirekow/cmake_format/issues/60
+.. _#61: https://github.com/cheshirekow/cmake_format/issues/61
+.. _#63: https://github.com/cheshirekow/cmake_format/issues/63
+.. _#65: https://github.com/cheshirekow/cmake_format/issues/65
+.. _#67: https://github.com/cheshirekow/cmake_format/issues/67
+.. _#68: https://github.com/cheshirekow/cmake_format/issues/68
+
 v0.4.1
 ------
 
@@ -11,19 +59,20 @@ v0.4.1
 * Fix arg comments dont force dangle parenthesis
 * Add some missing function specifications
 
-* Fixes `_cheshirekow/cmake_format#53`
-* Closes `_cheshirekow/cmake_format#54`
-* Fixes `_cheshirekow/cmake_format#55`
-* Fixes `_cheshirekow/cmake_format#56`
-* Fixes `_cheshirekow/cmake_format#59`
+Closed issues:
 
-.. _cheshirekow/cmake_format#53: https://github.com/cheshirekow/cmake_format/issues/53
-.. _cheshirekow/cmake_format#54: https://github.com/cheshirekow/cmake_format/issues/54
-.. _cheshirekow/cmake_format#55: https://github.com/cheshirekow/cmake_format/issues/55
-.. _cheshirekow/cmake_format#56: https://github.com/cheshirekow/cmake_format/issues/56
-.. _cheshirekow/cmake_format#59: https://github.com/cheshirekow/cmake_format/issues/59
+* Fixes `#53`_: add numpy as required
+* Closes `#54`_: more cmake commands
+* Fixes `#55`_: function with interior comment
+* Fixes `#56`_: function with trailing comment
+* Fixes `#59`_: improve export
 
-------
+.. _#53: https://github.com/cheshirekow/cmake_format/issues/53
+.. _#54: https://github.com/cheshirekow/cmake_format/issues/54
+.. _#55: https://github.com/cheshirekow/cmake_format/issues/55
+.. _#56: https://github.com/cheshirekow/cmake_format/issues/56
+.. _#59: https://github.com/cheshirekow/cmake_format/issues/59
+
 v0.4.0
 ------
 
@@ -39,89 +88,56 @@ v0.4.0
 * Add keyword case correction
 * Improve layout of complicated boolean expressions
 
-* Implements `_cheshirekow/cmake_format#10`
-* Fixes `_cheshirekow/cmake_format#34`
-* Implements `_cheshirekow/cmake_format#37`
-* Implements `_cheshirekow/cmake_format#39`
-* Fixes `_cheshirekow/cmake_format#46`
-* Fixes `_cheshirekow/cmake_format#47`
-* Implements `_cheshirekow/cmake_format#48`
-* Fixes `_cheshirekow/cmake_format#49`
-* Fixes `_cheshirekow/cmake_format#50`
+Closed issues:
 
-.. _cheshirekow/cmake_format#10: https://github.com/cheshirekow/cmake_format/issues/10
-.. _cheshirekow/cmake_format#34: https://github.com/cheshirekow/cmake_format/issues/34
-.. _cheshirekow/cmake_format#37: https://github.com/cheshirekow/cmake_format/issues/37
-.. _cheshirekow/cmake_format#39: https://github.com/cheshirekow/cmake_format/issues/39
-.. _cheshirekow/cmake_format#46: https://github.com/cheshirekow/cmake_format/issues/46
-.. _cheshirekow/cmake_format#47: https://github.com/cheshirekow/cmake_format/issues/47
-.. _cheshirekow/cmake_format#48: https://github.com/cheshirekow/cmake_format/issues/48
-.. _cheshirekow/cmake_format#49: https://github.com/cheshirekow/cmake_format/issues/49
-.. _cheshirekow/cmake_format#50: https://github.com/cheshirekow/cmake_format/issues/50
+* Implements `#10`_: treat COMPONENT keyword different
+* Implements `#37`_: --dump-config dumps current config
+* Implements `#39`_: always wrap for certain functions
+* Fixes `#46`_: leading comment in function body
+* Fixes `#47`_: function argument incorrectly appended
+* Implements `#48`_: improve install ``target_*``
+* Fixes `#49`_: removes entire while() sections
+* Fixes `#50`_: indented comments appended to preceding line
 
-------
-v0.3.0
-------
+.. _#10: https://github.com/cheshirekow/cmake_format/issues/10
+.. _#34: https://github.com/cheshirekow/cmake_format/issues/34
+.. _#37: https://github.com/cheshirekow/cmake_format/issues/37
+.. _#39: https://github.com/cheshirekow/cmake_format/issues/39
+.. _#46: https://github.com/cheshirekow/cmake_format/issues/46
+.. _#47: https://github.com/cheshirekow/cmake_format/issues/47
+.. _#48: https://github.com/cheshirekow/cmake_format/issues/48
+.. _#49: https://github.com/cheshirekow/cmake_format/issues/49
+.. _#50: https://github.com/cheshirekow/cmake_format/issues/50
 
-* fix `cheshirekow/cmake_format#2`_ : parser matching builtin logical expression
-  names should not be case sensitive
-* fix `cheshirekow/cmake_format#3`_ : default code used to read
-  ``long_description`` can't decode utf8
-* implement `cheshirekow/cmake_format#7`_ : add configuration option to separate
-  control statement or function name from parenthesis
-* implement `cheshirekow/cmake_format#9`_ : allow configuration options specified
-  from command line
-* Add support for python as the configfile format
-* Add ``--dump-config`` option
-* Add support for "separator" lines in comments. Any line consisting of only
-  five or more non-alphanum characters will be preserved verbatim.
-* Improve python3 support by using ``print_function``
+-----------
+v0.3 series
+-----------
 
-.. _cheshirekow/cmake_format#2: https://github.com/cheshirekow/cmake_format/issues/2
-.. _cheshirekow/cmake_format#3: https://github.com/cheshirekow/cmake_format/issues/3
-.. _cheshirekow/cmake_format#7: https://github.com/cheshirekow/cmake_format/issues/7
-.. _cheshirekow/cmake_format#9: https://github.com/cheshirekow/cmake_format/issues/9
-
-v0.3.1
+v0.3.6
 ------
 
-* use exec instead of execfile for python3 compatibility
+* Implement "auto" line ending option `#27`
+* Implement command casing `#29`
+* Implement stdin as an input file `#30`
 
-v0.3.2
+Closed issues:
+
+.. _#27: https://github.com/cheshirekow/cmake_format/issues/27
+.. _#29: https://github.com/cheshirekow/cmake_format/issues/29
+.. _#30: https://github.com/cheshirekow/cmake_format/issues/30
+
+
+v0.3.5
 ------
 
-* Move configuration to it's own module
-* Add lexer/parser support for bracket arguments and bracket comments
-* Make stable_wrap work for any ``prefix``/``subsequent_prefix``.
-* Preserve scope-level bracket comments verbatim
-* Add markup module with parse/format support for rudimentary markup in comments
-  including nested bulleted and enumerated lists, and fenced blocks.
-* Add pyyaml as an extra dependency in pip configuration
-* Fix `cheshirekow/cmake_format#16`_: argparse defaults always override config
+* Fix `#28`_: lexing pattern for quoted strings with
+  escaped quotes
+* Add lex tests for quoted strings with escaped quotes
+* Fix windows format test
 
-v0.3.3
-------
+Closed issues:
 
-* Convert all string literals in format.py to unicode literals
-* Added python3 tests
-* Attempt to deal with python2/python3 string differences by using codecs
-  and io modules where appropriate. I probably got this wrong somewhere.
-* Fix missing comma in config file matching
-
-* Implement `cheshirekow/cmake_format#13`_: option to dangle parenthesis
-* Fix `cheshirekow/cmake_format#17`_: trailing comment stripped from commands
-  with no arguments
-* Fix `cheshirekow/cmake_format#21`_: corruption upon trailing whitespace
-* Fix `cheshirekow/cmake_format#23`_: wrapping long arguments has some weird
-  extra newline or missing indentation space.
-* Fix `cheshirekow/cmake_format#25`_: cannot invoke cmake-format with python3
-
-.. _cheshirekow/cmake_format#13: https://github.com/cheshirekow/cmake_format/issues/13
-.. _cheshirekow/cmake_format#16: https://github.com/cheshirekow/cmake_format/issues/16
-.. _cheshirekow/cmake_format#17: https://github.com/cheshirekow/cmake_format/issues/17
-.. _cheshirekow/cmake_format#21: https://github.com/cheshirekow/cmake_format/issues/21
-.. _cheshirekow/cmake_format#23: https://github.com/cheshirekow/cmake_format/issues/23
-.. _cheshirekow/cmake_format#25: https://github.com/cheshirekow/cmake_format/issues/25
+.. _#28: https://github.com/cheshirekow/cmake_format/issues/28
 
 v0.3.4
 ------
@@ -138,28 +154,87 @@ v0.3.4
 * Add documentation to python config file dump output
 * Strip trailing whitespace and normalize line endings in bracket comments
 
-v0.3.5
+v0.3.3
 ------
 
-* Fix `cheshirekow/cmake_format#28`_: lexing pattern for quoted strings with
-  escaped quotes
-* Add lex tests for quoted strings with escaped quotes
-* Fix windows format test
+* Convert all string literals in format.py to unicode literals
+* Added python3 tests
+* Attempt to deal with python2/python3 string differences by using codecs
+  and io modules where appropriate. I probably got this wrong somewhere.
+* Fix missing comma in config file matching
 
-.. _cheshirekow/cmake_format#28: https://github.com/cheshirekow/cmake_format/issues/28
+Closed issues:
 
-v0.3.6
+* Implement `#13`_: option to dangle parenthesis
+* Fix `#17`_: trailing comment stripped from commands
+  with no arguments
+* Fix `#21`_: corruption upon trailing whitespace
+* Fix `#23`_: wrapping long arguments has some weird
+  extra newline or missing indentation space.
+* Fix `#25`_: cannot invoke cmake-format with python3
+
+.. _#13: https://github.com/cheshirekow/cmake_format/issues/13
+.. _#16: https://github.com/cheshirekow/cmake_format/issues/16
+.. _#17: https://github.com/cheshirekow/cmake_format/issues/17
+.. _#21: https://github.com/cheshirekow/cmake_format/issues/21
+.. _#23: https://github.com/cheshirekow/cmake_format/issues/23
+.. _#25: https://github.com/cheshirekow/cmake_format/issues/25
+
+v0.3.2
 ------
 
-* Implement "auto" line ending option `cheshirekow/cmake_format#27`
-* Implement command casing `cheshirekow/cmake_format#29`
-* Implement stdin as an input file `cheshirekow/cmake_format#30`
+* Move configuration to it's own module
+* Add lexer/parser support for bracket arguments and bracket comments
+* Make stable_wrap work for any ``prefix`` / ``subsequent_prefix``.
+* Preserve scope-level bracket comments verbatim
+* Add markup module with parse/format support for rudimentary markup in
+  comments including nested bulleted and enumerated lists, and fenced blocks.
+* Add pyyaml as an extra dependency in pip configuration
 
-.. _cheshirekow/cmake_format#27: https://github.com/cheshirekow/cmake_format/issues/27
-.. _cheshirekow/cmake_format#29: https://github.com/cheshirekow/cmake_format/issues/29
-.. _cheshirekow/cmake_format#30: https://github.com/cheshirekow/cmake_format/issues/30
+Closed issues:
 
+* Fix `#16`_: argparse defaults always override config
+
+v0.3.1
 ------
+
+* use exec instead of execfile for python3 compatibility
+
+v0.3.0
+------
+
+* fix `#2`_ : parser matching builtin logical expression
+  names should not be case sensitive
+* fix `#3`_ : default code used to read
+  ``long_description`` can't decode utf8
+* implement `#7`_ : add configuration option to separate
+  control statement or function name from parenthesis
+* implement `#9`_ : allow configuration options specified
+  from command line
+* Add support for python as the configfile format
+* Add ``--dump-config`` option
+* Add support for "separator" lines in comments. Any line consisting of only
+  five or more non-alphanum characters will be preserved verbatim.
+* Improve python3 support by using ``print_function``
+
+Closed issues:
+
+.. _#2: https://github.com/cheshirekow/cmake_format/issues/2
+.. _#3: https://github.com/cheshirekow/cmake_format/issues/3
+.. _#7: https://github.com/cheshirekow/cmake_format/issues/7
+.. _#9: https://github.com/cheshirekow/cmake_format/issues/9
+
+-----------
+v0.2 series
+-----------
+
+v0.2.1
+------
+
+* fix bug in reflow if text goes to exactly the end of the line
+* add python module documentation to sphinx autodoc
+* make formatting of COMMANDs a bit more compact
+
 v0.2.0
 ------
 
@@ -174,10 +249,3 @@ v0.2.0
 * Add ``setup.py``
 * Tested on a production codebase with 350+ listfiles and a manual scan of
   changes looked good, and the build seems to be healthy.
-
-v0.2.1
-------
-
-* fix bug in reflow if text goes to exactly the end of the line
-* add python module documentation to sphinx autodoc
-* make formatting of COMMANDs a bit more compact

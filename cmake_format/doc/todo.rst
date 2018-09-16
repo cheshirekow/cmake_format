@@ -39,3 +39,7 @@ TODO
   nested so far that the open paren doesn't fit on the line and needs to be
   wrapped.
 * Improve error messages for exceptions/assertions caused by malformed input.
+* Implement a simple-wrap strategy, this might make sense for some file()
+  commands
+* Implement per-command algorithm order allowing to change the wrap preferences
+  at a fine-grained level.

@@ -190,6 +190,16 @@ def parse_bracket_comment(text):
   return ('#' + prefix, content, suffix)
 
 
+def get_first_non_whitespace_token(tokens):
+  """
+  Return the first token in the list that is not whitespace, or None
+  """
+  for token in tokens:
+    if token.type not in (TokenType.WHITESPACE, TokenType.NEWLINE):
+      return token
+  return None
+
+
 def main():
   """
   Dump tokenized listfile to stdout for debugging.

@@ -6,18 +6,27 @@
 #   cmake
 #   gcc
 #   g++
+#   gnuradio-dev
+#   libcurl4-openssl-dev
 #   libfuse-dev
+#   libgoogle-glog-dev
+#   libmagic-dev
+#   libudev-dev
+#   libvulkan-dev
+#   libx11-xcb-dev
+#   ninja-build
 #
 # pip install --upgrade pip
 # pip install --user
 # 	cpplint
 #   autopep8
-#   pylint
-#   sphinx
-#
+#   file-magic
 #   flask
 #   oauth2client
 #   pygerrit2
+#   pylint
+#   recommonmark
+#   sphinx
 #   sqlalchemy
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
