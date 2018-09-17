@@ -1,42 +1,19 @@
-set(cmake_format_py_files
-    __init__.py
-    __main__.py
-    commands.py
-    common.py
-    configuration.py
-    format_tests.py
-    formatter.py
-    invocation_tests.py
-    lexer_tests.py
-    lexer.py
-    markup_tests.py
-    markup.py
-    parser_tests.py
-    parser.py
-    tests.py)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_format.stamp
-                   COMMAND autopep8 -i ${cmake_format_py_files}
-                   COMMAND python -Bm cmake_format -i CMakeLists.txt
-                           doc/CMakeLists.txt test/CMakeLists.txt
-                   COMMAND touch
-                           ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_format.stamp
-                   DEPENDS ${cmake_format_py_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(cmake_format_format
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_format.stamp)
-add_dependencies(format cmake_format_format)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_lint.stamp
-                   COMMAND pylint ${cmake_format_py_files}
-                   COMMAND touch
-                           ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_lint.stamp
-                   DEPENDS ${cmake_format_py_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(cmake_format_lint
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_lint.stamp)
-
-add_dependencies(lint cmake_format_lint)
+format_and_lint(cmake_format
+                __init__.py
+                __main__.py
+                commands.py
+                common.py
+                configuration.py
+                format_tests.py
+                formatter.py
+                invocation_tests.py
+                lexer_tests.py
+                lexer.py
+                markup_tests.py
+                markup.py
+                parser_tests.py
+                parser.py
+                tests.py)
 
 add_test(NAME cmake_format-format_tests
          COMMAND python -m cmake_format.format_tests

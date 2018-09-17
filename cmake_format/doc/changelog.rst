@@ -6,6 +6,20 @@ Changelog
 v0.4 series
 -----------
 
+v0.4.3
+------
+
+* dump_config now dumps the active config, including loaded from file or
+  modified by command line
+* use cmake macros for cleaner listfiles
+* fix argparse defaults override config file settings for boolean args
+
+Closed issues:
+
+* Fixes `#70`_: ignores boolean configuration values
+
+.. _#70: https://github.com/cheshirekow/cmake_format/issues/70
+
 v0.4.2
 ------
 

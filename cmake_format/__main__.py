@@ -158,14 +158,13 @@ def get_config(infile_path, configfile_path):
   return config_dict
 
 
-def dump_config(args, outfile):
+def dump_config(args, config_dict, outfile):
   """
   Dump the default configuration to stdout
   """
 
   outfmt = args.dump_config
 
-  config_dict = {}
   for key, value in vars(args).items():
     if (key in configuration.Configuration.get_field_names()
         and value is not None):
@@ -257,7 +256,7 @@ def main():
       continue
     elif isinstance(value, bool):
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
-                            default=value, const=(not value),
+                            default=None, const=(not value),
                             type=configuration.parse_bool, help=helptext)
     elif isinstance(value, value_types) or value is None:
       optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),
@@ -273,7 +272,8 @@ def main():
   args = arg_parser.parse_args()
 
   if args.dump_config:
-    dump_config(args, sys.stdout)
+    config_dict = get_config(os.getcwd(), args.config_file)
+    dump_config(args, config_dict, sys.stdout)
     sys.exit(0)
 
   assert args.in_place is False or args.outfile_path is None, \
