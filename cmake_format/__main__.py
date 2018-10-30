@@ -9,7 +9,7 @@ parent directory up to the root of the filesystem. It will return the first
 file it finds with a filename that matches '\\.?cmake-format(.yaml|.json|.py)'.
 
 cmake-format can spit out the default configuration for you as starting point
-for customization. Run with `--dump-config [yaml|cmake|python]`.
+for customization. Run with `--dump-config [yaml|json|python]`.
 """
 from __future__ import unicode_literals
 
