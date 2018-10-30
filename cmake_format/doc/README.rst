@@ -39,7 +39,7 @@ Usage
     file it finds with a filename that matches '\.?cmake-format(.yaml|.json|.py)'.
 
     cmake-format can spit out the default configuration for you as starting point
-    for customization. Run with `--dump-config [yaml|cmake|python]`.
+    for customization. Run with `--dump-config [yaml|json|python]`.
 
     positional arguments:
       infilepaths
