@@ -8,8 +8,6 @@ import logging
 import re
 import sys
 
-import numpy as np
-
 from cmake_format import common
 from cmake_format import lexer
 from cmake_format import markup
@@ -137,6 +135,34 @@ def need_paren_space(spelling, config):
   return config.separate_fn_name_with_space
 
 
+class PositionCursor(object):
+  def __init__(self, *args):
+    if len(args) == 1:
+        self.row = args[0][0]
+        self.col = args[0][1]
+    elif len(args) == 2:
+        self.row = args[0]
+        self.col = args[1]
+
+  def __add__(self, cursor):
+      return PositionCursor(self.row + cursor[0], self.col + cursor[1])
+
+  def __getitem__(self, key):
+    if key == 0:
+      return self.row
+    elif key == 1:
+      return self.col
+    raise ValueError('PositionCursor index should be 0 or 1.')
+
+  def __setitem__(self, key, value):
+    if key == 0:
+      self.row = value
+    elif key == 1:
+      self.col = value
+    else:
+      raise ValueError('PositionCursor index should be 0 or 1.')
+
+
 class LayoutNode(object):
   """
   An element in the format/layout tree. The structure of the layout tree
@@ -148,8 +174,8 @@ class LayoutNode(object):
   def __init__(self, pnode):
     self.pnode = pnode
     self._wrap = WrapAlgo.HPACK
-    self._position = np.array((0, 0))  # NOTE(josh): (row, col)
-    self._size = np.array((0, 0))      # NOTE(josh): (rows, cols)
+    self._position = PositionCursor(0, 0)  # NOTE(josh): (row, col)
+    self._size = PositionCursor(0, 0)      # NOTE(josh): (rows, cols)
 
     self._children = []
     self._passno = -1
@@ -178,7 +204,7 @@ class LayoutNode(object):
 
   @property
   def position(self):
-    return np.array(self._position)
+    return PositionCursor(self._position)
 
   @property
   def type(self):
@@ -258,12 +284,12 @@ class LayoutNode(object):
     assert self._locked
     assert isinstance(self.pnode, parser.TreeNode)
 
-    self._position = np.array(cursor)
+    self._position = PositionCursor(cursor)
     out = None
     for repass in range(passno + 1):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
-      out = self._reflow(config, np.array(cursor), repass)
+      out = self._reflow(config, PositionCursor(cursor), repass)
       if self._colextent <= config.linewidth:
         break
     assert out is not None
@@ -455,12 +481,12 @@ class StatementNode(LayoutNode):
     assert self._locked
     assert isinstance(self.pnode, parser.TreeNode)
 
-    self._position = np.array(cursor)
+    self._position = PositionCursor(cursor)
     out = None
     for passno in range(0, 4):
       self._passno = passno
       self._wrap = self._get_wrap(config, passno)
-      out = self._reflow(config, np.array(cursor), passno)
+      out = self._reflow(config, PositionCursor(cursor), passno)
       if self.colextent <= config.linewidth:
         break
     assert out is not None
@@ -484,7 +510,7 @@ class StatementNode(LayoutNode):
     if need_paren_space(token.spelling, config):
       paren_space = 1  # <space>
 
-    start_cursor = np.array(cursor)
+    start_cursor = PositionCursor(cursor)
     self._colextent = cursor[1]
 
     children = list(self.children)
@@ -526,14 +552,14 @@ class StatementNode(LayoutNode):
     elif self._wrap == WrapAlgo.VPACK:
       column_cursor = cursor
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + PositionCursor(1, config.tab_size)
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = PositionCursor(column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -566,12 +592,12 @@ class StatementNode(LayoutNode):
           realized_extent += 1
         if realized_extent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = PositionCursor(column_cursor)
           cursor = child.reflow(config, cursor, passno)
       else:
         # Otherwise the node is not special and we vpack as usual
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = PositionCursor(column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -587,17 +613,17 @@ class StatementNode(LayoutNode):
     # if the user has requested us to always do so
     if config.dangle_parens and cursor[0] > start_cursor[0]:
       column_cursor[0] += 1
-      cursor = np.array((column_cursor[0], start_cursor[1]))
+      cursor = PositionCursor((column_cursor[0], start_cursor[1]))
     elif (cursor[1] >= config.linewidth
           and self._wrap.value > WrapAlgo.VPACK.value):
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
     elif prev.type == NodeType.COMMENT:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
     elif prev.has_terminal_comment():
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -609,7 +635,7 @@ class StatementNode(LayoutNode):
       assert child.type == NodeType.COMMENT, \
           "Expected COMMENT after RPAREN but got {}".format(child.type)
       assert not children
-      savecursor = np.array(cursor)
+      savecursor = PositionCursor(cursor)
       cursor = child.reflow(config, cursor, passno)
 
       if child.colextent > config.linewidth:
@@ -639,7 +665,7 @@ class KwargGroupNode(LayoutNode):
     # TODO(josh): Much of this code is the same as update_statement_size_, so
     # dedup the two
 
-    start_cursor = np.array(cursor)
+    start_cursor = PositionCursor(cursor)
 
     children = list(self.children)
     assert children
@@ -666,16 +692,16 @@ class KwargGroupNode(LayoutNode):
       return cursor
     elif self._wrap == WrapAlgo.VPACK:
       cursor[1] += len(' ')
-      column_cursor = np.array(cursor)
+      column_cursor = PositionCursor(cursor)
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + PositionCursor((1, config.tab_size))
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = PositionCursor(column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -702,12 +728,12 @@ class KwargGroupNode(LayoutNode):
         cursor = child.reflow(config, cursor, passno)
         if child.colextent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = PositionCursor(column_cursor)
           cursor = child.reflow(config, cursor, passno)
       # Otherwise we fall back to vpack
       else:
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = PositionCursor(column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -737,7 +763,7 @@ class ArgGroupNode(LayoutNode):
     # TODO(josh): breakup this function
     # pylint: disable=too-many-statements
 
-    start_cursor = np.array(cursor)
+    start_cursor = PositionCursor(cursor)
     self._colextent = cursor[1]
 
     children = list(self.children)
@@ -768,14 +794,14 @@ class ArgGroupNode(LayoutNode):
     elif self._wrap in (WrapAlgo.VPACK, WrapAlgo.KWNVPACK):
       column_cursor = cursor
     elif self._wrap == WrapAlgo.PNVPACK:
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + PositionCursor((1, config.tab_size))
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = PositionCursor(column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -803,12 +829,12 @@ class ArgGroupNode(LayoutNode):
         cursor = child.reflow(config, cursor, passno)
         if child.colextent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = PositionCursor(column_cursor)
           cursor = child.reflow(config, cursor, passno)
       # Otherwise we fall back to vpack
       else:
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = PositionCursor(column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -824,17 +850,17 @@ class ArgGroupNode(LayoutNode):
     # if the user has requested us to always do so
     if config.dangle_parens and cursor[0] > start_cursor[0]:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
     elif (cursor[1] >= config.linewidth
           and self._wrap.value > WrapAlgo.VPACK.value):
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
     elif prev.type == NodeType.COMMENT:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
     elif prev.has_terminal_comment():
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = PositionCursor(column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -884,7 +910,7 @@ class FlowControlNode(LayoutNode):
     Compute the size of a flowcontrol block
     """
     self._colextent = 0
-    column_cursor = np.array(cursor)
+    column_cursor = PositionCursor(cursor)
 
     children = list(self.children)
     assert children
@@ -1183,12 +1209,12 @@ def test_string(nodes):
 class CursorFile(object):
   def __init__(self, config):
     self._fobj = io.StringIO()
-    self._cursor = np.array((0, 0))
+    self._cursor = PositionCursor((0, 0))
     self._config = config
 
   @property
   def cursor(self):
-    return np.array(self._cursor)
+    return PositionCursor(self._cursor)
 
   def assert_at(self, cursor):
     assert (self._cursor[0] == cursor[0]

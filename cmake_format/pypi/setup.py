@@ -34,7 +34,4 @@ setup(
     extras_require={
         'YAML': ["pyyaml"],
     },
-    install_requires=[
-        'numpy'
-    ]
 )
