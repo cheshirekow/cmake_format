@@ -254,7 +254,7 @@ Some notes for anyone who wants hack on ``cmake-format``:
 1. Please use ``pylint`` to check your code. There is a pylint config file in
    the repo.
 2. There is a test suite in ``tests.py``. Run with
-   ``python -Bm cmake-format.tests`` (ensure modified code is on the python
+   ``python -Bm cmake_format.tests`` (ensure modified code is on the python
    path).
 3. There's an ``autopep8`` config file in the repo as well. Feel free to use
    that to format the code. Note that ``autopep8`` and ``pylint`` disagree
