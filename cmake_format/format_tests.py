@@ -213,6 +213,20 @@ class TestCanonicalFormatting(unittest.TestCase):
                             ${ARGN})
     """)
 
+  def test_argcomments_force_reflow_trailing_comment(self):
+    self.config.line_width = 140
+    self.do_format_test("""\
+      find_package(foobar REQUIRED
+             COMPONENTS some_component
+                # some_other_component # This is a very long comment, and actually the second comment in this row.
+          )
+    """, """\
+      find_package(foobar REQUIRED
+                   COMPONENTS some_component
+                              # some_other_component # This is a very long comment, and actually the second comment in this row.
+                   )
+    """)
+
   def test_format_off(self):
     self.do_format_test("""\
       # This part of the comment should

@@ -628,6 +628,10 @@ class StatementNode(LayoutNode):
 class KwargGroupNode(LayoutNode):
 
   def has_terminal_comment(self):
+    # TODO(siedenc): Josh, do you prefer to do this check here, or should
+    # CommentNode.has_terminal_comment() return True?
+    if self.children[-1].type == NodeType.COMMENT:
+      return True
     return self.children[-1].has_terminal_comment()
 
   def _reflow(self, config, cursor, passno):
