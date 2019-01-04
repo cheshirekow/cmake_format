@@ -10,6 +10,15 @@ v0.4
 ====
 
 ------
+v0.4.4
+------
+
+* Add the ability to dump out markup parse lists for debugging.
+* Add the ability to dump out a semantic HTML markup of a listfile, allowing
+  for easy server-side semantic highlighting of documentation pages.
+  See :ref:`render_html`.
+
+------
 v0.4.2
 ------
 

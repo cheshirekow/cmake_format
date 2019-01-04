@@ -95,6 +95,17 @@ class TestSpecificParses(unittest.TestCase):
             markup.CommentType.RULER,
             markup.CommentType.SEPARATOR])
 
+  def test_rulers_break_bullets(self):
+    self.assert_item_types("""\
+      --------------------
+      * Bulleted item
+      * Bulttied item
+      --------------------
+      """, [markup.CommentType.RULER,
+            markup.CommentType.BULLET_LIST,
+            markup.CommentType.RULER,
+            markup.CommentType.SEPARATOR])
+
   def test_fences(self):
     self.assert_item_types("""\
       ~~~

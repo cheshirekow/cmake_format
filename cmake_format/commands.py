@@ -314,7 +314,7 @@ def get_fn_spec():
   fn_spec.add(
       "find_package",
       pargs=ZERO_OR_MORE,
-      flags=["EXACT", "MODULEREQUIREDNO_POLICY_SCOPE", "QUIET"],
+      flags=["EXACT", "MODULE", "REQUIRED", "NO_POLICY_SCOPE", "QUIET"],
       kwargs={
           "COMPONENTS": ZERO_OR_MORE,
           "OPTIONAL_COMPONENTS": ZERO_OR_MORE
@@ -382,7 +382,7 @@ def get_fn_spec():
       flags=[
           'OPTIONAL',
           'NAMELINK_ONLY',
-          'NAMELIN_SKIP'
+          'NAMELINK_SKIP'
       ],
       kwargs={
           'DESTINATION': 1,
@@ -402,6 +402,8 @@ def get_fn_spec():
       kwargs={
           "ARCHIVE": subspec,
           "BUNDLE": subspec,
+          'COMPONENT': 1,
+          'CONFIGURATIONS': ONE_OR_MORE,
           "DESTINATION": 1,
           "DIRECTORY": ZERO_OR_MORE,
           "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,

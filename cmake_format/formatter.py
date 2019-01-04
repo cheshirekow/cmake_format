@@ -80,14 +80,14 @@ def format_comment_lines(node, config, line_width):
     if literal_comment_regex.match('\n'.join(inlines)):
       return ["#" + line.rstrip() for line in inlines]
 
-  if config.first_comment_is_literal and node.children[0] is config.first_token:
+  if node.children[0] is config.first_token and (
+      config.first_comment_is_literal
+      or config.first_token.spelling.startswith("#!")):
     return ["#" + line.rstrip() for line in inlines]
 
   items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
   return ["#" + (" " * len(line[:1])) + line for line in markup_lines]
-
-
 
 
 def normalize_line_endings(instr):
@@ -370,13 +370,14 @@ class ScalarNode(LayoutNode):
     token = self.pnode.children[0]
     assert isinstance(token, lexer.Token)
 
-    if self.type == NodeType.FUNNAME and config.command_case != "unchanged":
-      spelling = getattr(token.spelling, config.command_case)()
+    spelling = normalize_line_endings(token.spelling)
+    if self.type == NodeType.FUNNAME:
+      command_case = config.resolve_for_command("command_case", token.spelling)
+      if command_case in ("lower", "upper"):
+        spelling = getattr(token.spelling, command_case)()
     elif (self.type in (NodeType.KEYWORD, NodeType.FLAG)
-          and config.keyword_case != "unchanged"):
+          and config.keyword_case in ("lower", "upper")):
       spelling = getattr(token.spelling, config.keyword_case)()
-    else:
-      spelling = normalize_line_endings(token.spelling)
 
     ctx.outfile.write_at(self.position, spelling)
     children = list(self.children)
@@ -450,8 +451,7 @@ class StatementNode(LayoutNode):
 
   # NOTE(josh): StatementNode is the only node that overrides reflow(), the
   # rest override just _reflow()
-
-  def reflow(self, config, cursor, _=0):
+  def reflow(self, config, cursor, _=0):  # pylint: disable=unused-argument
     assert self._locked
     assert isinstance(self.pnode, parser.TreeNode)
 
@@ -628,6 +628,8 @@ class StatementNode(LayoutNode):
 class KwargGroupNode(LayoutNode):
 
   def has_terminal_comment(self):
+    if self.children[-1].type is NodeType.COMMENT:
+      return True
     return self.children[-1].has_terminal_comment()
 
   def _reflow(self, config, cursor, passno):

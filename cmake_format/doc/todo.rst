@@ -43,3 +43,27 @@ TODO
   commands
 * Implement per-command algorithm order allowing to change the wrap preferences
   at a fine-grained level.
+
+==============
+Sort Arguments
+==============
+
+* Extend the command specification to include specification of different
+  positional argument "groups". For instance in
+  ``add_libarry(foo a.cc b.cc c.cc)``. There are four positional arguments but
+  they are in two logical "groups". The first single-argument group ``foo`` is
+  the name of the library. The second is the list of source files.
+  In other words the specfication might look something like:
+  ``add_library(<libname> [FLAGS] <source_files> [FLAGS])``
+* Add to the cmdspec object a "sorted" flag. For any argument group that is
+  configured to be "sorted", then sort the tokens between parsing and
+  formatting. Probably add a ``formatter.sort_tree(parse_tree)`` in
+  ``__main__.py`` immediately before ``formatter.layout_tree``.
+* Add to the ``parser.TreeNode`` class a pointer to the cmdspec that was
+  matched to that node during parsing. This will allow us to easily
+  re-associate the cmdspec with the parse node when we are doing the sorting
+  step.
+* Implementation of the ``sort_tree`` then is to just walk the tree looking
+  for any ``POSITIONAL_GROUP`` nodes which are associated with a ``cmdspec``
+  for which ``sorted=True``. The child list of such a node is necessarily a
+  list of tokens, so just sort the list on token spelling.

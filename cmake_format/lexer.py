@@ -31,6 +31,7 @@ TokenType.FORMAT_OFF = TokenType(10)
 TokenType.FORMAT_ON = TokenType(11)
 TokenType.BRACKET_ARGUMENT = TokenType(12)
 TokenType.BRACKET_COMMENT = TokenType(13)
+TokenType.BYTEORDER_MARK = TokenType(14)
 
 
 class SourceLocation(tuple):
@@ -108,6 +109,15 @@ def tokenize(contents):
       # single quoted string
       (r"(?<![^\s\(])'[^'\\]*(?:\\.[^'\\]*)*'(?![^\s\)])",
        lambda s, t: (TokenType.QUOTED_LITERAL, t)),
+      # quoted definition like BAR="Hello World" or quoted command line
+      # argument like --bar="hello world". Note that this is basically the
+      # WORD pattern from below, followed by equals, follwed by the quoted
+      # literal pattern from above.
+      (r'(?<![^\s\(])'
+       r'[a-zA-z_][a-zA-Z0-9_]*='
+       r'"[^"\\]*(?:\\.[^"\\]*)*"'
+       r'(?![^\s\)])',
+       lambda s, t: (TokenType.QUOTED_LITERAL, t)),
       # bracket argument
       (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",
        lambda s, t: (TokenType.BRACKET_ARGUMENT, t)),
@@ -141,6 +151,16 @@ def tokenize(contents):
        lambda s, t: (TokenType.UNQUOTED_LITERAL, t))
   ], re.DOTALL)
 
+  tokens_return = []
+  if contents.startswith("\ufeff"):
+    tokens_return = [
+        Token(tok_type=TokenType.BYTEORDER_MARK,
+              spelling=contents[0],
+              index=-1,
+              begin=SourceLocation((0, 0, 0)),
+              end=SourceLocation((0, 0, 0)))]
+    contents = contents[1:]
+
   tokens, remainder = scanner.scan(contents)
   assert not remainder, "Unparsed tokens: {}".format(remainder)
 
@@ -150,7 +170,6 @@ def tokenize(contents):
   # it's right most newline. Note that line and numbers are 1-indexed to match
   # up with editors but column numbers are zero indexed because its fun to be
   # inconsistent.
-  tokens_return = []
   lineno = 1
   col = 0
   offset = 0

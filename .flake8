@@ -1,0 +1,22 @@
+[flake8]
+# E111: indentation is not a multiple of four
+# E118: indentation is not a multiple of four (comment)
+# W503: line break before binary operator
+# W504: line break after binary operator
+
+# NOTE(josh): the following were added to pass checks for current state. 
+# Remove them as you clean things up.
+# C901: xxx is too complex
+# E121: continuation line under-indented for hanging indent
+# E125: continuation line with same indent as next logical line
+# E126: continuation line over-indented for hanging indent
+# E129: visually indented line with same indent as next logical line
+# E501: line too long
+# E722: do not use bare 'except'
+# F401: xxx imported but unused
+# F403: from xxx import * used; unable to detect undefined names
+# F841: local variable '_' is assigned but never used
+ignore = C901,E111,E114,E121,E125,E126,E129,E501,E722,F401,F403,F841,W503,W504
+
+exclude = .git,__pycache__
+max-complexity = 10

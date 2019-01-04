@@ -53,7 +53,7 @@ Usage
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      --dump {lex,parse,layout}
+      --dump {lex,parse,layout,markup}
       -c CONFIG_FILE, --config-file CONFIG_FILE
                             path to configuration file
 
@@ -89,6 +89,29 @@ Usage
                             case
       --always-wrap [ALWAYS_WRAP [ALWAYS_WRAP ...]]
                             A list of command names which should always be wrapped
+      --algorithm-order [ALGORITHM_ORDER [ALGORITHM_ORDER ...]]
+                            Specify the order of wrapping algorithms during
+                            successive reflow attempts
+      --enable-markup [ENABLE_MARKUP]
+                            enable comment markup parsing and reflow
+      --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
+                            If comment markup is enabled, don't reflow the first
+                            comment block in eachlistfile. Use this to preserve
+                            formatting of your copyright/licensestatements.
+      --literal-comment-pattern LITERAL_COMMENT_PATTERN
+                            If comment markup is enabled, don't reflow any comment
+                            block which matchesthis (regex) pattern. Default is
+                            `None` (disabled).
+      --fence-pattern FENCE_PATTERN
+                            Regular expression to match preformat fences in
+                            comments default=r'^\s*([`~]{3}[`~]*)(.*)$'
+      --ruler-pattern RULER_PATTERN
+                            Regular expression to match rulers in comments
+                            default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
+                            If true, emit the unicode byte-order mark (BOM) at the
+                            start of the file
+
 
 
 ------------
@@ -148,21 +171,45 @@ pleasant way.
 
     # Specify structure for custom cmake functions
     additional_commands = {
-      "foo": {
-        "flags": [
-          "BAR",
-          "BAZ"
-        ],
+      "pkg_find": {
         "kwargs": {
-          "HEADERS": "*",
-          "DEPENDS": "*",
-          "SOURCES": "*"
+          "PKG": "*"
         }
       }
     }
 
     # A list of command names which should always be wrapped
     always_wrap = []
+
+    # Specify the order of wrapping algorithms during successive reflow attempts
+    algorithm_order = [0, 1, 2, 3]
+
+    # enable comment markup parsing and reflow
+    enable_markup = True
+
+    # If comment markup is enabled, don't reflow the first comment block in
+    # eachlistfile. Use this to preserve formatting of your
+    # copyright/licensestatements.
+    first_comment_is_literal = False
+
+    # If comment markup is enabled, don't reflow any comment block which matchesthis
+    # (regex) pattern. Default is `None` (disabled).
+    literal_comment_pattern = None
+
+    # Regular expression to match preformat fences in comments
+    # default=r'^\s*([`~]{3}[`~]*)(.*)$'
+    fence_pattern = u'^\\s*([`~]{3}[`~]*)(.*)$'
+
+    # Regular expression to match rulers in comments
+    # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+    ruler_pattern = u'^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
+
+    # If true, emit the unicode byte-order mark (BOM) at the start of the file
+    emit_byteorder_mark = False
+
+    # A dictionary containing any per-command configuration overrides. Currently
+    # only `command_case` is supported.
+    per_command = {}
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry

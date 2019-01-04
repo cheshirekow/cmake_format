@@ -4,6 +4,7 @@ import logging
 import sys
 
 from cmake_format import commands
+from cmake_format import markup
 
 
 def serialize(obj):
@@ -70,10 +71,6 @@ def get_default(value, default):
   return value
 
 
-DEFAULT_FENCE_PATTERN = r'^\s*([`~]{3}[`~]*)(.*)$'
-DEFAULT_RULER_PATTERN = r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-
-
 class Configuration(ConfigObject):
   """
   Encapsulates various configuration options/parameters for formatting
@@ -99,6 +96,8 @@ class Configuration(ConfigObject):
                literal_comment_pattern=None,
                fence_pattern=None,
                ruler_pattern=None,
+               emit_byteorder_mark=False,
+               per_command=None,
                **_):
 
     self.line_width = line_width
@@ -145,13 +144,22 @@ class Configuration(ConfigObject):
     self.enable_markup = enable_markup
     self.first_comment_is_literal = first_comment_is_literal
     self.literal_comment_pattern = literal_comment_pattern
-    self.fence_pattern = get_default(fence_pattern, DEFAULT_FENCE_PATTERN)
-    self.ruler_pattern = get_default(ruler_pattern, DEFAULT_RULER_PATTERN)
+    self.fence_pattern = get_default(fence_pattern, markup.FENCE_PATTERN)
+    self.ruler_pattern = get_default(ruler_pattern, markup.RULER_PATTERN)
+    self.emit_byteorder_mark = emit_byteorder_mark
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
       for command_name, spec in additional_commands.items():
         self.fn_spec.add(command_name, **spec)
+
+    self.per_command = {}
+    for key, value in get_default(per_command, {}).items():
+      if not isinstance(value, dict):
+        logging.warning("Invalid override of type %s for %s", type(value), key)
+        continue
+
+      self.per_command[key.lower()] = value
 
     assert self.line_ending in ("windows", "unix", "auto"), \
         r"Line ending must be either 'windows', 'unix', or 'auto'"
@@ -173,6 +181,17 @@ class Configuration(ConfigObject):
   def set_line_ending(self, detected):
     self.endl = {'windows': '\r\n',
                  'unix': '\n'}[detected]
+
+  def resolve_for_command(self, config_key, command_name):
+    """
+    Check for a per-command override dictionary for the given command. If it
+    exists and it contains the desired config value, then return it. Otherwise
+    return the global config value.
+    """
+
+    assert hasattr(self, config_key)
+    return (self.per_command.get(command_name.lower(), {})
+            .get(config_key, getattr(self, config_key)))
 
   @property
   def linewidth(self):
@@ -225,10 +244,15 @@ VARDOCS = {
     "this (regex) pattern. Default is `None` (disabled).",
     "fence_pattern":
     ("Regular expression to match preformat fences in comments default=r'{}'"
-     .format(DEFAULT_FENCE_PATTERN)),
+     .format(markup.FENCE_PATTERN)),
     "ruler_pattern":
     ("Regular expression to match rulers in comments default=r'{}'"
-     .format(DEFAULT_RULER_PATTERN)),
+     .format(markup.RULER_PATTERN)),
     "additional_commands":
-    "Specify structure for custom cmake functions"
+    "Specify structure for custom cmake functions",
+    "emit_byteorder_mark":
+    "If true, emit the unicode byte-order mark (BOM) at the start of the file",
+    "per_command":
+    "A dictionary containing any per-command configuration overrides."
+    " Currently only `command_case` is supported."
 }

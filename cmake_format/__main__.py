@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Parse cmake listfiles and format them nicely.
 
@@ -28,7 +29,9 @@ import cmake_format
 from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
+from cmake_format import markup
 from cmake_format import parser
+from cmake_format import render
 
 
 def detect_line_endings(infile_content):
@@ -38,6 +41,54 @@ def detect_line_endings(infile_content):
     return 'windows'
 
   return 'unix'
+
+
+def dump_markup(nodes, config, outfile=None, indent=None):
+  """
+  Print a tree of node objects for debugging purposes. Takes as input a full
+  parse tree.
+  """
+
+  if indent is None:
+    indent = ''
+
+  if outfile is None:
+    outfile = sys.stdout
+
+  for idx, node in enumerate(nodes):
+    if not isinstance(node, parser.TreeNode):
+      continue
+
+    # outfile.write(indent)
+    # if idx + 1 == len(nodes):
+    #   outfile.write('└─ ')
+    # else:
+    #   outfile.write('├─ ')
+
+    noderep = repr(node)
+    if sys.version_info[0] < 3:
+      noderep = getattr(noderep, 'decode')('utf-8')
+
+    if node.node_type is parser.NodeType.COMMENT:
+      outfile.write(noderep)
+      outfile.write('\n')
+      inlines = []
+      for token in node.children:
+        assert isinstance(token, lexer.Token)
+        if token.type == lexer.TokenType.COMMENT:
+          inlines.append(token.spelling.strip().lstrip('#'))
+      items = markup.parse(inlines, config)
+      for item in items:
+        outfile.write("{}\n".format(item))
+      outfile.write("\n")
+
+    if not hasattr(node, 'children'):
+      continue
+
+    if idx + 1 == len(nodes):
+      dump_markup(node.children, config, outfile, indent + '    ')
+    else:
+      dump_markup(node.children, config, outfile, indent + '│   ')
 
 
 def process_file(config, infile, outfile, dump=None):
@@ -51,20 +102,36 @@ def process_file(config, infile, outfile, dump=None):
     config = config.clone()
     config.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
-  if dump == 'lex':
+  if dump == "lex":
     for token in tokens:
-      outfile.write('{}\n'.format(token))
+      outfile.write("{}\n".format(token))
     return
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_tree = parser.parse(tokens, config.fn_spec)
-  if dump == 'parse':
+  if dump == "parse":
     parser.dump_tree([parse_tree], outfile)
     return
+  if dump == "markup":
+    dump_markup([parse_tree], config, outfile)
+    return
+  if dump == "html-page":
+    html_content = render.get_html(parse_tree, fullpage=True)
+    outfile.write(html_content)
+    return
+  if dump == "html-stub":
+    html_content = render.get_html(parse_tree, fullpage=False)
+    outfile.write(html_content)
+    return
+
   box_tree = formatter.layout_tree(parse_tree, config)
-  if dump == 'layout':
+  if dump == "layout":
+    infile.seek(0)
     formatter.dump_tree([box_tree], outfile)
     return
+
   text = formatter.write_tree(box_tree, config, infile_content)
+  if config.emit_byteorder_mark:
+    outfile.write("\ufeff")
   outfile.write(text)
 
 
@@ -202,22 +269,10 @@ cmake-format [-h]
 """
 
 
-def main():
-  """Parse arguments, open files, start work."""
-  # pylint: disable=too-many-statements
-
-  # set up main logger, which logs everything. We'll leave this one logging
-  # to the console
-  format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'
-  logging.basicConfig(level=logging.INFO,
-                      format=format_str,
-                      filemode='w')
-
-  arg_parser = argparse.ArgumentParser(
-      description=__doc__,
-      formatter_class=argparse.RawDescriptionHelpFormatter,
-      usage=USAGE_STRING)
-
+def setup_argparser(arg_parser):
+  """
+  Add argparse options to the parser.
+  """
   arg_parser.add_argument('-v', '--version', action='version',
                           version=cmake_format.VERSION)
 
@@ -226,12 +281,15 @@ def main():
                      default=None, const='python', nargs='?',
                      help='If specified, print the default configuration to '
                           'stdout and exit')
+  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout', 'markup',
+                                        'html-page', 'html-stub'],
+                     default=None)
+
+  mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('-i', '--in-place', action='store_true')
   mutex.add_argument('-o', '--outfile-path', default=None,
                      help='Where to write the formatted file. '
                           'Default is stdout.')
-  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout'],
-                     default=None)
 
   arg_parser.add_argument('-c', '--config-file',
                           help='path to configuration file')
@@ -258,9 +316,14 @@ def main():
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
                             default=None, const=(not value),
                             type=configuration.parse_bool, help=helptext)
-    elif isinstance(value, value_types) or value is None:
+    elif isinstance(value, value_types):
       optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),
                             help=helptext,
+                            choices=configuration.VARCHOICES.get(key, None))
+    elif value is None:
+      # If the value is None then we can't really tell what it's supposed to
+      # be. I guess let's assume string in this case.
+      optgroup.add_argument('--' + key.replace('_', '-'), help=helptext,
                             choices=configuration.VARCHOICES.get(key, None))
     # NOTE(josh): argparse behavior is that if the flag is not specified on
     # the command line the value will be None, whereas if it's specified with
@@ -269,12 +332,34 @@ def main():
     elif isinstance(value, (list, tuple)):
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='*',
                             help=helptext)
+
+
+def main():
+  """Parse arguments, open files, start work."""
+
+  # set up main logger, which logs everything. We'll leave this one logging
+  # to the console
+  format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'
+  logging.basicConfig(level=logging.INFO,
+                      format=format_str,
+                      filemode='w')
+
+  arg_parser = argparse.ArgumentParser(
+      description=__doc__,
+      formatter_class=argparse.RawDescriptionHelpFormatter,
+      usage=USAGE_STRING)
+
+  setup_argparser(arg_parser)
   args = arg_parser.parse_args()
 
   if args.dump_config:
     config_dict = get_config(os.getcwd(), args.config_file)
     dump_config(args, config_dict, sys.stdout)
     sys.exit(0)
+
+  if args.dump_config or args.dump:
+    assert not args.in_place, \
+        ("-i/--in-place not allowed when dumping")
 
   assert args.in_place is False or args.outfile_path is None, \
       "if inplace is specified than outfile is invalid"

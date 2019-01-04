@@ -42,6 +42,7 @@ NodeType.ONOFFSWITCH = NodeType(11)
 NodeType.LPAREN = NodeType(12)
 NodeType.RPAREN = NodeType(13)
 
+
 class FlowType(common.EnumObject):
   """
   Enumeration for flow control types
@@ -453,7 +454,6 @@ def consume_statement(tokens, cmdspec):
         .format(tokens[0].type.name, tokens[0].get_location(),
                 repr(tokens[0].content)))
 
-
   lparen = TreeNode(NodeType.LPAREN)
   lparen.children.append(tokens.pop(0))
   node.children.append(lparen)
@@ -577,6 +577,8 @@ def consume_body(tokens, cmdspec, breakset=None):
       else:
         subtree = consume_statement(tokens, cmdspec)
         blocks.append(subtree)
+    elif token.type == lexer.TokenType.BYTEORDER_MARK:
+      tokens.pop(0)
     else:
       assert False, ("Unexpected {} token at {}:{}"
                      .format(tokens[0].type.name,

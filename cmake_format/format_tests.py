@@ -912,6 +912,33 @@ class TestCanonicalFormatting(unittest.TestCase):
                   )
       """)
 
+    self.do_format_test("""\
+      target_link_libraries(libraryname PUBLIC
+                            ${COMMON_LIBRARIES}
+                            # add more library dependencies here
+                            )
+      """, """\
+      target_link_libraries(libraryname
+                            PUBLIC ${COMMON_LIBRARIES}
+                                   # add more library dependencies here
+                            )
+      """)
+
+    self.do_format_test("""\
+      find_package(foobar REQUIRED
+                   COMPONENTS some_component
+                              # some_other_component
+                              # This is a very long comment, and actually the second comment in this row.
+                   )
+      """, """\
+      find_package(foobar REQUIRED
+                   COMPONENTS some_component
+                              # some_other_component
+                              # This is a very long comment, and actually the second
+                              # comment in this row.
+                   )
+      """)
+
   def test_comment_in_kwarg(self):
     self.do_format_test("""\
       install(ARCHIVE DESTINATION foobar
@@ -1048,6 +1075,13 @@ class TestCanonicalFormatting(unittest.TestCase):
       # This comment is reflowed
     """)
 
+  def test_shebang_preserved(self):
+    self.do_format_test("""\
+      #!/usr/bin/cmake -P
+    """, """\
+      #!/usr/bin/cmake -P
+    """)
+
   def test_preserve_copyright(self):
     self.do_format_test("""\
       # Copyright 2018: Josh Bialkowski
@@ -1068,6 +1102,65 @@ class TestCanonicalFormatting(unittest.TestCase):
       # This text should not be reflowed
       # because it's a copyright
     """)
+
+  def test_kwarg_match_consumes(self):
+    self.do_format_test("""\
+      install(TARGETS myprog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
+    """, """\
+      install(TARGETS myprog
+              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT
+              runtime)
+    """)
+
+    self.do_format_test("""\
+      add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
+    """, """\
+      add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
+    """)
+
+  def test_byte_order_mark(self):
+    self.do_format_test("""\
+      \ufeffcmake_minimum_required(VERSION 2.8.11)
+      project(cmake_format_test)
+      """, """\
+      cmake_minimum_required(VERSION 2.8.11)
+      project(cmake_format_test)
+    """)
+
+    self.config.emit_byteorder_mark = True
+    self.do_format_test("""\
+      cmake_minimum_required(VERSION 2.8.11)
+      project(cmake_format_test)
+      """, """\
+      \ufeffcmake_minimum_required(VERSION 2.8.11)
+      project(cmake_format_test)
+    """)
+
+  def test_percommand_override(self):
+    self.do_format_test("""\
+      FoO(bar baz)
+      """, """\
+      foo(bar baz)
+      """)
+
+    self.config.per_command["foo"] = {
+        "command_case": "unchanged"
+    }
+    self.do_format_test("""\
+      FoO(bar baz)
+      """, """\
+      FoO(bar baz)
+      """)
+
+  def test_quoted_assignment_literal(self):
+    self.do_format_test("""\
+      target_compile_definitions(foo PUBLIC BAR="Quoted String" BAZ_______________________Z)
+      """, """\
+      target_compile_definitions(foo
+                                 PUBLIC
+                                 BAR="Quoted String"
+                                 BAZ_______________________Z)
+      """)
 
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)

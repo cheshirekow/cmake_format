@@ -19,3 +19,5 @@ dist/
 # pyces build
 .pyces-out
 
+# jupyter autosaves
+.ipynb_checkpoints

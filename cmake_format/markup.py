@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Functions for parsing comments in markup
 """
@@ -13,7 +14,8 @@ NOTE_REGEX = re.compile(r'^\s*[A-Z_]+\([^)]+\):.*')
 # Matches comment lines that are clearly meant to separate sections or
 # headers. The meaning of this regex is "a line consisting of three or more
 # non-word characters ending with three or more non-word characters"
-RULER_REGEX = re.compile(r'^\s*[^\w\s]{3}.*[^\w\s]{3}$')
+RULER_PATTERN = r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+RULER_REGEX = re.compile(RULER_PATTERN)
 
 # Matches lines that start a bulleted list
 BULLET_REGEX = re.compile(r'^(\s*)([\*-])( .+)$')
@@ -22,7 +24,8 @@ BULLET_REGEX = re.compile(r'^(\s*)([\*-])( .+)$')
 ENUM_REGEX = re.compile(r'^(\s*)\d+([.:])( .+)$')
 
 # Matches a verbatim fence
-FENCE_REGEX = re.compile(r'^\s*([`~]{3}[`~]*)(.*)$')
+FENCE_PATTERN = r'^\s*([`~]{3}[`~]*)(.*)$'
+FENCE_REGEX = re.compile(FENCE_PATTERN)
 
 
 class CommentType(common.EnumObject):
@@ -45,6 +48,9 @@ class CommentItem(object):
     self.kind = kind
     self.indent = None
     self.lines = []
+
+  def __repr__(self):
+    return "{}".format(self.kind.name)
 
 
 def parse(lines, config=None):
@@ -92,6 +98,12 @@ def parse(lines, config=None):
 
       obj_list.append(CommentItem(CommentType.SEPARATOR))
       state = CommentType.SEPARATOR
+      continue
+
+    if ruler_re.match(line):
+      obj_list.append(CommentItem(CommentType.RULER))
+      obj_list[-1].lines.append(line.strip())
+      state = CommentType.RULER
       continue
 
     if state in (None, CommentType.SEPARATOR, CommentType.RULER):

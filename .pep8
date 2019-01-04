@@ -1,4 +1,12 @@
 [pep8]
 indent-size=2
 max-line-length=80
-ignore=E309 # Don't add an empty line after a class declaration
+
+# E309: Don't add an empty line after a class declaration
+# E125: continuation line with same indent as next logical line
+# E129: visually indented line with same indent as next logical line
+#
+# NOTE(josh): E125 and E129 have false positives due to line-width=2. They
+# match cases for which this would only be true if line-width=4
+ignore=E309,E125,E129
+

@@ -6,6 +6,43 @@ Changelog
 v0.4 series
 -----------
 
+v0.4.4
+---------------------
+
+* Fix bug where rulers wouldn't break bulleted lists in comment markup
+* Add missing flags COMPONENT and CONFIGURATIONS to command spec
+* add ``--dump markup`` to dump the markup parse tree for debugging comment
+  formatting behavior
+* fix `invalid NoneType value` for `--literal-comment-pattern`
+* shebang is preserved if present (without additional options)
+* fix trailing comment of kwarg group consumes rparen
+* add test to verify correct consumption of args matching outer kwargs
+* add new quoted assignment pattern to lexer for cases like quoted compile
+  definitions
+* add `--dump html-stub` and `--dump html-page` listfile renderers
+
+* Fixes `#56`_: ignores boolean configuration values
+* Closes `#66`_: Positional argument of keyword incorrectly matched as keyword
+  of containing command
+* Resolves `#73`_: Control of macro/function renaming
+* Fixes `#74`_: shebang in cmake scripts
+* Fixes `#79`_: BOM (Byte-order-mark) crashes parser
+* Closes `#81`_: Fix comment handling in kwarg group
+* Fixes `#82`_: Keyword + long coment + long argument asserts
+* Fixes `#85`_: commands: find_package broken
+* Fixes `#86`_: Breaking in Quotes
+
+
+.. _#56: https://github.com/cheshirekow/cmake_format/issues/56
+.. _#66: https://github.com/cheshirekow/cmake_format/issues/66
+.. _#73: https://github.com/cheshirekow/cmake_format/issues/73
+.. _#74: https://github.com/cheshirekow/cmake_format/issues/74
+.. _#79: https://github.com/cheshirekow/cmake_format/issues/79
+.. _#81: https://github.com/cheshirekow/cmake_format/issues/81
+.. _#82: https://github.com/cheshirekow/cmake_format/issues/82
+.. _#85: https://github.com/cheshirekow/cmake_format/issues/85
+.. _#86: https://github.com/cheshirekow/cmake_format/issues/86
+
 v0.4.3
 ------
 

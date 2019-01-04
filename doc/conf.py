@@ -21,7 +21,6 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import os
-import recommonmark
 from recommonmark.parser import CommonMarkParser
 from recommonmark.transform import AutoStructify
 
@@ -35,7 +34,7 @@ else:
 # General information about the project.
 docname = project + u'doc'
 title = project + ' Documentation'
-copyright = u'2018, Josh Bialkowski'
+copyright = u'2018, Josh Bialkowski'  # pylint: disable=W0622
 author = u'Josh Bialkowski'
 
 # -- General configuration ------------------------------------------------
@@ -62,7 +61,7 @@ templates_path = []
 #
 # source_suffix = ['.rst', '.md']
 source_parsers = {
-  '.md': CommonMarkParser,
+    '.md': CommonMarkParser,
 }
 source_suffix = ['.rst', '.md']
 
