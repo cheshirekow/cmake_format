@@ -33,8 +33,7 @@ setup(
     },
     extras_require={
         'YAML': ["pyyaml"],
+        'html-gen': ["jinja2"]
     },
-    install_requires=[
-        'numpy'
-    ]
+    install_requires=[]
 )

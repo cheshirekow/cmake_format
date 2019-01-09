@@ -1162,6 +1162,21 @@ class TestCanonicalFormatting(unittest.TestCase):
                                  BAZ_______________________Z)
       """)
 
+  def test_keyword_comment(self):
+    self.do_format_test("""\
+      find_package(package REQUIRED
+                   COMPONENTS # --------------------------------------
+                              # @TODO: This has to be filled manually
+                              # --------------------------------------
+                              this_is_a_really_long_word_foo)
+      """, """\
+      find_package(package REQUIRED
+                   COMPONENTS # --------------------------------------
+                              # @TODO: This has to be filled manually
+                              # --------------------------------------
+                              this_is_a_really_long_word_foo)
+      """)
+
   def test_example_file(self):
     thisdir = os.path.dirname(__file__)
     infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')

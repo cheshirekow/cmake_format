@@ -2,6 +2,12 @@
 cmake format
 ============
 
+.. image:: https://travis-ci.com/cheshirekow/cmake_format.svg?branch=master
+    :target: https://travis-ci.com/cheshirekow/cmake_format
+
+.. image:: https://readthedocs.org/projects/cmake_format/badge/
+    :target: https://cmake_format.readthedocs.io
+
 ``cmake-format`` can format your listfiles nicely so that they don't look
 like crap.
 
@@ -39,7 +45,7 @@ Usage
     file it finds with a filename that matches '\.?cmake-format(.yaml|.json|.py)'.
 
     cmake-format can spit out the default configuration for you as starting point
-    for customization. Run with `--dump-config [yaml|cmake|python]`.
+    for customization. Run with `--dump-config [yaml|json|python]`.
 
     positional arguments:
       infilepaths
@@ -301,7 +307,7 @@ Some notes for anyone who wants hack on ``cmake-format``:
 1. Please use ``pylint`` to check your code. There is a pylint config file in
    the repo.
 2. There is a test suite in ``tests.py``. Run with
-   ``python -Bm cmake-format.tests`` (ensure modified code is on the python
+   ``python -Bm cmake_format.tests`` (ensure modified code is on the python
    path).
 3. There's an ``autopep8`` config file in the repo as well. Feel free to use
    that to format the code. Note that ``autopep8`` and ``pylint`` disagree

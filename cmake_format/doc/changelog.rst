@@ -6,8 +6,29 @@ Changelog
 v0.4 series
 -----------
 
+v0.4.5
+------
+
+* Fix testing instructions in README
+* Fix dump-config instructions in README
+* Remove numpy dependency
+* Add travis CI configuration
+* Fix some issues with lint under python3
+
+* Closes `#40`_
+* Closes `#76`_
+* Closes `#77`_
+* Closes `#80`_
+* Fixes `#82`_: Keyword + long coment + long argument asserts
+
+.. _#40: https://github.com/cheshirekow/cmake_format/issues/40
+.. _#76: https://github.com/cheshirekow/cmake_format/issues/76
+.. _#77: https://github.com/cheshirekow/cmake_format/issues/77
+.. _#80: https://github.com/cheshirekow/cmake_format/issues/80
+.. _#82: https://github.com/cheshirekow/cmake_format/issues/82
+
 v0.4.4
----------------------
+------
 
 * Fix bug where rulers wouldn't break bulleted lists in comment markup
 * Add missing flags COMPONENT and CONFIGURATIONS to command spec
@@ -28,7 +49,6 @@ v0.4.4
 * Fixes `#74`_: shebang in cmake scripts
 * Fixes `#79`_: BOM (Byte-order-mark) crashes parser
 * Closes `#81`_: Fix comment handling in kwarg group
-* Fixes `#82`_: Keyword + long coment + long argument asserts
 * Fixes `#85`_: commands: find_package broken
 * Fixes `#86`_: Breaking in Quotes
 
@@ -39,7 +59,6 @@ v0.4.4
 .. _#74: https://github.com/cheshirekow/cmake_format/issues/74
 .. _#79: https://github.com/cheshirekow/cmake_format/issues/79
 .. _#81: https://github.com/cheshirekow/cmake_format/issues/81
-.. _#82: https://github.com/cheshirekow/cmake_format/issues/82
 .. _#85: https://github.com/cheshirekow/cmake_format/issues/85
 .. _#86: https://github.com/cheshirekow/cmake_format/issues/86
 

@@ -34,7 +34,7 @@ else:
 # General information about the project.
 docname = project + u'doc'
 title = project + ' Documentation'
-copyright = u'2018, Josh Bialkowski'  # pylint: disable=W0622
+copyright = u'2018-2019, Josh Bialkowski'  # pylint: disable=W0622
 author = u'Josh Bialkowski'
 
 # -- General configuration ------------------------------------------------

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=R1708
 from __future__ import unicode_literals
 import unittest
 

@@ -15,8 +15,9 @@
 # E722: do not use bare 'except'
 # F401: xxx imported but unused
 # F403: from xxx import * used; unable to detect undefined names
+# F821: undefined name 'unicode'
 # F841: local variable '_' is assigned but never used
-ignore = C901,E111,E114,E121,E125,E126,E129,E501,E722,F401,F403,F841,W503,W504
+ignore = C901,E111,E114,E121,E125,E126,E129,E501,E722,F401,F403,F821,F841,W503,W504
 
 exclude = .git,__pycache__
 max-complexity = 10

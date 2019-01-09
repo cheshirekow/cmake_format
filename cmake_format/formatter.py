@@ -8,8 +8,6 @@ import logging
 import re
 import sys
 
-import numpy as np
-
 from cmake_format import common
 from cmake_format import lexer
 from cmake_format import markup
@@ -137,6 +135,38 @@ def need_paren_space(spelling, config):
   return config.separate_fn_name_with_space
 
 
+class Cursor(object):
+  """
+  Lightweight class to encode integer positions in a 2d grid.
+  """
+
+  def __init__(self, x, y):
+    self.x = x
+    self.y = y
+
+  def __add__(self, other):
+    return Cursor(self.x + other[0], self.y + other[1])
+
+  def __getitem__(self, idx):
+    if idx == 0:
+      return self.x
+    elif idx == 1:
+      return self.y
+
+    raise IndexError('Cursor indices must be 0 or 1')
+
+  def __setitem__(self, idx, value):
+    if idx == 0:
+      self.x = value
+    elif idx == 1:
+      self.y = value
+    else:
+      raise IndexError('Cursor indices must be 0 or 1')
+
+  def __repr__(self):
+    return "Cursor({},{})".format(self.x, self.y)
+
+
 class LayoutNode(object):
   """
   An element in the format/layout tree. The structure of the layout tree
@@ -148,8 +178,8 @@ class LayoutNode(object):
   def __init__(self, pnode):
     self.pnode = pnode
     self._wrap = WrapAlgo.HPACK
-    self._position = np.array((0, 0))  # NOTE(josh): (row, col)
-    self._size = np.array((0, 0))      # NOTE(josh): (rows, cols)
+    self._position = Cursor(0, 0)  # NOTE(josh): (row, col)
+    self._size = Cursor(0, 0)      # NOTE(josh): (rows, cols)
 
     self._children = []
     self._passno = -1
@@ -178,7 +208,7 @@ class LayoutNode(object):
 
   @property
   def position(self):
-    return np.array(self._position)
+    return Cursor(*self._position)
 
   @property
   def type(self):
@@ -252,18 +282,18 @@ class LayoutNode(object):
   def reflow(self, config, cursor, passno=0):
     """
     (re-)compute the layout of this node under the assumption that it should
-    be plased at the given `cursor` on the current `passno`. The wrap algorithm
+    be placed at the given `cursor` on the current `passno`. The wrap algorithm
     used is given by the node's statement depth and the current `passno`.
     """
     assert self._locked
     assert isinstance(self.pnode, parser.TreeNode)
 
-    self._position = np.array(cursor)
+    self._position = Cursor(*cursor)
     out = None
     for repass in range(passno + 1):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
-      out = self._reflow(config, np.array(cursor), repass)
+      out = self._reflow(config, Cursor(*cursor), repass)
       if self._colextent <= config.linewidth:
         break
     assert out is not None
@@ -348,18 +378,18 @@ class ScalarNode(LayoutNode):
 
     children = list(self.children)
     if children:
-      cursor[1] += 1
       child = children.pop(0)
+      assert not children
       assert child.type == NodeType.COMMENT
-      cursor = child.reflow(config, cursor, passno)
+      cursor = child.reflow(config, cursor + (0, 1), passno)
       self._colextent = max(self._colextent, child.colextent)
-      # NOTE(josh): if we have a line-comment child associated with this
-      # argument, then we cannot vpack
-      if (child.pnode.children[0].type != TokenType.BRACKET_COMMENT
-          and self.wrap == WrapAlgo.HPACK):
+      if child.pnode.children[0].type == TokenType.BRACKET_COMMENT:
+        return cursor
+      elif self.wrap == WrapAlgo.HPACK:
+        # NOTE(josh): if we have a line-comment child associated with this
+        # argument, then we cannot hpack
         self._colextent = config.linewidth + 100
 
-    assert not children
     return cursor
 
   def _write(self, config, ctx):
@@ -419,8 +449,9 @@ class OnOffSwitchNode(LayoutNode):
     if token.type == TokenType.FORMAT_ON:
       spelling = "# cmake-format: on"
       if ctx.offswitch_location is None:
-        logging.warn("'#cmake-format: on' with no corresponding 'off' at %d:%d",
-                     token.begin.line, token.begin.col)
+        logging.warning(
+            "'#cmake-format: on' with no corresponding 'off' at %d:%d",
+            token.begin.line, token.begin.col)
       else:
         ctx.infile.seek(ctx.offswitch_location.offset, 0)
         copy_size = token.begin.offset - ctx.offswitch_location.offset
@@ -455,12 +486,12 @@ class StatementNode(LayoutNode):
     assert self._locked
     assert isinstance(self.pnode, parser.TreeNode)
 
-    self._position = np.array(cursor)
+    self._position = Cursor(*cursor)
     out = None
     for passno in range(0, 4):
       self._passno = passno
       self._wrap = self._get_wrap(config, passno)
-      out = self._reflow(config, np.array(cursor), passno)
+      out = self._reflow(config, Cursor(*cursor), passno)
       if self.colextent <= config.linewidth:
         break
     assert out is not None
@@ -484,7 +515,7 @@ class StatementNode(LayoutNode):
     if need_paren_space(token.spelling, config):
       paren_space = 1  # <space>
 
-    start_cursor = np.array(cursor)
+    start_cursor = Cursor(*cursor)
     self._colextent = cursor[1]
 
     children = list(self.children)
@@ -526,14 +557,14 @@ class StatementNode(LayoutNode):
     elif self._wrap == WrapAlgo.VPACK:
       column_cursor = cursor
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + Cursor(1, config.tab_size)
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = Cursor(*column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -566,12 +597,12 @@ class StatementNode(LayoutNode):
           realized_extent += 1
         if realized_extent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = Cursor(*column_cursor)
           cursor = child.reflow(config, cursor, passno)
       else:
         # Otherwise the node is not special and we vpack as usual
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -587,17 +618,17 @@ class StatementNode(LayoutNode):
     # if the user has requested us to always do so
     if config.dangle_parens and cursor[0] > start_cursor[0]:
       column_cursor[0] += 1
-      cursor = np.array((column_cursor[0], start_cursor[1]))
+      cursor = Cursor(column_cursor[0], start_cursor[1])
     elif (cursor[1] >= config.linewidth
           and self._wrap.value > WrapAlgo.VPACK.value):
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
     elif prev.type == NodeType.COMMENT:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
     elif prev.has_terminal_comment():
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -609,7 +640,7 @@ class StatementNode(LayoutNode):
       assert child.type == NodeType.COMMENT, \
           "Expected COMMENT after RPAREN but got {}".format(child.type)
       assert not children
-      savecursor = np.array(cursor)
+      savecursor = Cursor(*cursor)
       cursor = child.reflow(config, cursor, passno)
 
       if child.colextent > config.linewidth:
@@ -641,7 +672,7 @@ class KwargGroupNode(LayoutNode):
     # TODO(josh): Much of this code is the same as update_statement_size_, so
     # dedup the two
 
-    start_cursor = np.array(cursor)
+    start_cursor = Cursor(*cursor)
 
     children = list(self.children)
     assert children
@@ -668,16 +699,16 @@ class KwargGroupNode(LayoutNode):
       return cursor
     elif self._wrap == WrapAlgo.VPACK:
       cursor[1] += len(' ')
-      column_cursor = np.array(cursor)
+      column_cursor = Cursor(*cursor)
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + Cursor(1, config.tab_size)
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = Cursor(*column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -704,12 +735,12 @@ class KwargGroupNode(LayoutNode):
         cursor = child.reflow(config, cursor, passno)
         if child.colextent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = Cursor(*column_cursor)
           cursor = child.reflow(config, cursor, passno)
       # Otherwise we fall back to vpack
       else:
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -739,7 +770,7 @@ class ArgGroupNode(LayoutNode):
     # TODO(josh): breakup this function
     # pylint: disable=too-many-statements
 
-    start_cursor = np.array(cursor)
+    start_cursor = Cursor(*cursor)
     self._colextent = cursor[1]
 
     children = list(self.children)
@@ -770,14 +801,14 @@ class ArgGroupNode(LayoutNode):
     elif self._wrap in (WrapAlgo.VPACK, WrapAlgo.KWNVPACK):
       column_cursor = cursor
     elif self._wrap == WrapAlgo.PNVPACK:
-      column_cursor = start_cursor + np.array((1, config.tab_size))
+      column_cursor = start_cursor + Cursor(1, config.tab_size)
     else:
       raise RuntimeError("Unexepected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
     prev = None
-    cursor = np.array(column_cursor)
+    cursor = Cursor(*column_cursor)
     scalar_seq = analyze_scalar_sequence(children)
 
     while children:
@@ -805,12 +836,12 @@ class ArgGroupNode(LayoutNode):
         cursor = child.reflow(config, cursor, passno)
         if child.colextent > config.linewidth:
           column_cursor[0] += 1
-          cursor = np.array(column_cursor)
+          cursor = Cursor(*column_cursor)
           cursor = child.reflow(config, cursor, passno)
       # Otherwise we fall back to vpack
       else:
         column_cursor[0] += 1
-        cursor = np.array(column_cursor)
+        cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
       self._colextent = max(self._colextent, child.colextent)
@@ -826,17 +857,17 @@ class ArgGroupNode(LayoutNode):
     # if the user has requested us to always do so
     if config.dangle_parens and cursor[0] > start_cursor[0]:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
     elif (cursor[1] >= config.linewidth
           and self._wrap.value > WrapAlgo.VPACK.value):
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
     elif prev.type == NodeType.COMMENT:
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
     elif prev.has_terminal_comment():
       column_cursor[0] += 1
-      cursor = np.array(column_cursor)
+      cursor = Cursor(*column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
     self._colextent = max(self._colextent, child.colextent)
@@ -886,7 +917,7 @@ class FlowControlNode(LayoutNode):
     Compute the size of a flowcontrol block
     """
     self._colextent = 0
-    column_cursor = np.array(cursor)
+    column_cursor = Cursor(*cursor)
 
     children = list(self.children)
     assert children
@@ -953,7 +984,8 @@ class CommentNode(LayoutNode):
     lines = list(format_comment_lines(self.pnode, config, allocation))
     self._colextent = cursor[1] + max(len(line) for line in lines)
 
-    return cursor + (len(lines) - 1, len(lines[-1]))
+    increment = (len(lines) - 1, len(lines[-1]))
+    return cursor + increment
 
   def _write(self, config, ctx):
     if not ctx.is_active():
@@ -1185,12 +1217,12 @@ def test_string(nodes):
 class CursorFile(object):
   def __init__(self, config):
     self._fobj = io.StringIO()
-    self._cursor = np.array((0, 0))
+    self._cursor = Cursor(0, 0)
     self._config = config
 
   @property
   def cursor(self):
-    return np.array(self._cursor)
+    return Cursor(*self._cursor)
 
   def assert_at(self, cursor):
     assert (self._cursor[0] == cursor[0]
@@ -1280,8 +1312,9 @@ def write_tree(root_box, config, infile_content):
   """
   ctx = Global(config, infile_content)
   root_box.write(config, ctx)
+
   if not ctx.is_active():
-    logging.warn("'# cmake-format: off' is never turned back 'on'"
-                 "at %d:%d", ctx.offswitch_location.line,
-                 ctx.offswitch_location.col)
+    logging.warning("'# cmake-format: off' is never turned back 'on'"
+                    "at %d:%d", ctx.offswitch_location.line,
+                    ctx.offswitch_location.col)
   return ctx.outfile.getvalue()

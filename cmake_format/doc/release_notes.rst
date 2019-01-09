@@ -5,9 +5,20 @@ Release Notes
 Details of changes can be found in the changelog, but this file will contain
 some high level notes and highlights from each release.
 
-====
 v0.4
 ====
+
+------
+v0.4.5
+------
+
+* Add travis CI configuration for public github repo
+
+------
+v0.4.4
+------
+
+* Add travis CI configuration for public github repo
 
 ------
 v0.4.4

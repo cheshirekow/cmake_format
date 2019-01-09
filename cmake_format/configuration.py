@@ -27,8 +27,8 @@ def parse_bool(string):
   elif string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
     return False
 
-  logging.warn("Ambiguous truthiness of string '%s' evalutes to 'FALSE'",
-               string)
+  logging.warning("Ambiguous truthiness of string '%s' evalutes to 'FALSE'",
+                  string)
   return False
 
 

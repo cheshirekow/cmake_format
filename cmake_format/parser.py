@@ -387,7 +387,14 @@ def consume_arguments(node, tokens, cmdspec, argstack=None):
       child = TreeNode(NodeType.KEYWORD)
       subtree.children.append(child)
       child.children.append(tokens.pop(0))
-      consume_trailing_comment(child, tokens)
+      # NOTE(josh): don't allow keywords to have trailing comments. This
+      # complicates our ability to compute the location of the cursor where
+      # to write the next element. In particular the reflow() cursor returned
+      # will point to the end of the comment, but we really want to know
+      # where the keyword ends, so that we can follow that column for each
+      # child. Instead we treat the keyword comment as a positional comment
+      # which makes it a node at the same level as the rest of it's children.
+      # consume_trailing_comment(child, tokens)
 
       consume_arguments(subtree, tokens, cmdspec.get(kwarg),
                         argstack + [cmdspec])
