@@ -456,6 +456,8 @@ def get_fn_spec():
 
   fn_spec.add(
       "project", flags=[], kwargs={
+          "DESCRIPTION": 1,
+          "HOMEPAGE_URL": 1,
           "LANGUAGES": ZERO_OR_MORE,
           "VERSION": ZERO_OR_MORE
       })
