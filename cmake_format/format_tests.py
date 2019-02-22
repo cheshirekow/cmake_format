@@ -1206,6 +1206,62 @@ class TestCanonicalFormatting(unittest.TestCase):
           ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
     """)
 
+  def test_keep_comment_line_blocks_default(self):
+    # default tests: keep the line blocks
+    self.do_format_test("""
+      ##########################################################################
+      # This comment has a long block before it.                               #
+      ##########################################################################
+    """, """\
+      ##########################################################################
+      # This comment has a long block before it.                               #
+      ##########################################################################
+    """)
+    self.do_format_test("""
+      ##########################################################################
+      # This is a section in the CMakeLists.txt file.                          #
+      ##########################################################################
+      # This stuff below here
+      #     should get re-flowed like
+      # normal comments.  Across multiple
+      #lines and
+      #             beyond.
+    """, """\
+      ##########################################################################
+      # This is a section in the CMakeLists.txt file.                          #
+      ##########################################################################
+      # This stuff below here should get re-flowed like normal comments.  Across
+      # multiple lines and beyond.
+    """)
+
+    # verify the original behavior is as described (they truncate to one #)
+    self.config.keep_comment_line_blocks = False
+    self.do_format_test("""
+      ##########################################################################
+      # This comment has a long block before it.                               #
+      ##########################################################################
+    """, """\
+      #
+      # This comment has a long block before it.                               #
+      #
+    """)
+    self.do_format_test("""
+      ##########################################################################
+      # This is a section in the CMakeLists.txt file.                          #
+      ##########################################################################
+      # This stuff below here
+      #     should get re-flowed like
+      # normal comments.  Across multiple
+      #lines and
+      #             beyond.
+    """, """\
+      #
+      # This is a section in the CMakeLists.txt file.                          #
+      #
+      # This stuff below here should get re-flowed like normal comments.  Across
+      # multiple lines and beyond.
+    """)
+
 
 if __name__ == '__main__':
   format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'

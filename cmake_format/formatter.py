@@ -64,11 +64,19 @@ def format_comment_lines(node, config, line_width):
   """
   Reflow comment lines into the given line width, parsing markup as necessary.
   """
+  if config.keep_comment_line_blocks:
+    line_block_regex = re.compile(r'^#{3}#*$')
+  else:
+    line_block_regex = None
+
   inlines = []
   for token in node.children:
     assert isinstance(token, lexer.Token)
     if token.type == TokenType.COMMENT:
-      inlines.append(token.spelling.strip().lstrip('#'))
+      if line_block_regex and line_block_regex.match(token.spelling):
+        inlines.append(token.spelling)
+      else:
+        inlines.append(token.spelling.strip().lstrip('#'))
 
   if not config.enable_markup:
     return ["#" + line.rstrip() for line in inlines]
@@ -85,7 +93,14 @@ def format_comment_lines(node, config, line_width):
 
   items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
-  return ["#" + (" " * len(line[:1])) + line for line in markup_lines]
+  formatted_lines = []
+  for line in markup_lines:
+    if line_block_regex and line_block_regex.match(line):
+      formatted_lines.append(line)
+    else:
+      formatted_lines.append("#" + (" " * len(line[:1])) + line)
+
+  return formatted_lines
 
 
 def normalize_line_endings(instr):

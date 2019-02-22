@@ -94,6 +94,7 @@ class Configuration(ConfigObject):
                enable_markup=True,
                first_comment_is_literal=False,
                literal_comment_pattern=None,
+               keep_comment_line_blocks=True,
                fence_pattern=None,
                ruler_pattern=None,
                emit_byteorder_mark=False,
@@ -144,6 +145,7 @@ class Configuration(ConfigObject):
     self.enable_markup = enable_markup
     self.first_comment_is_literal = first_comment_is_literal
     self.literal_comment_pattern = literal_comment_pattern
+    self.keep_comment_line_blocks = keep_comment_line_blocks
     self.fence_pattern = get_default(fence_pattern, markup.FENCE_PATTERN)
     self.ruler_pattern = get_default(ruler_pattern, markup.RULER_PATTERN)
     self.emit_byteorder_mark = emit_byteorder_mark
@@ -242,6 +244,12 @@ VARDOCS = {
     "literal_comment_pattern":
     "If comment markup is enabled, don't reflow any comment block which matches"
     "this (regex) pattern. Default is `None` (disabled).",
+    "keep_comment_line_blocks":
+    "Lines that are a sequence of 3 or more # characters only (match ^#{3}#*$) "
+    "will be kept as is as long as they are shorter than or equal to the "
+    "line_length.  If longer than the line_length, partial reflow will occur. "
+    "If using long blocks, pay attention to diffs.  Default is True, if False "
+    "long block comments such as ###### will become a single comment (#).",
     "fence_pattern":
     ("Regular expression to match preformat fences in comments default=r'{}'"
      .format(markup.FENCE_PATTERN)),
