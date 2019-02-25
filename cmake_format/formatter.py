@@ -980,7 +980,7 @@ class FlowControlNode(LayoutNode):
 
 class CommentNode(LayoutNode):
 
-  def _refill_comment_line_blocks(self, config, lines, allocation):
+  def _refill_comment_line_blocks(self, config, lines):
     """
     Keep line comment line blocks equal to the length of the line.
 
@@ -1022,7 +1022,7 @@ class CommentNode(LayoutNode):
 
     allocation = config.linewidth - cursor[1]
     lines = list(format_comment_lines(self.pnode, config, allocation))
-    lines = self._refill_comment_line_blocks(config, lines, allocation)
+    lines = self._refill_comment_line_blocks(config, lines)
     self._colextent = cursor[1] + max(len(line) for line in lines)
 
     increment = (len(lines) - 1, len(lines[-1]))
@@ -1040,7 +1040,7 @@ class CommentNode(LayoutNode):
     else:
       allocation = config.linewidth - self.position[1]
       lines = list(format_comment_lines(self.pnode, config, allocation))
-      lines = self._refill_comment_line_blocks(config, lines, allocation)
+      lines = self._refill_comment_line_blocks(config, lines)
       for idx, line in enumerate(lines):
         ctx.outfile.write_at(self.position + (idx, 0), line)
 
