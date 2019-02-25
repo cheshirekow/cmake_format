@@ -1152,6 +1152,22 @@ class TestCanonicalFormatting(unittest.TestCase):
       FoO(bar baz)
       """)
 
+    # command_case that is not 'lower' / 'upper' can be used to specify exact
+    # format, rather than 'unchanged'
+    self.do_format_test("""\
+      FeTcHcOnTeNt_DeClArE(bar baz)
+      """, """\
+      fetchcontent_declare(bar baz)
+      """)
+    self.config.per_command["fetchcontent_declare"] = {
+        "command_case": "FetchContent_Declare"
+    }
+    self.do_format_test("""\
+      FeTcHcOnTeNt_DeClArE(bar baz)
+      """, """\
+      FetchContent_Declare(bar baz)
+      """)
+
   def test_quoted_assignment_literal(self):
     self.do_format_test("""\
       target_compile_definitions(foo PUBLIC BAR="Quoted String" BAZ_______________________Z)

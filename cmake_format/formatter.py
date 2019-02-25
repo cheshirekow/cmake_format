@@ -15,6 +15,7 @@ from cmake_format import parser
 
 from cmake_format.lexer import TokenType
 from cmake_format.parser import FlowType, NodeType
+from cmake_format.commands import STRING_TYPES
 
 # A given node consists of arguments, or subtrees. Each of these is an
 # "element". We can either pack all elements "horizontal" or "vertical".
@@ -405,6 +406,9 @@ class ScalarNode(LayoutNode):
       command_case = config.resolve_for_command("command_case", token.spelling)
       if command_case in ("lower", "upper"):
         spelling = getattr(token.spelling, command_case)()
+      elif isinstance(command_case, STRING_TYPES) and \
+          token.spelling.lower() == command_case.lower():
+        spelling = command_case
     elif (self.type in (NodeType.KEYWORD, NodeType.FLAG)
           and config.keyword_case in ("lower", "upper")):
       spelling = getattr(token.spelling, config.keyword_case)()
