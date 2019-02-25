@@ -104,6 +104,47 @@ class TestInvocations(unittest.TestCase):
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 
+  def test_encoding_invocation(self):
+    """
+    Try to reformat latin1-encoded file, once with default
+    encoding (-> prompt utf8-decoding error) and once with
+    specifically latin1 encoding (-> should succeed)
+    """
+    
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    infile_path = os.path.join(thisdir, 'test', 'test_in.latin1.cmake')
+    expectfile_path = os.path.join(thisdir, 'test', 'test_out.latin1.cmake')
+
+    # this invocation should fail
+    invocation_failed = False
+    try:
+      subprocess.check_call([sys.executable, '-Bm', 'cmake_format',
+                             '-o', os.path.join(self.tempdir, 'test_out.latin1.cmake'),
+                             infile_path], cwd=self.tempdir, env=self.env,
+                             stderr=subprocess.PIPE) # stderr to PIPE so stacktrace does not cause confusion in test output
+    except subprocess.CalledProcessError:
+      invocation_failed = True
+    if not invocation_failed: 
+      raise AssertionError('Expected cmake-format invocation to fail but did not')    
+  
+    # this invocation should succeed    
+    subprocess.check_call([sys.executable, '-Bm', 'cmake_format',
+                           '--encoding=latin1',
+                           '-o', os.path.join(self.tempdir, 'test_out.latin1.cmake'),
+                           infile_path], cwd=self.tempdir, env=self.env)
+
+    with io.open(os.path.join(self.tempdir, 'test_out.latin1.cmake'), 'r',
+                 encoding='latin1') as infile:
+      actual_text = infile.read()
+      
+    with io.open(expectfile_path, 'r', encoding='latin1') as infile:
+      expected_text = infile.read()
+
+    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
+                                            expected_text.split('\n')))
+    if delta_lines:
+      raise AssertionError('\n'.join(delta_lines[2:]))
+
   def test_stream_invocation(self):
     """
     Test invocation with stdin as the infile and stdout as the outifle

@@ -285,6 +285,9 @@ def setup_argparser(arg_parser):
                                         'html-page', 'html-stub'],
                      default=None)
 
+  arg_parser.add_argument('--encoding', type=str, default="utf-8", 
+                          help='encoding of input/output file')
+
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('-i', '--in-place', action='store_true')
   mutex.add_argument('-o', '--outfile-path', default=None,
@@ -394,7 +397,7 @@ def main():
     if args.in_place:
       ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
       os.close(ofd)
-      outfile = io.open(tempfile_path, 'w', encoding='utf-8', newline='')
+      outfile = io.open(tempfile_path, 'w', encoding=args.encoding, newline='')
     else:
       if args.outfile_path == '-':
         # NOTE(josh): The behavior or sys.stdout is different in python2 and
@@ -404,17 +407,17 @@ def main():
         # it with byte arrays (assuming it was opened with 'wb'). So we use
         # io.open instead of open in this case
         outfile = io.open(os.dup(sys.stdout.fileno()),
-                          mode='w', encoding='utf-8', newline='')
+                          mode='w', encoding=args.encoding, newline='')
       else:
-        outfile = io.open(args.outfile_path, 'w', encoding='utf-8',
+        outfile = io.open(args.outfile_path, 'w', encoding=args.encoding,
                           newline='')
 
     parse_ok = True
     if infile_path == '-':
       infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding='utf-8', newline='')
+                       mode='r', encoding=args.encoding, newline='')
     else:
-      infile = io.open(infile_path, 'r', encoding='utf-8')
+      infile = io.open(infile_path, 'r', encoding=args.encoding)
 
     try:
       with infile:
