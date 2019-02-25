@@ -64,38 +64,47 @@ def format_comment_lines(node, config, line_width):
   """
   Reflow comment lines into the given line width, parsing markup as necessary.
   """
-  if config.keep_comment_line_blocks:
-    line_block_regex = re.compile(r'^#{3}#*$')
-  else:
-    line_block_regex = None
-
   inlines = []
   for token in node.children:
     assert isinstance(token, lexer.Token)
     if token.type == TokenType.COMMENT:
-      if line_block_regex and line_block_regex.match(token.spelling):
-        inlines.append(token.spelling)
+      # If this is a long enough sequence of ####, it gets set to line_width
+      if config.keep_comment_line_blocks and \
+          config.line_block_regex.match(token.spelling):
+        # NOTE: see also _refill_comment_line_blocks, that is where these two
+        # get added back.  Removed here because they will get reflowed.
+        inlines.append('#' * (line_width - 2))
       else:
         inlines.append(token.spelling.strip().lstrip('#'))
 
+  def early():
+    ret = []
+    for line in inlines:
+      if config.keep_comment_line_blocks and \
+          config.line_block_regex.match(line):
+        ret.append(line)
+      else:
+        ret.append('#' + line.rstrip())
+    return ret
+
   if not config.enable_markup:
-    return ["#" + line.rstrip() for line in inlines]
+    return early()
 
   if config.literal_comment_pattern is not None:
     literal_comment_regex = re.compile(config.literal_comment_pattern)
     if literal_comment_regex.match('\n'.join(inlines)):
-      return ["#" + line.rstrip() for line in inlines]
+      return early()
 
   if node.children[0] is config.first_token and (
       config.first_comment_is_literal
       or config.first_token.spelling.startswith("#!")):
-    return ["#" + line.rstrip() for line in inlines]
+    return early()
 
   items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
   formatted_lines = []
   for line in markup_lines:
-    if line_block_regex and line_block_regex.match(line):
+    if config.keep_comment_line_blocks and config.line_block_regex.match(line):
       formatted_lines.append(line)
     else:
       formatted_lines.append("#" + (" " * len(line[:1])) + line)
@@ -971,6 +980,22 @@ class FlowControlNode(LayoutNode):
 
 class CommentNode(LayoutNode):
 
+  def _refill_comment_line_blocks(self, config, lines, allocation):
+    """
+    Keep line comment line blocks equal to the length of the line.
+
+    Only intended to be called on the result of ``format_comment_lines``!
+    """
+    if not config.keep_comment_line_blocks:
+      return lines
+
+    # NOTE: see format_comment_lines `inlines` loop, we have to remove two in
+    # order to not get wrapped, but now we need to add them back
+    return [
+        '##' + line if config.line_block_regex.match(line) else line
+        for line in lines
+    ]
+
   def _reflow(self, config, cursor, passno):
     """
     Compute the size of a comment block
@@ -997,6 +1022,7 @@ class CommentNode(LayoutNode):
 
     allocation = config.linewidth - cursor[1]
     lines = list(format_comment_lines(self.pnode, config, allocation))
+    lines = self._refill_comment_line_blocks(config, lines, allocation)
     self._colextent = cursor[1] + max(len(line) for line in lines)
 
     increment = (len(lines) - 1, len(lines[-1]))
@@ -1014,6 +1040,7 @@ class CommentNode(LayoutNode):
     else:
       allocation = config.linewidth - self.position[1]
       lines = list(format_comment_lines(self.pnode, config, allocation))
+      lines = self._refill_comment_line_blocks(config, lines, allocation)
       for idx, line in enumerate(lines):
         ctx.outfile.write_at(self.position + (idx, 0), line)
 

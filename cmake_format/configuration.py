@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import inspect
 import logging
+import re
 import sys
 
 from cmake_format import commands
@@ -94,7 +95,8 @@ class Configuration(ConfigObject):
                enable_markup=True,
                first_comment_is_literal=False,
                literal_comment_pattern=None,
-               keep_comment_line_blocks=True,
+               keep_comment_line_blocks=False,
+               line_block_min_length=10,
                fence_pattern=None,
                ruler_pattern=None,
                emit_byteorder_mark=False,
@@ -146,6 +148,7 @@ class Configuration(ConfigObject):
     self.first_comment_is_literal = first_comment_is_literal
     self.literal_comment_pattern = literal_comment_pattern
     self.keep_comment_line_blocks = keep_comment_line_blocks
+    self.line_block_min_length = line_block_min_length
     self.fence_pattern = get_default(fence_pattern, markup.FENCE_PATTERN)
     self.ruler_pattern = get_default(ruler_pattern, markup.RULER_PATTERN)
     self.emit_byteorder_mark = emit_byteorder_mark
@@ -173,6 +176,14 @@ class Configuration(ConfigObject):
     # formatting and the only thing we have accessible through the whole format
     # stack is this config object... so I'm abusing it by adding this field here
     self.first_token = None
+
+  def __setattr__(self, key, value):
+    # Re-compile the regular expression when line_block_min_length is set
+    if key == 'line_block_min_length':
+      self.__dict__['line_block_regex'] = re.compile(
+          r'^#{{{value}}}#*$'.format(value=value)
+      )
+    self.__dict__[key] = value
 
   def clone(self):
     """
@@ -245,11 +256,13 @@ VARDOCS = {
     "If comment markup is enabled, don't reflow any comment block which matches"
     "this (regex) pattern. Default is `None` (disabled).",
     "keep_comment_line_blocks":
-    "Lines that are a sequence of 3 or more # characters only (match ^#{3}#*$) "
-    "will be kept as is as long as they are shorter than or equal to the "
-    "line_length.  If longer than the line_length, partial reflow will occur. "
-    "If using long blocks, pay attention to diffs.  Default is True, if False "
-    "long block comments such as ###### will become a single comment (#).",
+    "Any line that consists of only # characters, and is at least "
+    "`line_block_min_length` (default: 10) characters long, will be padded to "
+    "`line_width` (default: 80) # characters.  Default is False, which means "
+    "that long sequences of # characters truncate to a single # character.",
+    "line_block_min_length":
+    "When `keep_comment_line_blocks` is True, this is the number of sequential "
+    "# characters that define a line block.  Default: 10.",
     "fence_pattern":
     ("Regular expression to match preformat fences in comments default=r'{}'"
      .format(markup.FENCE_PATTERN)),

@@ -1206,21 +1206,22 @@ class TestCanonicalFormatting(unittest.TestCase):
           ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
     """)
 
-  def test_keep_comment_line_blocks_default(self):
-    # default tests: keep the line blocks
+  def test_comment_line_blocks(self):
+    self.config.keep_comment_line_blocks = True
+    self.config.line_width = 74
     self.do_format_test("""
-      ##########################################################################
-      # This comment has a long block before it.                               #
-      ##########################################################################
+      ##################
+      # This comment has a long block before it.
+      #############
     """, """\
       ##########################################################################
-      # This comment has a long block before it.                               #
+      # This comment has a long block before it.
       ##########################################################################
     """)
     self.do_format_test("""
-      ##########################################################################
-      # This is a section in the CMakeLists.txt file.                          #
-      ##########################################################################
+      ###############################################
+      # This is a section in the CMakeLists.txt file.
+      ############
       # This stuff below here
       #     should get re-flowed like
       # normal comments.  Across multiple
@@ -1228,7 +1229,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       #             beyond.
     """, """\
       ##########################################################################
-      # This is a section in the CMakeLists.txt file.                          #
+      # This is a section in the CMakeLists.txt file.
       ##########################################################################
       # This stuff below here should get re-flowed like normal comments.  Across
       # multiple lines and beyond.
@@ -1238,16 +1239,16 @@ class TestCanonicalFormatting(unittest.TestCase):
     self.config.keep_comment_line_blocks = False
     self.do_format_test("""
       ##########################################################################
-      # This comment has a long block before it.                               #
+      # This comment has a long block before it.
       ##########################################################################
     """, """\
       #
-      # This comment has a long block before it.                               #
+      # This comment has a long block before it.
       #
     """)
     self.do_format_test("""
       ##########################################################################
-      # This is a section in the CMakeLists.txt file.                          #
+      # This is a section in the CMakeLists.txt file.
       ##########################################################################
       # This stuff below here
       #     should get re-flowed like
@@ -1256,11 +1257,43 @@ class TestCanonicalFormatting(unittest.TestCase):
       #             beyond.
     """, """\
       #
-      # This is a section in the CMakeLists.txt file.                          #
+      # This is a section in the CMakeLists.txt file.
       #
       # This stuff below here should get re-flowed like normal comments.  Across
       # multiple lines and beyond.
     """)
+
+    # make sure changing line_block_min_length works correctly
+    self.config.keep_comment_line_blocks = True
+    self.config.enable_markup = False  # to test `return early()`
+    for min_width in {3, 5, 7, 9}:
+      self.config.line_block_min_length = min_width
+      # just shy, gets truncated to 1
+      just_shy = '#' * (min_width - 1)
+      just_right = '#' * min_width
+      longer = '#' * (min_width + 2)
+      full_line = '#' * self.config.line_width
+      self.do_format_test("""
+        # A comment: min_width={min_width}
+        {just_shy}
+        """.format(min_width=min_width, just_shy=just_shy), """\
+      # A comment: min_width={min_width}
+      #
+      """.format(min_width=min_width))
+      self.do_format_test("""
+        # A comment: min_width={min_width}
+        {just_right}
+        """.format(min_width=min_width, just_right=just_right), """\
+      # A comment: min_width={min_width}
+      {full_line}
+      """.format(min_width=min_width, full_line=full_line))
+      self.do_format_test("""
+        # A comment: min_width={min_width}
+        {longer}
+        """.format(min_width=min_width, longer=longer), """\
+      # A comment: min_width={min_width}
+      {full_line}
+      """.format(min_width=min_width, full_line=full_line))
 
 
 if __name__ == '__main__':
