@@ -101,10 +101,10 @@ class CommandSpec(dict):
                      .format(key, type(subspec)))
 
   def add(self, name, pargs=None, flags=None, kwargs=None):
-    self[name] = CommandSpec(name, pargs, flags, kwargs)
+    self[name.lower()] = CommandSpec(name, pargs, flags, kwargs)
 
   def add_conditional(self, name):
-    self[name] = make_conditional_spec(name)
+    self[name.lower()] = make_conditional_spec(name)
 
 
 def get_fn_spec():
