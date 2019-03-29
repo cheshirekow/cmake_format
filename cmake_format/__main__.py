@@ -179,8 +179,12 @@ def try_get_configdict(configfile_path):
 
   try:
     import yaml
+    try:
+      from yaml import CLoader as Loader
+    except ImportError:
+      from yaml import Loader
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
-      return yaml.load(config_file)
+      return yaml.load(config_file, Loader=Loader)
   except:  # pylint: disable=bare-except
     pass
 
@@ -213,7 +217,11 @@ def get_config(infile_path, configfile_path):
         config_dict = json.load(config_file)
       elif configfile_path.endswith('.yaml'):
         import yaml
-        config_dict = yaml.load(config_file)
+        try:
+          from yaml import CLoader as Loader
+        except ImportError:
+          from yaml import Loader
+        config_dict = yaml.load(config_file, Loader=Loader)
       elif configfile_path.endswith('.py'):
         config_dict = {}
         with io.open(configfile_path, 'r', encoding='utf-8') as infile:
