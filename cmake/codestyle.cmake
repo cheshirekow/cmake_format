@@ -65,12 +65,15 @@ function(format_and_lint module)
   set(fmtcmds_)
   set(depfiles_)
   if(cmake_files_)
-    list(APPEND fmtcmds_ COMMAND python -Bm cmake_format -i ${cmake_files_})
+    list(APPEND fmtcmds_ COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR}
+                                 python -Bm cmake_format -i ${cmake_files_})
     list(APPEND depfiles_ ${cmake_files_}
                           ${CMAKE_SOURCE_DIR}/.cmake-format.py)
   endif()
   if(cc_files_)
-    list(APPEND fmtcmds_ COMMAND clang-format -style file -i ${cc_files_})
+    list(APPEND fmtcmds_ COMMAND clang-format-6.0 -style file -i ${cc_files_})
+    list(APPEND lntcmds_
+         COMMAND clang-tidy-6.0 -p ${CMAKE_BINARY_DIR} ${cc_files_})
     list(APPEND lntcmds_ COMMAND cpplint ${cc_files_})
     list(APPEND depfiles_ ${cc_files_}
                           ${CMAKE_SOURCE_DIR}/.clang-format
@@ -79,7 +82,10 @@ function(format_and_lint module)
   if(py_files_)
     list(APPEND fmtcmds_ COMMAND autopep8 -i ${py_files_})
     list(APPEND lntcmds_ COMMAND pylint ${py_files_})
-    list(APPEND lntcmds_ COMMAND flake8 ${py_files_})
+    # NOTE(josh): flake8 tries to use semaphores which fail in our containers
+    # https://bugs.python.org/issue3770 (probably due to /proc/shmem or
+    # something not being mounted)
+    list(APPEND lntcmds_ COMMAND flake8 --jobs 1 ${py_files_})
     list(APPEND depfiles_ ${py_files_}
                           ${CMAKE_SOURCE_DIR}/.flake8
                           ${CMAKE_SOURCE_DIR}/.pep8

@@ -172,6 +172,23 @@ def parse(lines, config=None):
   return obj_list
 
 
+def is_hashruler(item):
+  """
+  Return true if the markup item is a hash ruler, i.e.::
+
+      ###########################
+      # Like this ^^^ or this vvv
+      ###########################
+  """
+  if item.kind != CommentType.RULER:
+    return False
+  if len(item.lines) != 1:
+    return False
+  if item.lines[0].strip('#'):
+    return False
+  return True
+
+
 def format_item(config, line_width, item):
   """
   Return lines of formatted text based on the typeof markup
@@ -179,19 +196,20 @@ def format_item(config, line_width, item):
 
   if item.kind == CommentType.SEPARATOR:
     return ['']
-  elif item.kind == CommentType.FENCE:
+  if item.kind == CommentType.FENCE:
     return ['~~~']
-  elif item.kind == CommentType.VERBATIM:
+  if item.kind == CommentType.VERBATIM:
     return [line.rstrip() for line in item.lines]
-  elif item.kind in (CommentType.PARAGRAPH, CommentType.NOTE,
-                     CommentType.RULER):
+  if is_hashruler(item) and config.canonicalize_hashrulers:
+    return ['#' * line_width]
+  if item.kind in (CommentType.PARAGRAPH, CommentType.NOTE, CommentType.RULER):
     wrapper = textwrap.TextWrapper(width=line_width,
                                    expand_tabs=True,
                                    replace_whitespace=True,
                                    drop_whitespace=True)
     return common.stable_wrap(wrapper, '\n'.join(item.lines).strip())
 
-  elif item.kind == CommentType.BULLET_LIST:
+  if item.kind == CommentType.BULLET_LIST:
     assert line_width > 2
     outlines = []
 
@@ -205,7 +223,7 @@ def format_item(config, line_width, item):
       outlines.extend('  ' + iline for iline in increment_lines[1:])
     return outlines
 
-  elif item.kind == CommentType.ENUM_LIST:
+  if item.kind == CommentType.ENUM_LIST:
     assert line_width > 2
     outlines = []
     wrapper = textwrap.TextWrapper(width=line_width - 2,
@@ -222,10 +240,8 @@ def format_item(config, line_width, item):
       outlines.append(fmt.format(idx + 1) + increment_lines[0])
       outlines.extend(indent + iline for iline in increment_lines[1:])
     return outlines
-  else:
-    raise AssertionError('Unexepected case')
 
-  return []
+  raise AssertionError('Unexepected case')
 
 
 def format_items(config, line_width, items):

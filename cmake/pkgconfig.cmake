@@ -176,8 +176,14 @@ function(target_pkg_depends target pkg0)
     endif()
     if(pkg_${pkgname}_libdirs)
       get_target_property(lflags_ ${target} LINK_FLAGS)
-      list(APPEND lflags_ ${pkg_${pkgname}_lflags})
-      set_target_properties(${target} PROPERTIES LINK_FLAGS ${lflags_})
+      if(lflags_)
+        list(APPEND lflags_ ${pkg_${pkgname}_lflags})
+        set_target_properties(${target} PROPERTIES LINK_FLAGS ${lflags_})
+      else()
+        set_target_properties(${target} PROPERTIES LINK_FLAGS
+                              ${pkg_${pkgname}_lflags})
+      endif()
+
     endif()
     if(pkg_${pkgname}_libs)
       # Passthrough options like INTERFACE|PUBLIC|PRIVATE and
@@ -186,4 +192,3 @@ function(target_pkg_depends target pkg0)
     endif()
   endforeach()
 endfunction()
-

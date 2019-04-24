@@ -14,7 +14,8 @@
 function(sphinx module)
   set(stamp_path_ ${CMAKE_CURRENT_BINARY_DIR}/${module}_doc.stamp)
   add_custom_command(OUTPUT ${stamp_path_}
-                     COMMAND sphinx-build -M html ${CMAKE_CURRENT_SOURCE_DIR}
+                     COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR}
+                             sphinx-build -M html ${CMAKE_CURRENT_SOURCE_DIR}
                              ${CMAKE_CURRENT_BINARY_DIR}
                      COMMAND touch ${stamp_path_}
                      DEPENDS ${ARGN}
@@ -22,4 +23,3 @@ function(sphinx module)
   add_custom_target(${module}_doc DEPENDS ${stamp_path_})
   add_dependencies(doc ${module}_doc)
 endfunction()
-

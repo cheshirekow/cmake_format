@@ -26,12 +26,13 @@ import tempfile
 import textwrap
 
 import cmake_format
+from cmake_format import commands
 from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import markup
 from cmake_format import parser
-from cmake_format import render
+from cmake_format import parse_funs
 
 
 def detect_line_endings(infile_content):
@@ -107,25 +108,18 @@ def process_file(config, infile, outfile, dump=None):
       outfile.write("{}\n".format(token))
     return
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
-  parse_tree = parser.parse(tokens, config.fn_spec)
+  parse_db = parse_funs.get_parse_db()
+  parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
+  parse_tree = parser.parse(tokens, parse_db)
   if dump == "parse":
     parser.dump_tree([parse_tree], outfile)
     return
   if dump == "markup":
     dump_markup([parse_tree], config, outfile)
     return
-  if dump == "html-page":
-    html_content = render.get_html(parse_tree, fullpage=True)
-    outfile.write(html_content)
-    return
-  if dump == "html-stub":
-    html_content = render.get_html(parse_tree, fullpage=False)
-    outfile.write(html_content)
-    return
 
   box_tree = formatter.layout_tree(parse_tree, config)
   if dump == "layout":
-    infile.seek(0)
     formatter.dump_tree([box_tree], outfile)
     return
 
@@ -164,6 +158,18 @@ def find_config_file(infile_path):
   return None
 
 
+def load_yaml(config_file):
+  """
+  Attempt to load yaml configuration from an opened file
+  """
+  import yaml
+  try:
+    from yaml import CLoader as Loader
+  except ImportError:
+    from yaml import Loader
+  return yaml.load(config_file, Loader=Loader)
+
+
 def try_get_configdict(configfile_path):
   """
   Try to read the configuration as yaml first, then json, then python.
@@ -178,9 +184,8 @@ def try_get_configdict(configfile_path):
     pass
 
   try:
-    import yaml
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
-      return yaml.load(config_file)
+      return load_yaml(config_file)
   except:  # pylint: disable=bare-except
     pass
 
@@ -212,8 +217,7 @@ def get_config(infile_path, configfile_path):
       if configfile_path.endswith('.json'):
         config_dict = json.load(config_file)
       elif configfile_path.endswith('.yaml'):
-        import yaml
-        config_dict = yaml.load(config_file)
+        config_dict = load_yaml(config_file)
       elif configfile_path.endswith('.py'):
         config_dict = {}
         with io.open(configfile_path, 'r', encoding='utf-8') as infile:
@@ -238,12 +242,16 @@ def dump_config(args, config_dict, outfile):
       config_dict[key] = value
 
   cfg = configuration.Configuration(**config_dict)
+  # Don't dump default per-command configs
+  for key in commands.get_default_config():
+    cfg.per_command.pop(key, None)
+
   if outfmt == 'yaml':
     import yaml
     yaml.dump(cfg.as_dict(), sys.stdout, indent=2,
               default_flow_style=False)
     return
-  elif outfmt == 'json':
+  if outfmt == 'json':
     json.dump(cfg.as_dict(), sys.stdout, indent=2)
     sys.stdout.write('\n')
     return
@@ -269,36 +277,10 @@ cmake-format [-h]
 """
 
 
-def setup_argparser(arg_parser):
+def add_config_options(optgroup):
   """
-  Add argparse options to the parser.
+  Add configuration options as flags to the argument parser
   """
-  arg_parser.add_argument('-v', '--version', action='version',
-                          version=cmake_format.VERSION)
-
-  mutex = arg_parser.add_mutually_exclusive_group()
-  mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
-                     default=None, const='python', nargs='?',
-                     help='If specified, print the default configuration to '
-                          'stdout and exit')
-  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout', 'markup',
-                                        'html-page', 'html-stub'],
-                     default=None)
-
-  mutex = arg_parser.add_mutually_exclusive_group()
-  mutex.add_argument('-i', '--in-place', action='store_true')
-  mutex.add_argument('-o', '--outfile-path', default=None,
-                     help='Where to write the formatted file. '
-                          'Default is stdout.')
-
-  arg_parser.add_argument('-c', '--config-file',
-                          help='path to configuration file')
-  arg_parser.add_argument('infilepaths', nargs='*')
-
-  optgroup = arg_parser.add_argument_group(
-      title='Formatter Configuration',
-      description='Override configfile options')
-
   default_config = configuration.Configuration().as_dict()
   if sys.version_info[0] >= 3:
     value_types = (str, int, float)
@@ -330,8 +312,43 @@ def setup_argparser(arg_parser):
     # no arguments then the value will be an empty list. This exactly what we
     # want since we can ignore `None` values.
     elif isinstance(value, (list, tuple)):
+      typearg = None
+      if value:
+        typearg = type(value[0])
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='*',
-                            help=helptext)
+                            type=typearg, help=helptext)
+
+
+def setup_argparser(arg_parser):
+  """
+  Add argparse options to the parser.
+  """
+  arg_parser.add_argument('-v', '--version', action='version',
+                          version=cmake_format.VERSION)
+
+  mutex = arg_parser.add_mutually_exclusive_group()
+  mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
+                     default=None, const='python', nargs='?',
+                     help='If specified, print the default configuration to '
+                          'stdout and exit')
+  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout', 'markup'],
+                     default=None)
+
+  mutex = arg_parser.add_mutually_exclusive_group()
+  mutex.add_argument('-i', '--in-place', action='store_true')
+  mutex.add_argument('-o', '--outfile-path', default=None,
+                     help='Where to write the formatted file. '
+                          'Default is stdout.')
+
+  arg_parser.add_argument('-c', '--config-file',
+                          help='path to configuration file')
+  arg_parser.add_argument('infilepaths', nargs='*')
+
+  optgroup = arg_parser.add_argument_group(
+      title='Formatter Configuration',
+      description='Override configfile options')
+
+  add_config_options(optgroup)
 
 
 def main():
@@ -394,7 +411,8 @@ def main():
     if args.in_place:
       ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
       os.close(ofd)
-      outfile = io.open(tempfile_path, 'w', encoding='utf-8', newline='')
+      outfile = io.open(tempfile_path, 'w', encoding=cfg.output_encoding,
+                        newline='')
     else:
       if args.outfile_path == '-':
         # NOTE(josh): The behavior or sys.stdout is different in python2 and
@@ -404,17 +422,17 @@ def main():
         # it with byte arrays (assuming it was opened with 'wb'). So we use
         # io.open instead of open in this case
         outfile = io.open(os.dup(sys.stdout.fileno()),
-                          mode='w', encoding='utf-8', newline='')
+                          mode='w', encoding=cfg.output_encoding, newline='')
       else:
-        outfile = io.open(args.outfile_path, 'w', encoding='utf-8',
+        outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
                           newline='')
 
     parse_ok = True
     if infile_path == '-':
       infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding='utf-8', newline='')
+                       mode='r', encoding=cfg.input_encoding, newline='')
     else:
-      infile = io.open(infile_path, 'r', encoding='utf-8')
+      infile = io.open(infile_path, 'r', encoding=cfg.input_encoding)
 
     try:
       with infile:

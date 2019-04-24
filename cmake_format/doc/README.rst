@@ -5,7 +5,7 @@ cmake format
 .. image:: https://travis-ci.com/cheshirekow/cmake_format.svg?branch=master
     :target: https://travis-ci.com/cheshirekow/cmake_format
 
-.. image:: https://readthedocs.org/projects/cmake_format/badge/
+.. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
     :target: https://cmake_format.readthedocs.io
 
 ``cmake-format`` can format your listfiles nicely so that they don't look
@@ -27,13 +27,15 @@ or::
 Usage
 -----
 
+.. tag: usage-begin
+
 .. code:: text
 
     usage:
     cmake-format [-h]
-                [--dump-config {yaml,json,python} | -i | -o OUTFILE_PATH]
-                [-c CONFIG_FILE]
-                infilepath [infilepath ...]
+                 [--dump-config {yaml,json,python} | -i | -o OUTFILE_PATH]
+                 [-c CONFIG_FILE]
+                 infilepath [infilepath ...]
 
     Parse cmake listfiles and format them nicely.
 
@@ -56,10 +58,10 @@ Usage
       --dump-config [{yaml,json,python}]
                             If specified, print the default configuration to
                             stdout and exit
+      --dump {lex,parse,layout,markup}
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      --dump {lex,parse,layout,markup}
       -c CONFIG_FILE, --config-file CONFIG_FILE
                             path to configuration file
 
@@ -87,7 +89,7 @@ Usage
                             an enumerated list
       --line-ending {windows,unix,auto}
                             What style line endings to use in the output.
-      --command-case {lower,upper,unchanged}
+      --command-case {lower,upper,canonical,unchanged}
                             Format command names consistently as 'lower' or
                             'upper' case
       --keyword-case {lower,upper,unchanged}
@@ -98,6 +100,9 @@ Usage
       --algorithm-order [ALGORITHM_ORDER [ALGORITHM_ORDER ...]]
                             Specify the order of wrapping algorithms during
                             successive reflow attempts
+      --autosort [AUTOSORT]
+                            If true, the argument lists which are known to be
+                            sortable will be sorted lexicographicall
       --enable-markup [ENABLE_MARKUP]
                             enable comment markup parsing and reflow
       --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
@@ -117,8 +122,24 @@ Usage
       --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
                             If true, emit the unicode byte-order mark (BOM) at the
                             start of the file
+      --hashruler-min-length HASHRULER_MIN_LENGTH
+                            If a comment line starts with at least this many
+                            consecutive hash characters, then don't lstrip() them
+                            off. This allows for lazy hash rulers where the first
+                            hash char is not separated by space
+      --canonicalize-hashrulers [CANONICALIZE_HASHRULERS]
+                            If true, then insert a space between the first hash
+                            char and remaining hash chars in a hash ruler, and
+                            normalize it's length to fill the column
+      --input-encoding INPUT_ENCODING
+                            Specify the encoding of the input file. Defaults to
+                            utf-8.
+      --output-encoding OUTPUT_ENCODING
+                            Specify the encoding of the output file. Defaults to
+                            utf-8. Note that cmake only claims to support utf-8 so
+                            be careful when using anything else
 
-
+.. tag: usage-end
 
 ------------
 Integrations
@@ -139,7 +160,9 @@ An example configuration file is given here. Additional flags and additional
 kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
-.. code::
+.. tag: configuration-begin
+
+.. code:: text
 
     # How wide to allow formatted cmake files
     line_width = 80
@@ -161,19 +184,19 @@ pleasant way.
     dangle_parens = False
 
     # What character to use for bulleted lists
-    bullet_char = u'*'
+    bullet_char = '*'
 
     # What character to use as punctuation after numerals in an enumerated list
-    enum_char = u'.'
+    enum_char = '.'
 
     # What style line endings to use in the output.
-    line_ending = u'unix'
+    line_ending = 'unix'
 
     # Format command names consistently as 'lower' or 'upper' case
-    command_case = u'lower'
+    command_case = 'canonical'
 
     # Format keywords consistently as 'lower' or 'upper' case
-    keyword_case = u'unchanged'
+    keyword_case = 'unchanged'
 
     # Specify structure for custom cmake functions
     additional_commands = {
@@ -188,7 +211,11 @@ pleasant way.
     always_wrap = []
 
     # Specify the order of wrapping algorithms during successive reflow attempts
-    algorithm_order = [0, 1, 2, 3]
+    algorithm_order = [0, 1, 2, 3, 4]
+
+    # If true, the argument lists which are known to be sortable will be sorted
+    # lexicographicall
+    autosort = False
 
     # enable comment markup parsing and reflow
     enable_markup = True
@@ -204,18 +231,37 @@ pleasant way.
 
     # Regular expression to match preformat fences in comments
     # default=r'^\s*([`~]{3}[`~]*)(.*)$'
-    fence_pattern = u'^\\s*([`~]{3}[`~]*)(.*)$'
+    fence_pattern = '^\\s*([`~]{3}[`~]*)(.*)$'
 
     # Regular expression to match rulers in comments
     # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-    ruler_pattern = u'^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
+    ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
 
     # If true, emit the unicode byte-order mark (BOM) at the start of the file
     emit_byteorder_mark = False
 
+    # If a comment line starts with at least this many consecutive hash characters,
+    # then don't lstrip() them off. This allows for lazy hash rulers where the first
+    # hash char is not separated by space
+    hashruler_min_length = 10
+
+    # If true, then insert a space between the first hash char and remaining hash
+    # chars in a hash ruler, and normalize it's length to fill the column
+    canonicalize_hashrulers = True
+
+    # Specify the encoding of the input file. Defaults to utf-8.
+    input_encoding = 'utf-8'
+
+    # Specify the encoding of the output file. Defaults to utf-8. Note that cmake
+    # only claims to support utf-8 so be careful when using anything else
+    output_encoding = 'utf-8'
+
     # A dictionary containing any per-command configuration overrides. Currently
     # only `command_case` is supported.
     per_command = {}
+
+
+.. tag: configuration-end
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry
@@ -252,8 +298,8 @@ non-alphanum or space characters::
 **list**: A list is started on the first encountered list item, which starts
 with a bullet character (``*``) followed by a space followed by some text.
 Subsequent lines will be included in the list item until the next list item
-is encountered (the bullet must be at the same indentation level). The list must
-be surrounded by a pair of empty lines. Nested lists will be formatted in
+is encountered (the bullet must be at the same indentation level). The list
+must be surrounded by a pair of empty lines. Nested lists will be formatted in
 nested text::
 
     # here are some lists:
@@ -287,9 +333,102 @@ guard it with a pair of fences. Fences are three or more tilde characters::
     #   and will not be formatted
     # ~~~
 
--------
+Note that comment fences guard reflow of *comment text*, and not cmake code.
+If you wish to prevent formatting of cmake, code, see below. In addition to
+fenced-literals, there are three other ways to preserve comment text from
+markup and/or reflow processing:
+
+* The ``--first-comment-is-literal`` configuration option will exactly preserve
+  the first comment in the file. This is intended to preserve copyright or
+  other formatted header comments.
+* The ``--literal-comment-pattern`` configuration option allows for a more
+  generic way to identify comments which should be preserved literally. This
+  configuration takes a regular expression pattern.
+* The ``--enable-markup`` configuration option globally enables comment markup
+  processing. It defaults to true so set it to false if you wish to globally
+  disable comment markup processing. Note that trailing whitespace is still
+  chomped from comments.
+
+--------------------------
+Disable Formatting Locally
+--------------------------
+
+You can locally disable and enable code formatting by using the special
+comments ``# cmake-format: off`` and ``# cmake-format: on``.
+
+-------------------
+Sort Argument Lists
+-------------------
+
+``cmake-format`` can sort your argument lists for you. If the configuration
+includes ``autosort=True`` (the default), it will replace::
+
+    add_library(foobar STATIC EXCLUDE_FROM_ALL
+                sourcefile_06.cc
+                sourcefile_03.cc
+                sourcefile_02.cc
+                sourcefile_04.cc
+                sourcefile_07.cc
+                sourcefile_01.cc
+                sourcefile_05.cc)
+
+with::
+
+    add_library(foobar STATIC EXCLUDE_FROM_ALL
+                sourcefile_01.cc
+                sourcefile_02.cc
+                sourcefile_03.cc
+                sourcefile_04.cc
+                sourcefile_05.cc
+                sourcefile_06.cc
+                sourcefile_07.cc)
+
+This is implemented for any argument lists which the parser knows are
+inherently sortable. This includes the following cmake commands:
+
+* ``add_library``
+* ``add_executable``
+
+For most other cmake commands, you can use an annotation comment to hint to
+``cmake-format`` that the argument list is sortable. For instance::
+
+    set(SOURCES
+        # cmake-format: sortable
+        bar.cc
+        baz.cc
+        foo.cc)
+
+Annotations can be given in a line-comment or a bracket comment. There is a
+long-form and a short-form for each. The acceptable formats are:
+
++-----------------+-------+------------------------------+
+| Line Comment    | long  | ``# cmake-format: <tag>``    |
++-----------------+-------+------------------------------+
+| Line Comment    | short | ``# cmf: <tag>``             |
++-----------------+-------+------------------------------+
+| Bracket Comment | long  | ``#[[cmake-format: <tag>]]`` |
++-----------------+-------+------------------------------+
+| Bracket Comment | short | ``#[[cmf: <tag>]]``          |
++-----------------+-------+------------------------------+
+
+In order to annotate a positional argument list as sortable, the acceptable
+tags are: ``sortable`` or ``sort``. For the commands listed above where
+the positinal argument lists are inherently sortable, you can locally disable
+sorting by annotating them with ``unsortable`` or ``unsort``. For example::
+
+    add_library(foobar STATIC
+                # cmake-format: unsort
+                sourcefile_03.cc
+                sourcefile_01.cc
+                sourcefile_02.cc)
+
+Note that this is only needed if your configuration has enabled ``autosort``,
+and you can globally disable sorting by making setting this configuration to
+``False``.
+
+------
 Issues
--------
+------
 
 If you encounter any bugs or regressions or if ``cmake-format`` doesn't behave
 in the way that you expect, please post an issue on the
@@ -322,6 +461,8 @@ Example
 -------
 
 Will turn this:
+
+.. tag: example-in-begin
 
 .. code:: cmake
 
@@ -395,7 +536,7 @@ Will turn this:
     if(sbar)
     # This comment is in-scope.
     add_library(foo_bar_baz foo.cc bar.cc # this is a comment for arg2
-                  # this is more comment for arg2, it should be joined with the first.
+                   # this is more comment for arg2, it should be joined with the first.
         baz.cc) # This comment is part of add_library
 
     other_command(some_long_argument some_long_argument) # this comment is very long and gets split across some lines
@@ -419,8 +560,18 @@ Will turn this:
         This string is on multiple lines
     ")
 
+    # No, I really want this to look ugly
+    # cmake-format: off
+    add_library(a b.cc
+      c.cc         d.cc
+               e.cc)
+    # cmake-format: on
+
+.. tag: example-in-end
 
 into this:
+
+.. tag: example-out-begin
 
 .. code:: cmake
 
@@ -433,13 +584,16 @@ into this:
 
     # This comment should remain right before the command call. Furthermore, the
     # command call should be formatted to a single line.
-    add_subdirectories(foo bar baz foo2 bar2 baz2)
+    add_subdirectories(foo
+                       bar
+                       baz
+                       foo2
+                       bar2
+                       baz2)
 
     # This very long command should be split to multiple lines
-    set(HEADERS
-        very_long_header_name_a.h
-        very_long_header_name_b.h
-        very_long_header_name_c.h)
+    set(HEADERS very_long_header_name_a.h very_long_header_name_b.h
+                very_long_header_name_c.h)
 
     # This command should be split into one line per entry because it has a long
     # argument list.
@@ -498,7 +652,7 @@ into this:
         add_library(foo_bar_baz
                     foo.cc
                     bar.cc # this is a comment for arg2 this is more comment for
-                          # arg2, it should be joined with the first.
+                           # arg2, it should be joined with the first.
                     baz.cc) # This comment is part of add_library
 
         other_command(some_long_argument some_long_argument) # this comment is very
@@ -520,7 +674,8 @@ into this:
                 e.h
                 f.h
         SOURCES a.cc b.cc d.cc
-        DEPENDS foo bar baz)
+        DEPENDS foo
+        bar baz)
 
     # This command uses a string with escaped quote chars
     foo(some_arg some_arg "This is a \"string\" within a string")
@@ -532,3 +687,12 @@ into this:
     foo(some_arg some_arg "
         This string is on multiple lines
     ")
+
+    # No, I really want this to look ugly
+    # cmake-format: off
+    add_library(a b.cc
+      c.cc         d.cc
+               e.cc)
+    # cmake-format: on
+
+.. tag: example-out-end

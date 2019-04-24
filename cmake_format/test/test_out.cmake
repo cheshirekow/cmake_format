@@ -7,13 +7,16 @@ project(cmake_format_test)
 
 # This comment should remain right before the command call. Furthermore, the
 # command call should be formatted to a single line.
-add_subdirectories(foo bar baz foo2 bar2 baz2)
+add_subdirectories(foo
+                   bar
+                   baz
+                   foo2
+                   bar2
+                   baz2)
 
 # This very long command should be split to multiple lines
-set(HEADERS
-    very_long_header_name_a.h
-    very_long_header_name_b.h
-    very_long_header_name_c.h)
+set(HEADERS very_long_header_name_a.h very_long_header_name_b.h
+            very_long_header_name_c.h)
 
 # This command should be split into one line per entry because it has a long
 # argument list.
@@ -70,10 +73,10 @@ if(foo)
   if(sbar)
     # This comment is in-scope.
     add_library(foo_bar_baz
-                foo.cc
                 bar.cc # this is a comment for arg2 this is more comment for
                        # arg2, it should be joined with the first.
-                baz.cc) # This comment is part of add_library
+                baz.cc
+                foo.cc) # This comment is part of add_library
 
     other_command(some_long_argument some_long_argument) # this comment is very
                                                          # long and gets split

@@ -13,6 +13,7 @@ import os
 from cmake_format import lexer
 from cmake_format import parser
 
+
 def dump_html(node, outfile):
   """
   Write to `outfile` an html annoted version of the listfile which has been
@@ -29,6 +30,7 @@ def dump_html(node, outfile):
     outfile.write(node.spelling)
     outfile.write('</span>')
 
+
 def get_html(node, fullpage=False):
   """
   Return a string containing html markup of the annoted listfile which has
@@ -41,7 +43,7 @@ def get_html(node, fullpage=False):
   if not fullpage:
     return content
 
-  tpl_kwargs = {"content" : content}
+  tpl_kwargs = {"content": content}
 
   try:
     import jinja2
@@ -49,7 +51,7 @@ def get_html(node, fullpage=False):
     logging.error(
         "Cannot import jinja. Please install jinja in your python environment"
         " to use the fullpage html renderer")
-    return
+    return None
 
   thisdir = os.path.realpath(os.path.dirname(__file__))
   tpldir = os.path.join(thisdir, "templates")

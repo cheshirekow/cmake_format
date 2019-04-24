@@ -17,7 +17,7 @@ these nodes are laid out in a single pass. Each child is positioned on the
 first line after the output cursor or it's predecessor, and at a column
 corresponding to it's ``depth`` times ``config.tab_size``.
 
-``STATEMENTS`` however, are ``reflow()``ed over several passes (incrementing
+``STATEMENTS`` however, are ``reflow()`` ed over several passes (incrementing
 ``passno`` each time) until they satisfy formatting requirements. At this point
 there is only one implemented formatting requirement: all text must be
 kept within the column limit. The design, however, will hopefully allow for
@@ -29,10 +29,10 @@ to the parent (``STATEMENT``) node. The wrap algorithm is finalized on the
 pass when the ``STATEMENT`` first fits within the column limit (starting at)
 it's position.
 
-Children of the ``STATEMENT`` are (recursively) ``reflow()``-ed themselves. They
-are laid out over several passes, starting with the initial wrap algorithm, up
-to the current wrap algorithm of it's parent. In this way nodes in the tree
-are hierarchically ``reflow()``-ed until everything fits.
+Children of the ``STATEMENT`` are (recursively) ``reflow()``-ed themselves.
+They are laid out over several passes, starting with the initial wrap
+algorithm, up to the current wrap algorithm of it's parent. In this way nodes
+in the tree are hierarchically ``reflow()``-ed until everything fits.
 
 ===============
 Wrap Algorithms
@@ -55,6 +55,27 @@ eight associated arguments. It's ``HPACK`` layout may look like this::
     ████ ██████ ███ ██ █████ ███████████████ ████ █████████ ████
 
 -----
+HWRAP
+-----
+
+The second wrap algorithm is horizontal wrapping (``HPACK``), which is
+like ``HPACK`` but any token that would exeed the column limit is
+moved to the next line.
+
+Consider, for example, a keyword argument which is composed of a keyword and
+eight associated arguments. If the positional argument node is reflowed
+with ``HWRAP`` it's layout may look like this::
+
+    ████ ██████ ███ ██ █████
+         ███████████████ ████
+         █████████ ████
+
+``HWRAP`` is only applicable to scalar sequences, which are either positional
+argument groups (``PARGGROUP``) or flag argument groups (``FLAGGROUP``). For
+other nodes such as statement and keyword nodes, the value only affects how
+children might reflow themselves.
+
+-----
 VPACK
 -----
 
@@ -75,13 +96,13 @@ Note that any comments in an argument list (either line comments or argument
 comments) will invalidated the ``HPACK`` algorithm and force the node to
 ``reflow()`` with a vertical packing.
 
-------
-NVPACK
-------
+-----------------
+KWNVPACK, PNVPACK
+-----------------
 
 If, after vertical packing, the node still exceeds the configured column limit,
-it will be advanced to "nested vertical" layout (``wrap=NVPACK``), which might
-result in the following layout:
+it will be advanced to "nested vertical" layout (``wrap=KWNVPACK`` or
+``wrap==PNVPACK``), which might result in the following layout:
 
     ████
       ██████
@@ -93,19 +114,5 @@ result in the following layout:
       █████████
       ████
 
-In general, the vertical layouts assign child positions on the next line after
-each child, with one exception. Leaf nodes (i.e. ``ARGUMENT`` nodes) with no
-embedded comments may be packed sequentially (i.e. ``HPACK`` ed). So a keyword
-argument group with one level of additional nested may be ``VPACKED`` as
-follows (where the bottom two rows are positional ``ARGUMENT`` nodes)::
-
-    ████
-      ██████ ███
-             ██
-             █████
-      ████ ████
-           ██
-           ████
-      ███ █████ █████ ████
-      ████████ ████ ██ ███
-
+The two stages of vertical packing ``KWNVPACK`` and ``PNVPACK`` apply
+separately to ``KwargGroupNodes``, and  ``ParenGroupNode`` respectively.

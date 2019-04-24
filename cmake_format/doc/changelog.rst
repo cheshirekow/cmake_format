@@ -3,6 +3,50 @@ Changelog
 =========
 
 -----------
+v0.5 series
+-----------
+
+v0.5.0 -- in progress
+---------------------
+
+* Implement canonical command case
+* Canonicalize capitalization of keys in cmdspec
+* Add README documentation regarding fences and enable/disable
+* Statement parsers are now generic functions. Old standard parser remains
+  for most statements, but some statements now have custom parsers.
+* Implement deeper parse logic for ``install()`` and ``file()`` commands,
+  improving the formatting of these statements.
+* Implement input/output encoding configuration parameters
+* Implement hashruler markup logic and preserve hashrulers if markup is
+  disable or if configured to do so.
+* Implement autosort and sortable tagging
+* Separate cmake-annotate frontend
+* Provider a ``Loader=`` to yaml ``load()``
+* Fix python3 lint
+* Fix bad lexing of make-style variables
+* Fix multiple hash chars ``lstrip()ed`` from comments
+
+* Closes `#62`_: Possible improvement on formatting "file"
+* Closes `#75`_: configurable positioning of flags
+* Closes `#87`_: Hash-rulers are stripped when markup disabled
+* Closes `#91`_: Add missing keyword arguments to project command
+* Closes `#95`_: added argument --encoding to allow for non-utf8
+* Closes `#98`_: Fix kwargs/flag index for non-lowercase functions
+* Closes `#100`_: Extra linebreak inserted when '$(' encountered
+* Closes `#101`_: Provide a Loader to yaml.load
+* Closes `#102`_: fences does not work as expected
+
+.. _#62: https://github.com/cheshirekow/cmake_format/issues/62
+.. _#75: https://github.com/cheshirekow/cmake_format/issues/75
+.. _#87: https://github.com/cheshirekow/cmake_format/issues/87
+.. _#91: https://github.com/cheshirekow/cmake_format/issues/91
+.. _#95: https://github.com/cheshirekow/cmake_format/issues/95
+.. _#98: https://github.com/cheshirekow/cmake_format/issues/98
+.. _#100: https://github.com/cheshirekow/cmake_format/issues/100
+.. _#101: https://github.com/cheshirekow/cmake_format/issues/101
+.. _#102: https://github.com/cheshirekow/cmake_format/issues/102
+
+-----------
 v0.4 series
 -----------
 

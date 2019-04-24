@@ -29,7 +29,10 @@ setup(
     keywords=['cmake', 'format'],
     classifiers=[],
     entry_points={
-        'console_scripts': ['cmake-format=cmake_format.__main__:main'],
+        'console_scripts': [
+            'cmake-format=cmake_format.__main__:main',
+            'cmake-annotate=cmake_format.annotate:main',
+        ],
     },
     extras_require={
         'YAML': ["pyyaml"],

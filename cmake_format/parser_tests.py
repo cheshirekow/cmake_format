@@ -6,6 +6,7 @@ import unittest
 from cmake_format import configuration
 from cmake_format import lexer
 from cmake_format import parser
+from cmake_format import parse_funs
 from cmake_format.parser import NodeType
 
 
@@ -43,7 +44,7 @@ def overzip(iterable_a, iterable_b):
     item_b = next(iter_b, None)
 
 
-def assert_tree_type(test, nodes, tups, tree=None):
+def assert_tree_type(test, nodes, tups, tree=None, history=None):
   """
   Check the output tree structure against that of expect_tree: a nested tuple
   tree.
@@ -52,20 +53,24 @@ def assert_tree_type(test, nodes, tups, tree=None):
   if tree is None:
     tree = nodes
 
+  if history is None:
+    history = []
+
   for node, tup in overzip(nodes, tups):
     if isinstance(node, lexer.Token):
       continue
     message = ("For node {} at\n {} within \n{}. "
                "If this is infact correct, copy-paste this:\n\n{}"
                .format(node, parser.tree_string([node]),
-                       parser.tree_string(tree),
+                       parser.tree_string(tree, history),
                        parser.test_string(tree)))
-    test.assertIsNotNone(node, msg="Missing node" + message)
-    test.assertIsNotNone(tup, msg="Extra node" + message)
+    test.assertIsNotNone(node, msg="Missing node " + message)
+    test.assertIsNotNone(tup, msg="Extra node " + message)
     expect_type, expect_children = tup
     test.assertEqual(node.node_type, expect_type,
                      msg="Expected type={} ".format(expect_type) + message)
-    assert_tree_type(test, node.children, expect_children, tree)
+    assert_tree_type(test, node.children, expect_children, tree,
+                     history + [node])
 
 
 class TestCanonicalParse(unittest.TestCase):
@@ -77,6 +82,7 @@ class TestCanonicalParse(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestCanonicalParse, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
+    self.parse_db = parse_funs.get_parse_db()
 
   def setUp(self):
     self.config.fn_spec.add(
@@ -88,13 +94,17 @@ class TestCanonicalParse(unittest.TestCase):
             "DEPENDS": '*'
         })
 
+    self.parse_db.update(
+        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
+
   def do_type_test(self, input_str, expect_tree):
     """
     Run the parser to get the fst, then compare the result to the types in the
     ``expect_tree`` tuple tree.
     """
     tokens = lexer.tokenize(input_str)
-    fst_root = parser.parse(tokens, self.config.fn_spec)
+
+    fst_root = parser.parse(tokens, self.parse_db)
     assert_tree_type(self, [fst_root], expect_tree)
 
   def test_collapse_additional_newlines(self):
@@ -117,7 +127,9 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.ARGGROUP, [
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                          ]),
                       ]),
                   ]),
                   (NodeType.RPAREN, []),
@@ -127,7 +139,9 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.FUNNAME, []),
                   (NodeType.LPAREN, []),
                   (NodeType.ARGGROUP, [
-                      (NodeType.ARGUMENT, []),
+                      (NodeType.PARGGROUP, [
+                          (NodeType.ARGUMENT, []),
+                      ]),
                   ]),
                   (NodeType.RPAREN, []),
               ]),
@@ -160,20 +174,28 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.FUNNAME, []),
                   (NodeType.LPAREN, []),
                   (NodeType.ARGGROUP, [
-                      (NodeType.FLAG, []),
-                      (NodeType.FLAG, []),
-                      (NodeType.KWARGGROUP, [
-                          (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
+                      (NodeType.PARGGROUP, [
+                          (NodeType.FLAG, []),
+                          (NodeType.FLAG, []),
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
+                          (NodeType.ARGGROUP, [
+                              (NodeType.PARGGROUP, [
+                                  (NodeType.ARGUMENT, []),
+                                  (NodeType.ARGUMENT, []),
+                                  (NodeType.ARGUMENT, []),
+                              ]),
+                          ]),
+                      ]),
+                      (NodeType.KWARGGROUP, [
+                          (NodeType.KEYWORD, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                          ]),
                       ]),
                   ]),
                   (NodeType.RPAREN, []),
@@ -195,29 +217,39 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.FUNNAME, []),
                   (NodeType.LPAREN, []),
                   (NodeType.ARGGROUP, [
-                      (NodeType.ARGUMENT, []),
-                      (NodeType.ARGUMENT, []),
-                      (NodeType.KWARGGROUP, [
-                          (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
+                      (NodeType.PARGGROUP, [
                           (NodeType.ARGUMENT, []),
                           (NodeType.ARGUMENT, []),
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
-                          (NodeType.ARGUMENT, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                          ]),
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                          ]),
                       ]),
-                      (NodeType.FLAG, []),
-                      (NodeType.FLAG, []),
+                      (NodeType.KWARGGROUP, [
+                          (NodeType.KEYWORD, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                          ]),
+                      ]),
+                      (NodeType.PARGGROUP, [
+                          (NodeType.FLAG, []),
+                          (NodeType.FLAG, []),
+                      ]),
                   ]),
                   (NodeType.RPAREN, []),
               ]),
@@ -239,29 +271,42 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.ARGGROUP, [
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
-                      ]),
-                      (NodeType.KWARGGROUP, [
-                          (NodeType.KEYWORD, []),
-                      ]),
-                      (NodeType.KWARGGROUP, [
-                          (NodeType.KEYWORD, []),
-                          (NodeType.FLAG, []),
-                          (NodeType.FLAG, []),
-                          (NodeType.KWARGGROUP, [
-                              (NodeType.KEYWORD, []),
-                              (NodeType.ARGUMENT, []),
-                              (NodeType.ARGUMENT, []),
-                          ]),
-                          (NodeType.KWARGGROUP, [
-                              (NodeType.KEYWORD, []),
-                              (NodeType.ARGUMENT, []),
+                          (NodeType.PARGGROUP, [
                               (NodeType.ARGUMENT, []),
                           ]),
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGUMENT, []),
+                          (NodeType.ARGGROUP, []),
+                      ]),
+                      (NodeType.KWARGGROUP, [
+                          (NodeType.KEYWORD, []),
+                          (NodeType.ARGGROUP, [
+                              (NodeType.FLAGGROUP, [
+                                  (NodeType.FLAG, []),
+                                  (NodeType.FLAG, []),
+                              ]),
+                              (NodeType.KWARGGROUP, [
+                                  (NodeType.KEYWORD, []),
+                                  (NodeType.PARGGROUP, [
+                                      (NodeType.ARGUMENT, []),
+                                      (NodeType.ARGUMENT, []),
+                                  ]),
+                              ]),
+                              (NodeType.KWARGGROUP, [
+                                  (NodeType.KEYWORD, []),
+                                  (NodeType.PARGGROUP, [
+                                      (NodeType.ARGUMENT, []),
+                                      (NodeType.ARGUMENT, []),
+                                  ]),
+                              ]),
+                          ]),
+                      ]),
+                      (NodeType.KWARGGROUP, [
+                          (NodeType.KEYWORD, []),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                          ]),
                       ]),
                   ]),
                   (NodeType.RPAREN, []),

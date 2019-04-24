@@ -49,8 +49,8 @@ class TestInvocations(unittest.TestCase):
     with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 
-    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
-                                            expected_text.split('\n')))
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 
@@ -73,8 +73,8 @@ class TestInvocations(unittest.TestCase):
     with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 
-    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
-                                            expected_text.split('\n')))
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 
@@ -99,8 +99,8 @@ class TestInvocations(unittest.TestCase):
     with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 
-    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
-                                            expected_text.split('\n')))
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 
@@ -120,6 +120,7 @@ class TestInvocations(unittest.TestCase):
       os.close(stdinpipe[1])
       os.close(stdoutpipe[0])
 
+    # pylint: disable=W1509
     proc = subprocess.Popen([sys.executable, '-Bm', 'cmake_format', '-'],
                             stdin=stdinpipe[0], stdout=stdoutpipe[1],
                             cwd=self.tempdir, env=self.env, preexec_fn=preexec)
@@ -139,8 +140,51 @@ class TestInvocations(unittest.TestCase):
     with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 
-    delta_lines = list(difflib.unified_diff(actual_text.split('\n'),
-                                            expected_text.split('\n')))
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
+    if delta_lines:
+      raise AssertionError('\n'.join(delta_lines[2:]))
+
+  def test_encoding_invocation(self):
+    """
+    Try to reformat latin1-encoded file, once with default
+    encoding (-> prompt utf8-decoding error) and once with
+    specifically latin1 encoding (-> should succeed)
+    """
+
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    infile_path = os.path.join(thisdir, 'test', 'test_latin1_in.cmake')
+    expectfile_path = os.path.join(thisdir, 'test', 'test_latin1_out.cmake')
+
+    # this invocation should fail
+    invocation_result = subprocess.call(
+        [sys.executable, '-Bm', 'cmake_format',
+         '--outfile-path', os.path.join(self.tempdir, 'test_latin1_out.cmake'),
+         infile_path],
+        cwd=self.tempdir, env=self.env,
+        stderr=subprocess.PIPE)
+    self.assertNotEqual(
+        0, invocation_result,
+        msg="Expected cmake-format invocation to fail but did not")
+
+    # this invocation should succeed
+    subprocess.check_call(
+        [sys.executable, '-Bm', 'cmake_format',
+         '--input-encoding=latin1',
+         '--output-encoding=latin1',
+         '--outfile-path', os.path.join(self.tempdir, 'test_latin1_out.cmake'),
+         infile_path],
+        cwd=self.tempdir, env=self.env)
+
+    with io.open(os.path.join(self.tempdir, 'test_latin1_out.cmake'), 'r',
+                 encoding='latin1') as infile:
+      actual_text = infile.read()
+
+    with io.open(expectfile_path, 'r', encoding='latin1') as infile:
+      expected_text = infile.read()
+
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 

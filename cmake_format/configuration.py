@@ -24,7 +24,7 @@ def serialize(obj):
 def parse_bool(string):
   if string.lower() in ('y', 'yes', 't', 'true', '1', 'yup', 'yeah', 'yada'):
     return True
-  elif string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
+  if string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
     return False
 
   logging.warning("Ambiguous truthiness of string '%s' evalutes to 'FALSE'",
@@ -41,6 +41,7 @@ class ConfigObject(object):
   @classmethod
   def get_field_names(cls):
     """
+    Return a list of field names, extracted from kwargs to __init__().
     The order of fields in the tuple representation is the same as the order
     of the fields in the __init__ function
     """
@@ -91,15 +92,21 @@ class Configuration(ConfigObject):
                additional_commands=None,
                always_wrap=None,
                algorithm_order=None,
+               autosort=True,
                enable_markup=True,
                first_comment_is_literal=False,
                literal_comment_pattern=None,
                fence_pattern=None,
                ruler_pattern=None,
                emit_byteorder_mark=False,
+               hashruler_min_length=10,
+               canonicalize_hashrulers=True,
+               input_encoding=None,
+               output_encoding=None,
                per_command=None,
-               **_):
+               **_):  # pylint: disable=W0613
 
+    # pylint: disable=too-many-locals
     self.line_width = line_width
     self.tab_size = tab_size
 
@@ -122,8 +129,8 @@ class Configuration(ConfigObject):
       self.enum_char = '.'
 
     self.line_ending = get_default(line_ending, "unix")
-    self.command_case = get_default(command_case, "lower")
-    assert self.command_case in ("lower", "upper", "unchanged")
+    self.command_case = get_default(command_case, "canonical")
+    assert self.command_case in ("lower", "upper", "canonical", "unchanged")
 
     self.keyword_case = get_default(keyword_case, "unchanged")
     assert self.keyword_case in ("lower", "upper", "unchanged")
@@ -140,26 +147,36 @@ class Configuration(ConfigObject):
     })
 
     self.always_wrap = get_default(always_wrap, [])
-    self.algorithm_order = get_default(algorithm_order, [0, 1, 2, 3])
+    self.algorithm_order = get_default(algorithm_order, [0, 1, 2, 3, 4])
+    self.autosort = autosort
     self.enable_markup = enable_markup
     self.first_comment_is_literal = first_comment_is_literal
     self.literal_comment_pattern = literal_comment_pattern
     self.fence_pattern = get_default(fence_pattern, markup.FENCE_PATTERN)
     self.ruler_pattern = get_default(ruler_pattern, markup.RULER_PATTERN)
     self.emit_byteorder_mark = emit_byteorder_mark
+    self.hashruler_min_length = hashruler_min_length
+    self.canonicalize_hashrulers = canonicalize_hashrulers
+
+    self.input_encoding = get_default(input_encoding, "utf-8")
+    self.output_encoding = get_default(output_encoding, "utf-8")
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
       for command_name, spec in additional_commands.items():
         self.fn_spec.add(command_name, **spec)
 
-    self.per_command = {}
-    for key, value in get_default(per_command, {}).items():
-      if not isinstance(value, dict):
-        logging.warning("Invalid override of type %s for %s", type(value), key)
+    self.per_command = commands.get_default_config()
+    for command, cdict in get_default(per_command, {}).items():
+      if not isinstance(cdict, dict):
+        logging.warning("Invalid override of type %s for %s",
+                        type(cdict), command)
         continue
 
-      self.per_command[key.lower()] = value
+      command = command.lower()
+      if command not in self.per_command:
+        self.per_command[command] = {}
+      self.per_command[command].update(cdict)
 
     assert self.line_ending in ("windows", "unix", "auto"), \
         r"Line ending must be either 'windows', 'unix', or 'auto'"
@@ -182,16 +199,20 @@ class Configuration(ConfigObject):
     self.endl = {'windows': '\r\n',
                  'unix': '\n'}[detected]
 
-  def resolve_for_command(self, config_key, command_name):
+  def resolve_for_command(self, command_name, config_key, default_value=None):
     """
-    Check for a per-command override dictionary for the given command. If it
-    exists and it contains the desired config value, then return it. Otherwise
-    return the global config value.
+    Check for a per-command value or override of the given configuration key
+    and return it if it exists. Otherwise return the global configuration value
+    for that key.
     """
 
-    assert hasattr(self, config_key)
+    if hasattr(self, config_key):
+      assert default_value is None, (
+          "Specifying a default value is not allowed if the config key exists "
+          "in the global configuration ({})".format(config_key))
+      default_value = getattr(self, config_key)
     return (self.per_command.get(command_name.lower(), {})
-            .get(config_key, getattr(self, config_key)))
+            .get(config_key, default_value))
 
   @property
   def linewidth(self):
@@ -200,7 +221,7 @@ class Configuration(ConfigObject):
 
 VARCHOICES = {
     'line_ending': ['windows', 'unix', 'auto'],
-    'command_case': ['lower', 'upper', 'unchanged'],
+    'command_case': ['lower', 'upper', 'canonical', 'unchanged'],
     'keyword_case': ['lower', 'upper', 'unchanged'],
 }
 
@@ -233,6 +254,9 @@ VARDOCS = {
     "algorithm_order":
     "Specify the order of wrapping algorithms during successive reflow "
     "attempts",
+    "autosort":
+    "If true, the argument lists which are known to be sortable will be "
+    "sorted lexicographicall",
     "enable_markup":
     "enable comment markup parsing and reflow",
     "first_comment_is_literal":
@@ -252,6 +276,18 @@ VARDOCS = {
     "Specify structure for custom cmake functions",
     "emit_byteorder_mark":
     "If true, emit the unicode byte-order mark (BOM) at the start of the file",
+    "hashruler_min_length":
+    "If a comment line starts with at least this many consecutive hash "
+    "characters, then don't lstrip() them off. This allows for lazy hash "
+    "rulers where the first hash char is not separated by space",
+    "canonicalize_hashrulers":
+    "If true, then insert a space between the first hash char and remaining "
+    "hash chars in a hash ruler, and normalize it's length to fill the column",
+    "input_encoding":
+    "Specify the encoding of the input file. Defaults to utf-8.",
+    "output_encoding":
+    "Specify the encoding of the output file. Defaults to utf-8. Note that "
+    "cmake only claims to support utf-8 so be careful when using anything else",
     "per_command":
     "A dictionary containing any per-command configuration overrides."
     " Currently only `command_case` is supported."

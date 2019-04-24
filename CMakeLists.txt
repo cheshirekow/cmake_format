@@ -34,6 +34,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
 add_custom_target(format)
 add_custom_target(lint)
+
 add_custom_target(doc)
 
 set(ENV{PYTHONPATH} ${CMAKE_SOURCE_DIR})

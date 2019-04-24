@@ -46,8 +46,8 @@ class EnumObject(object):
       obj = getattr(cls, name)
       if isinstance(obj, cls):
         return obj
-      else:
-        raise ValueError("{} is not a valid {} enum".format(name, cls.__name__))
+
+      raise ValueError("{} is not a valid {} enum".format(name, cls.__name__))
     return default
 
   def __init__(self, value):

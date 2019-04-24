@@ -75,7 +75,7 @@ class Token(object):
     return self.spelling
 
   # TODO(josh): get rid of this? Is it used or did I accidentally add it when
-  # I meant to add get_location()?
+  # I meant to add get_location()? Or should this be a property?
   def location(self):
     return self.begin
 
@@ -98,6 +98,37 @@ def tokenize(contents):
   Scan a string and return a list of Token objects representing the contents
   of the cmake listfile.
   """
+
+  # https://cmake.org/cmake/help/v3.0/manual/
+  #     cmake-language.7.html#grammar-token-unquoted_legacy
+  legacy_pattern = "({})+".format(
+      "|".join([
+          # Make-style variable like $(MAKE)
+          r'\$\([^\$\(\)]+\)',
+          # Quoted-substring
+          r'"[^"\\]*(?:\\.[^"\\]*)*"',
+          # Any element except whitespace or one of '()#"\'
+          r'[^\s\(\)#"\\]',
+          # Escape sequences
+          # https://cmake.org/cmake/help/v3.0/manual/
+          #   cmake-language.7.html#grammar-token-escape_sequence
+          r'\\[\(\)#" \\\$@\^\t\r\n;]'
+      ])
+  )
+
+  # https://cmake.org/cmake/help/v3.0/manual/
+  #     cmake-language.7.html#unquoted-argument
+  unquoted_pattern = "({})+".format(
+      "|".join([
+          # Any element except whitespace or one of '()#"\'
+          r'[^\s\(\)#"\\]',
+          # Escape sequences
+          # https://cmake.org/cmake/help/v3.0/manual/
+          #   cmake-language.7.html#grammar-token-escape_sequence
+          r'\\[\(\)#" \\\$@\^\t\r\n;]'
+      ])
+  )
+
   # Regexes are in priority order. Changing the order may alter the
   # behavior of the lexer
   scanner = re.Scanner([
@@ -109,29 +140,24 @@ def tokenize(contents):
       # single quoted string
       (r"(?<![^\s\(])'[^'\\]*(?:\\.[^'\\]*)*'(?![^\s\)])",
        lambda s, t: (TokenType.QUOTED_LITERAL, t)),
-      # quoted definition like BAR="Hello World" or quoted command line
-      # argument like --bar="hello world". Note that this is basically the
-      # WORD pattern from below, followed by equals, follwed by the quoted
-      # literal pattern from above.
-      (r'(?<![^\s\(])'
-       r'[a-zA-z_][a-zA-Z0-9_]*='
-       r'"[^"\\]*(?:\\.[^"\\]*)*"'
-       r'(?![^\s\)])',
-       lambda s, t: (TokenType.QUOTED_LITERAL, t)),
       # bracket argument
       (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",
        lambda s, t: (TokenType.BRACKET_ARGUMENT, t)),
       (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])",
        lambda s, t: (TokenType.NUMBER, t)),
-      (r"\(", lambda s, t: (TokenType.LEFT_PAREN, t)),
-      (r"\)", lambda s, t: (TokenType.RIGHT_PAREN, t)),
       # Either a valid function name or variable name.
       (r"(?<![^\s\(])[a-zA-z_][a-zA-Z0-9_]*(?![^\s\)\(])",
        lambda s, t: (TokenType.WORD, t)),
-      # Variable dereference. Borrowed from cmakeast.
-      # NOTE(josh): I don't think works for nested derefs.
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
        lambda s, t: (TokenType.DEREF, t)),
+      # unquoted_legacy
+      (legacy_pattern,
+       lambda s, t: (TokenType.UNQUOTED_LITERAL, t)),
+      # unquoted_element+
+      (unquoted_pattern,
+       lambda s, t: (TokenType.UNQUOTED_LITERAL, t)),
+      (r"\(", lambda s, t: (TokenType.LEFT_PAREN, t)),
+      (r"\)", lambda s, t: (TokenType.RIGHT_PAREN, t)),
       # NOTE(josh): bare carriage returns are very unlikely to be used but
       # just for the case of explicitnes, if we ever encounter any we treat
       # it as a newline
@@ -140,15 +166,17 @@ def tokenize(contents):
       # NOTE(josh): don't match '\s' here or we'll miss some newline tokens
       # TODO(josh): should we match unicode whitespace too?
       (r"[ \t\f\v]+", lambda s, t: (TokenType.WHITESPACE, t)),
-      (r"#\s*cmake-format: off[^\n]*", lambda s, t: (TokenType.FORMAT_OFF, t)),
-      (r"#\s*cmake-format: on[^\n]*", lambda s, t: (TokenType.FORMAT_ON, t)),
+      (r"#\s*(cmake-format|cmf): off[^\n]*",
+       lambda s, t: (TokenType.FORMAT_OFF, t)),
+      (r"#\s*(cmake-format|cmf): on[^\n]*",
+       lambda s, t: (TokenType.FORMAT_ON, t)),
       # bracket comment
       (r"#\[(=*)\[.*\]\1\]", lambda s, t: (TokenType.BRACKET_COMMENT, t)),
       # line comment
       (r"#[^\n]*", lambda s, t: (TokenType.COMMENT, t)),
       # Catch-all for literals which are compound statements.
       (r"([^\s\(\)]+|[^\s\(]*[^\)]|[^\(][^\s\)]*)",
-       lambda s, t: (TokenType.UNQUOTED_LITERAL, t))
+       lambda s, t: (TokenType.UNQUOTED_LITERAL, t)),
   ], re.DOTALL)
 
   tokens_return = []

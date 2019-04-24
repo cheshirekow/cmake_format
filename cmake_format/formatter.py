@@ -44,7 +44,8 @@ from cmake_format.parser import FlowType, NodeType
 
 BLOCK_TYPES = (NodeType.FLOW_CONTROL, NodeType.BODY, NodeType.COMMENT,
                NodeType.STATEMENT, NodeType.WHITESPACE, NodeType.ONOFFSWITCH)
-GROUP_TYPES = (NodeType.ARGGROUP, NodeType.KWARGGROUP)
+GROUP_TYPES = (NodeType.ARGGROUP, NodeType.KWARGGROUP, NodeType.PARGGROUP,
+               NodeType.FLAGGROUP, NodeType.PARENGROUP)
 SCALAR_TYPES = (NodeType.FUNNAME, NodeType.ARGUMENT, NodeType.KEYWORD,
                 NodeType.FLAG)
 PAREN_TYPES = (NodeType.LPAREN, NodeType.RPAREN)
@@ -68,7 +69,20 @@ def format_comment_lines(node, config, line_width):
   for token in node.children:
     assert isinstance(token, lexer.Token)
     if token.type == TokenType.COMMENT:
-      inlines.append(token.spelling.strip().lstrip('#'))
+      inline = token.spelling.strip()
+
+      if not config.enable_markup:
+        # If markup processing is disabled, preserve the entire line regardless
+        # of content
+        inlines.append(inline[1:])
+      elif inline.startswith('#' * config.hashruler_min_length):
+        # If the comment starts with multiple hash chars and it is long enough
+        # then treat it as a ruler and preserve it.
+        inlines.append(inline[1:])
+      else:
+        # Otherwise strip off extra hash chars to keep things nice and
+        # consistent (i.e. remove acciental `##`` prefixes)
+        inlines.append(inline.lstrip('#'))
 
   if not config.enable_markup:
     return ["#" + line.rstrip() for line in inlines]
@@ -104,9 +118,11 @@ class WrapAlgo(common.EnumObject):
 
 
 WrapAlgo.HPACK = WrapAlgo(0)  # Horizontal packing: no wrapping
-WrapAlgo.VPACK = WrapAlgo(1)  # Vertical packing: each element on it's own line
-WrapAlgo.KWNVPACK = WrapAlgo(2)  # keyword nested vertical packing
-WrapAlgo.PNVPACK = WrapAlgo(3)  # parentheses nested vertical packing
+WrapAlgo.HWRAP = WrapAlgo(1)  # Horizontal wrapping
+WrapAlgo.VPACK = WrapAlgo(2)  # Vertical packing: each element on it's own line
+WrapAlgo.KWNVPACK = WrapAlgo(3)  # keyword nested vertical packing
+WrapAlgo.PNVPACK = WrapAlgo(4)  # parentheses nested vertical packing
+WrapAlgo.COUNT = WrapAlgo(5)
 
 # TODO(josh): add more than just the primary algorithm to the passes that we
 # take. These four should be the first four passes, but we also want to
@@ -127,9 +143,9 @@ def need_paren_space(spelling, config):
 
   if FlowType.get(upper) is not None:
     return config.separate_ctrl_name_with_space
-  elif upper.startswith('END') and FlowType.get(upper[3:]) is not None:
+  if upper.startswith('END') and FlowType.get(upper[3:]) is not None:
     return config.separate_ctrl_name_with_space
-  elif upper in ["ELSE", "ELSEIF"]:
+  if upper in ["ELSE", "ELSEIF"]:
     return config.separate_ctrl_name_with_space
 
   return config.separate_fn_name_with_space
@@ -150,7 +166,7 @@ class Cursor(object):
   def __getitem__(self, idx):
     if idx == 0:
       return self.x
-    elif idx == 1:
+    if idx == 1:
       return self.y
 
     raise IndexError('Cursor indices must be 0 or 1')
@@ -158,10 +174,12 @@ class Cursor(object):
   def __setitem__(self, idx, value):
     if idx == 0:
       self.x = value
-    elif idx == 1:
+      return
+    if idx == 1:
       self.y = value
-    else:
-      raise IndexError('Cursor indices must be 0 or 1')
+      return
+
+    raise IndexError('Cursor indices must be 0 or 1')
 
   def __repr__(self):
     return "Cursor({},{})".format(self.x, self.y)
@@ -180,6 +198,15 @@ class LayoutNode(object):
     self._wrap = WrapAlgo.HPACK
     self._position = Cursor(0, 0)  # NOTE(josh): (row, col)
     self._size = Cursor(0, 0)      # NOTE(josh): (rows, cols)
+
+    # If false, reflow was aborted due to algorithmic constraint: e.g.
+    # attempt to horiziontally pack a non-bracket comment, which is
+    # syntatically invalid.
+    self._reflow_valid = False
+
+    # Set to true if this node is the final node of a statement at
+    # the current depth
+    self.statement_terminal = False
 
     self._children = []
     self._passno = -1
@@ -205,6 +232,10 @@ class LayoutNode(object):
   @property
   def colextent(self):
     return self._colextent
+
+  @property
+  def reflow_valid(self):
+    return self._reflow_valid
 
   @property
   def position(self):
@@ -248,7 +279,7 @@ class LayoutNode(object):
   # Lock the tree structure and prevent further updates.
   # Compute `stmt_depth` and `subtree_depth`. Replace the children list with
   # a tuple.
-  def lock(self, stmt_depth=0):
+  def lock(self, config, stmt_depth=0):
     self._stmt_depth = stmt_depth
     self._subtree_depth = self.get_depth()
     self._children = tuple(self._children)
@@ -262,7 +293,7 @@ class LayoutNode(object):
       nextdepth = 0
 
     for child in self._children:
-      child.lock(nextdepth)
+      child.lock(config, nextdepth)
 
   # TODO(josh): can probably just inline this now that StatementNode overrides
   # _reflow() and reflow() both
@@ -289,15 +320,20 @@ class LayoutNode(object):
     assert isinstance(self.pnode, parser.TreeNode)
 
     self._position = Cursor(*cursor)
-    out = None
+    outcursor = None
     for repass in range(passno + 1):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
-      out = self._reflow(config, Cursor(*cursor), repass)
-      if self._colextent <= config.linewidth:
+      self._reflow_valid = True
+      outcursor = self._reflow(config, Cursor(*cursor), repass)
+      if self._wrap == WrapAlgo.HPACK:
+        linewidth = config.linewidth - 1
+      else:
+        linewidth = config.linewidth
+      if self._reflow_valid and self._colextent <= linewidth:
         break
-    assert out is not None
-    return out
+    assert outcursor is not None
+    return outcursor
 
   def _write(self, config, ctx):
     for child in self._children:
@@ -308,28 +344,34 @@ class LayoutNode(object):
 
   @staticmethod
   def create(pnode):
+    # pylint: disable=too-many-return-statements
     if pnode.node_type in SCALAR_TYPES:
       return ScalarNode(pnode)
-    elif pnode.node_type == NodeType.ONOFFSWITCH:
+    if pnode.node_type == NodeType.ONOFFSWITCH:
       return OnOffSwitchNode(pnode)
-    elif pnode.node_type == NodeType.STATEMENT:
+    if pnode.node_type == NodeType.STATEMENT:
       return StatementNode(pnode)
-    elif pnode.node_type == NodeType.KWARGGROUP:
+    if pnode.node_type == NodeType.KWARGGROUP:
       return KwargGroupNode(pnode)
-    elif pnode.node_type == NodeType.ARGGROUP:
+    if pnode.node_type == NodeType.ARGGROUP:
       return ArgGroupNode(pnode)
-    elif pnode.node_type == NodeType.BODY:
+    if pnode.node_type in (NodeType.PARGGROUP,
+                           NodeType.FLAGGROUP):
+      return PargGroupNode(pnode)
+    if pnode.node_type == NodeType.PARENGROUP:
+      return ParenGroupNode(pnode)
+    if pnode.node_type == NodeType.BODY:
       return BodyNode(pnode)
-    elif pnode.node_type == NodeType.FLOW_CONTROL:
+    if pnode.node_type == NodeType.FLOW_CONTROL:
       return FlowControlNode(pnode)
-    elif pnode.node_type == NodeType.COMMENT:
+    if pnode.node_type == NodeType.COMMENT:
       return CommentNode(pnode)
-    elif pnode.node_type == NodeType.WHITESPACE:
+    if pnode.node_type == NodeType.WHITESPACE:
       return WhitespaceNode(pnode)
-    elif pnode.node_type in PAREN_TYPES:
+    if pnode.node_type in PAREN_TYPES:
       return ParenNode(pnode)
-    else:
-      raise RuntimeError("Unexpected node type")
+
+    raise RuntimeError("Unexpected node type")
 
 
 class ParenNode(LayoutNode):
@@ -382,13 +424,14 @@ class ScalarNode(LayoutNode):
       assert not children
       assert child.type == NodeType.COMMENT
       cursor = child.reflow(config, cursor + (0, 1), passno)
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       if child.pnode.children[0].type == TokenType.BRACKET_COMMENT:
         return cursor
-      elif self.wrap == WrapAlgo.HPACK:
-        # NOTE(josh): if we have a line-comment child associated with this
-        # argument, then we cannot hpack
-        self._colextent = config.linewidth + 100
+      if self.wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
+        # NOTE(josh): if we have a non-bracket comment child associated with
+        # this argument, then we cannot hpack
+        self._reflow_valid = False
 
     return cursor
 
@@ -402,9 +445,15 @@ class ScalarNode(LayoutNode):
 
     spelling = normalize_line_endings(token.spelling)
     if self.type == NodeType.FUNNAME:
-      command_case = config.resolve_for_command("command_case", token.spelling)
+      command_case = config.resolve_for_command(token.spelling, "command_case")
       if command_case in ("lower", "upper"):
         spelling = getattr(token.spelling, command_case)()
+      elif command_case == "canonical":
+        spelling = config.resolve_for_command(
+            token.spelling, "spelling", token.spelling.lower())
+      else:
+        assert command_case == "unchanged", (
+            "Unrecognized command case {}".format(command_case))
     elif (self.type in (NodeType.KEYWORD, NodeType.FLAG)
           and config.keyword_case in ("lower", "upper")):
       spelling = getattr(token.spelling, config.keyword_case)()
@@ -488,11 +537,12 @@ class StatementNode(LayoutNode):
 
     self._position = Cursor(*cursor)
     out = None
-    for passno in range(0, 4):
+    for passno in range(0, WrapAlgo.COUNT.value):
       self._passno = passno
       self._wrap = self._get_wrap(config, passno)
+      self._reflow_valid = True
       out = self._reflow(config, Cursor(*cursor), passno)
-      if self.colextent <= config.linewidth:
+      if self._reflow_valid and self.colextent <= config.linewidth:
         break
     assert out is not None
     return out
@@ -523,6 +573,7 @@ class StatementNode(LayoutNode):
     child = children.pop(0)
     assert child.type == NodeType.FUNNAME
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
     cursor[1] += paren_space
@@ -531,30 +582,37 @@ class StatementNode(LayoutNode):
     child = children.pop(0)
     assert child.type == NodeType.LPAREN
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
-    if self._wrap == WrapAlgo.HPACK:
+    if self._wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
       if token.spelling.lower() in config.always_wrap:
-        self._colextent = config.linewidth + 100
+        self._reflow_valid = False
 
       while children:
         prev = child
         child = children.pop(0)
 
-        if child.type == NodeType.COMMENT and prev.type != NodeType.RPAREN:
-          self._colextent = config.linewidth + 100
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT
+            and prev.type != NodeType.RPAREN):
+          self._reflow_valid = False
 
         # The first node after an LPAREN and the RPAREN itself are not padded
         if not(prev.type == NodeType.LPAREN or child.type == NodeType.RPAREN):
           cursor[1] += len(' ')
 
+        if (children and children[0].type == NodeType.RPAREN):
+          child.statement_terminal = True
+
         cursor = child.reflow(config, cursor, passno)
+        self._reflow_valid &= child.reflow_valid
         # NOTE(josh): we must keep updating the extent after each child because
         # the child might be an argument with a multiline string or a bracket
         # argument... in which case HPACK might actually wrap to a newline.
         self._colextent = max(self._colextent, child.colextent)
       return cursor
-    elif self._wrap == WrapAlgo.VPACK:
+    if self._wrap == WrapAlgo.VPACK:
       column_cursor = cursor
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
       column_cursor = start_cursor + Cursor(1, config.tab_size)
@@ -605,6 +663,7 @@ class StatementNode(LayoutNode):
         cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0]
       prev = child
@@ -631,6 +690,7 @@ class StatementNode(LayoutNode):
       cursor = Cursor(*column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
     # Trailing comment
@@ -646,6 +706,8 @@ class StatementNode(LayoutNode):
       if child.colextent > config.linewidth:
         cursor = child.reflow(config, (savecursor[0] + 1, start_cursor[1]),
                               passno)
+
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
 
     return cursor
@@ -679,25 +741,34 @@ class KwargGroupNode(LayoutNode):
     child = children.pop(0)
     assert child.type == NodeType.KEYWORD
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     keyword = parser.get_normalized_kwarg(child.pnode.children[0])
     self._colextent = child.colextent
 
-    if self._wrap == WrapAlgo.HPACK:
+    # KWARG groups cannot be HWRAPPED. If they need to wrap, they must
+    # do so vertically.
+    if self._wrap == WrapAlgo.HWRAP:
+      self._reflow_valid = False
+
+    if self._wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
       if len(children) > config.max_subargs_per_line:
-        self._colextent = config.linewidth + 100
+        self._reflow_valid = False
 
       while children:
         cursor[1] += len(' ')
         child = children.pop(0)
 
-        if child.type == NodeType.COMMENT:
-          self._colextent = config.linewidth + 100
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT):
+          self._reflow_valid = False
 
         cursor = child.reflow(config, cursor, passno)
+        self._reflow_valid &= child.reflow_valid
         self._colextent = max(self._colextent, child.colextent)
 
       return cursor
-    elif self._wrap == WrapAlgo.VPACK:
+
+    if self._wrap == WrapAlgo.VPACK:
       cursor[1] += len(' ')
       column_cursor = Cursor(*cursor)
     elif self._wrap in (WrapAlgo.KWNVPACK, WrapAlgo.PNVPACK):
@@ -722,6 +793,7 @@ class KwargGroupNode(LayoutNode):
       # try to pack the next child on the same line as the current one
       if prev is None:
         cursor = child.reflow(config, cursor, passno)
+        self._reflow_valid &= child.reflow_valid
       elif (prev.type in SCALAR_TYPES
             and child.type in SCALAR_TYPES
             and (scalar_seq.length <= config.max_subargs_per_line
@@ -743,6 +815,149 @@ class KwargGroupNode(LayoutNode):
         cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+      column_cursor[0] = cursor[0]
+      prev = child
+
+    return cursor
+
+
+def filename_node_key(layout_node):
+  return layout_node.pnode.children[0].spelling
+
+
+class PargGroupNode(LayoutNode):
+
+  def has_terminal_comment(self):
+    if self.children[-1].type is NodeType.COMMENT:
+      return True
+    return self.children[-1].has_terminal_comment()
+
+  def lock(self, config, stmt_depth=0):
+    if config.autosort and self.pnode.sortable:
+      argument_nodes = []
+      for child in self._children:
+        if child.pnode.node_type is NodeType.ARGUMENT:
+          argument_nodes.append(child)
+      argument_nodes = sorted(argument_nodes, key=filename_node_key)
+      nodemap = {
+          id(node): idx + 1 for idx, node in enumerate(argument_nodes)
+      }
+      sortlist = []
+
+      keyidx = 0
+      posidx = 0
+      for child in self._children:
+        if id(child) in nodemap:
+          keyidx = nodemap[id(child)]
+          posidx = 0
+
+        sortlist.append((keyidx, posidx, child))
+        posidx += 1
+      self._children = [child for _, _, child in sorted(sortlist)]
+
+    super(PargGroupNode, self).lock(config, stmt_depth)
+
+  def _reflow(self, config, cursor, passno):
+    """
+    Compute the size of a positional argument group
+    """
+    # TODO(josh): Much of this code is the same as update_statement_size_, so
+    # dedup the two
+
+    children = list(self.children)
+    self._colextent = cursor.y
+
+    prev = None
+    if self._wrap is WrapAlgo.HPACK:
+      if len(children) > config.max_subargs_per_line:
+        self._reflow_valid = False
+
+      while children:
+        if prev is not None:
+          cursor[1] += len(' ')
+        child = children.pop(0)
+
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT):
+          self._reflow_valid = False
+
+        cursor = child.reflow(config, cursor, passno)
+        self._reflow_valid &= child.reflow_valid
+        self._colextent = max(self._colextent, child.colextent)
+        prev = child
+      return cursor
+
+    column_cursor = Cursor(*cursor)
+    if self._wrap is WrapAlgo.HWRAP:
+      if len(children) > config.max_subargs_per_line:
+        self._reflow_valid = False
+
+      while children:
+        if prev is not None:
+          cursor[1] += len(' ')
+        child = children.pop(0)
+
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT):
+          self._reflow_valid = False
+
+        cursor = child.reflow(config, cursor, passno)
+        linewidth = config.linewidth
+
+        # Reserve an extra character if we are the positional group of a
+        # statement and we are in wrap mode
+        if self.statement_terminal and not children:
+          linewidth -= 1
+
+        if child.colextent > linewidth:
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+
+        self._reflow_valid &= child.reflow_valid
+        self._colextent = max(self._colextent, child.colextent)
+        prev = child
+
+      return cursor
+
+    # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
+    # difference is the starting position of the column_cursor
+    column_cursor = Cursor(*cursor)
+    scalar_seq = analyze_scalar_sequence(children)
+
+    while children:
+      if (prev is None) or (prev.type not in SCALAR_TYPES):
+        scalar_seq = analyze_scalar_sequence(children)
+      child = children.pop(0)
+
+      # If both the previous and current nodes are scalar nodes and the two
+      # are not part of a particularly long (by a configurable margin) sequence
+      # of scalar nodes, then advance the cursor horizontally by one space and
+      # try to pack the next child on the same line as the current one
+      if prev is None:
+        cursor = child.reflow(config, cursor, passno)
+      elif (prev.type in SCALAR_TYPES
+            and child.type in SCALAR_TYPES
+            and (scalar_seq.length <= config.max_subargs_per_line)
+            and not scalar_seq.has_comment):
+        cursor[1] += len(' ')
+
+        # But if the cursor has overflowed the line width allocation, then
+        # we cannot
+        cursor = child.reflow(config, cursor, passno)
+        if child.colextent > config.linewidth:
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+      # Otherwise we fall back to vpack
+      else:
+        column_cursor[0] += 1
+        cursor = Cursor(*column_cursor)
+        cursor = child.reflow(config, cursor, passno)
+
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0]
       prev = child
@@ -753,10 +968,75 @@ class KwargGroupNode(LayoutNode):
 class ArgGroupNode(LayoutNode):
 
   def has_terminal_comment(self):
+    """
+    An ArgGroup is a container for one or more PARGGROUP, FLAGGROUP, or
+    KWARGGROUP subtrees. Any terminal comment will belong to one of
+    it's children.
+    """
+    return self.children and (self.children[-1].type is NodeType.COMMENT or
+                              self.children[-1].has_terminal_comment())
+
+  def _reflow(self, config, cursor, passno):
+    """
+    Compute the size of the group of all children
+    """
+    # TODO(josh): breakup this function
+    # pylint: disable=too-many-statements
+
+    children = list(self.children)
+    self._colextent = cursor.y
+
+    prev = None
+    if self._wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
+      while children:
+        child = children.pop(0)
+
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT):
+          self._reflow_valid = False
+
+        if prev is not None:
+          cursor[1] += len(' ')
+
+        if self.statement_terminal and not children:
+          child.statement_terminal = True
+
+        cursor = child.reflow(config, cursor, passno)
+        prev = child
+
+        # NOTE(josh): we must keep updating the extent after each child because
+        # the child might be an argument with a multiline string or a bracket
+        # argument... in which case HPACK might actually wrap to a newline.
+        self._reflow_valid &= child.reflow_valid
+        self._colextent = max(self._colextent, child.colextent)
+      return cursor
+
+    column_cursor = cursor
+    while children:
+      child = children.pop(0)
+      cursor = Cursor(*column_cursor)
+      cursor = child.reflow(config, cursor, passno)
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+      column_cursor[0] = cursor[0] + 1
+      prev = child
+    return cursor
+
+  def _write(self, config, ctx):
+    if not ctx.is_active():
+      return
+    super(ArgGroupNode, self)._write(config, ctx)
+
+
+class ParenGroupNode(LayoutNode):
+
+  def has_terminal_comment(self):
     children = list(self.children)
     while children and children[0].type != NodeType.RPAREN:
       children.pop(0)
-    children.pop(0)
+
+    if children:
+      children.pop(0)
 
     return (children
             and children[-1].pnode.children[0].type == TokenType.COMMENT)
@@ -774,19 +1054,24 @@ class ArgGroupNode(LayoutNode):
     self._colextent = cursor[1]
 
     children = list(self.children)
+    if not children:
+      return cursor
+
     assert children
     child = children.pop(0)
     assert child.type == NodeType.LPAREN
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
-    if self._wrap == WrapAlgo.HPACK:
+    if self._wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
       while children:
         prev = child
         child = children.pop(0)
 
-        if child.type == NodeType.COMMENT:
-          self._colextent = config.linewidth + 100
+        if (child.type == NodeType.COMMENT and
+            child.pnode.children[0].type is TokenType.COMMENT):
+          self._reflow_valid = False
 
         # The first node after an LPAREN and the RPAREN itself are not padded
         if not(prev.type == NodeType.LPAREN or child.type == NodeType.RPAREN):
@@ -796,14 +1081,16 @@ class ArgGroupNode(LayoutNode):
         # NOTE(josh): we must keep updating the extent after each child because
         # the child might be an argument with a multiline string or a bracket
         # argument... in which case HPACK might actually wrap to a newline.
+        self._reflow_valid &= child.reflow_valid
         self._colextent = max(self._colextent, child.colextent)
       return cursor
-    elif self._wrap in (WrapAlgo.VPACK, WrapAlgo.KWNVPACK):
+
+    if self._wrap in (WrapAlgo.VPACK, WrapAlgo.KWNVPACK):
       column_cursor = cursor
     elif self._wrap == WrapAlgo.PNVPACK:
       column_cursor = start_cursor + Cursor(1, config.tab_size)
     else:
-      raise RuntimeError("Unexepected wrap algorithm")
+      raise RuntimeError("Unexpected wrap algorithm")
 
     # NOTE(josh): this logic is common to both VPACK and NVPACK, the only
     # difference is the starting position of the column_cursor
@@ -844,6 +1131,7 @@ class ArgGroupNode(LayoutNode):
         cursor = Cursor(*column_cursor)
         cursor = child.reflow(config, cursor, passno)
 
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0]
       prev = child
@@ -870,6 +1158,7 @@ class ArgGroupNode(LayoutNode):
       cursor = Cursor(*column_cursor)
 
     cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
     # Trailing comment
@@ -885,13 +1174,15 @@ class ArgGroupNode(LayoutNode):
         cursor[0] += 1
         cursor[1] = start_cursor[1]
         cursor = child.reflow(config, cursor, passno)
+
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
     return cursor
 
   def _write(self, config, ctx):
     if not ctx.is_active():
       return
-    super(ArgGroupNode, self)._write(config, ctx)
+    super(ParenGroupNode, self)._write(config, ctx)
 
 
 class BodyNode(LayoutNode):
@@ -904,6 +1195,7 @@ class BodyNode(LayoutNode):
     self._colextent = 0
     for child in self.children:
       cursor = child.reflow(config, column_cursor, passno)
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0] + 1
 
@@ -924,6 +1216,7 @@ class FlowControlNode(LayoutNode):
     child = children.pop(0)
     assert child.type == NodeType.STATEMENT
     cursor = child.reflow(config, column_cursor, passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
     column_cursor[0] = cursor[0] + 1
 
@@ -931,6 +1224,7 @@ class FlowControlNode(LayoutNode):
     child = children.pop(0)
     assert child.type == NodeType.BODY
     cursor = child.reflow(config, column_cursor + (0, config.tab_size), passno)
+    self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
     column_cursor[0] = cursor[0] + 1
 
@@ -939,6 +1233,7 @@ class FlowControlNode(LayoutNode):
       child = children.pop(0)
       assert child.type == NodeType.STATEMENT
       cursor = child.reflow(config, column_cursor, passno)
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0] + 1
 
@@ -948,6 +1243,7 @@ class FlowControlNode(LayoutNode):
       assert child.type == NodeType.BODY
       cursor = child.reflow(config, column_cursor +
                             (0, config.tab_size), passno)
+      self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0] + 1
 
@@ -1089,7 +1385,7 @@ def layout_tree(parsetree_root, config, linewidth=None):
     linewidth = config.line_width
 
   root_box = create_box_tree(parsetree_root)
-  root_box.lock()
+  root_box.lock(config)
   root_box.reflow(config, (0, 0))
 
   return root_box
@@ -1184,13 +1480,16 @@ def tree_string(nodes, history=None):
   return outfile.getvalue()
 
 
-def dump_tree_for_test(nodes, outfile=None, indent=None):
+def dump_tree_for_test(nodes, outfile=None, indent=None, increment=None):
   """
   Print a tree of node objects for debugging purposes
   """
 
   if indent is None:
     indent = ''
+
+  if increment is None:
+    increment = '    '
 
   if outfile is None:
     outfile = sys.stdout
@@ -1203,14 +1502,19 @@ def dump_tree_for_test(nodes, outfile=None, indent=None):
 
     if hasattr(node, 'children') and node.children:
       outfile.write('\n')
-      dump_tree_for_test(node.children, outfile, indent + '    ')
+      dump_tree_for_test(node.children, outfile, indent + increment, increment)
       outfile.write(indent)
     outfile.write("]),\n")
 
 
-def test_string(nodes):
+def test_string(nodes, indent=None, increment=None):
+  if indent is None:
+    indent = ' ' * 10
+  if increment is None:
+    increment = ' ' * 4
+
   outfile = io.StringIO()
-  dump_tree_for_test(nodes, outfile, indent=(' ' * 10))
+  dump_tree_for_test(nodes, outfile, indent, increment)
   return outfile.getvalue()
 
 

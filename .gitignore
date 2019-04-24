@@ -1,4 +1,3 @@
-
 *.pyc
 *.o
 *.so
@@ -21,3 +20,12 @@ dist/
 
 # jupyter autosaves
 .ipynb_checkpoints
+
+# bazel poop
+bazel-*
+
+# vscode poop
+.vscode/ipch
+
+# node package manager
+node_modules

@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 from __future__ import print_function
 from __future__ import unicode_literals
 
 import io
+import logging
+import re
 import sys
 
-
-from cmake_format import commands
 from cmake_format import common
 from cmake_format import lexer
 
 
-# --------------------------------------------------
-# Middle Layer Parse: digest tokens into block nodes
-# --------------------------------------------------
+logger = logging.getLogger("cmake_format")
+
+if sys.version_info[0] < 3:
+  STRING_TYPES = (str, unicode)
+else:
+  STRING_TYPES = (str,)
+
+IMPLICIT_PARG_TYPES = STRING_TYPES + (int,)
 
 
 class NodeType(common.EnumObject):
@@ -31,10 +37,14 @@ NodeType.FLOW_CONTROL = NodeType(4)
 NodeType.FUNNAME = NodeType(10)
 NodeType.ARGGROUP = NodeType(5)
 NodeType.KWARGGROUP = NodeType(6)
+NodeType.PARGGROUP = NodeType(14)
+NodeType.FLAGGROUP = NodeType(15)
+NodeType.PARENGROUP = NodeType(16)
 NodeType.ARGUMENT = NodeType(7)
 NodeType.KEYWORD = NodeType(8)
 NodeType.FLAG = NodeType(9)
 NodeType.ONOFFSWITCH = NodeType(11)
+
 
 # NOTE(josh): These aren't really semantic, but they have structural
 # significance that is important in formatting. Since they will have a presence
@@ -68,17 +78,15 @@ ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
                 lexer.TokenType.FORMAT_OFF)
 
 
-CONDITIONAL_KWARGS = commands.make_conditional_spec()
-
-
 class TreeNode(object):
   """
   A node in the full-syntax-tree.
   """
 
-  def __init__(self, node_type):
+  def __init__(self, node_type, sortable=False):
     self.node_type = node_type
     self.children = []
+    self.sortable = sortable
 
   def get_location(self):
     """
@@ -97,12 +105,16 @@ class TreeNode(object):
     return newline_count
 
   def __repr__(self):
+    if self.sortable:
+      return ('{}: {}, sortable'
+              .format(self.node_type.name, self.get_location()))
+
     return '{}: {}'.format(self.node_type.name, self.get_location())
 
 
 def consume_whitespace(tokens):
   """
-  Consume sequential whitespace, removing tokens from the iniput list and
+  Consume sequential whitespace, removing tokens from the input list and
   returning a whitespace BlockNode
   """
 
@@ -157,6 +169,15 @@ def consume_onoff(tokens):
   return node
 
 
+def is_valid_trailing_comment(token):
+  """
+  Return true if the token is a valid trailing comment
+  """
+  return (token.type in (lexer.TokenType.COMMENT,
+                         lexer.TokenType.BRACKET_COMMENT) and
+          not comment_is_tag(token))
+
+
 def next_is_trailing_comment(tokens):
   """
   Return true if there is a trailing comment in the token stream
@@ -165,18 +186,15 @@ def next_is_trailing_comment(tokens):
   if not tokens:
     return False
 
-  if tokens[0].type in [lexer.TokenType.COMMENT,
-                        lexer.TokenType.BRACKET_COMMENT]:
+  if is_valid_trailing_comment(tokens[0]):
     return True
 
   if len(tokens) < 2:
     return False
 
   if (tokens[0].type == lexer.TokenType.WHITESPACE
-      and tokens[1].type in [lexer.TokenType.COMMENT,
-                             lexer.TokenType.BRACKET_COMMENT]):
+      and is_valid_trailing_comment(tokens[1])):
     return True
-
   return False
 
 
@@ -193,31 +211,26 @@ def consume_trailing_comment(parent, tokens):
 
   node = TreeNode(NodeType.COMMENT)
   parent.children.append(node)
-
-  match_tokens = (lexer.TokenType.COMMENT,
-                  lexer.TokenType.BRACKET_COMMENT)
   comment_tokens = node.children
 
-  while tokens and tokens[0].type in match_tokens:
+  while tokens and is_valid_trailing_comment(tokens[0]):
     comment_tokens.append(tokens.pop(0))
 
     # Multiple comments separated by only one newline are joined together into
     # a single block
-    if (len(tokens) > 1
-        # pylint: disable=bad-continuation
-        and tokens[0].type == lexer.TokenType.NEWLINE
-            and tokens[1].type in match_tokens):
+    if (len(tokens) > 1 and
+        tokens[0].type == lexer.TokenType.NEWLINE and
+        is_valid_trailing_comment(tokens[1])):
       comment_tokens.append(tokens.pop(0))
 
     # Multiple comments separated only by one newline and some whitespace are
     # joined together into a single block
     # TODO(josh): maybe match only on comment tokens that start at the same
     # column?
-    elif (len(tokens) > 2
-          # pylint: disable=bad-continuation
-          and tokens[0].type == lexer.TokenType.NEWLINE
-          and tokens[1].type == lexer.TokenType.WHITESPACE
-          and tokens[2].type in match_tokens):
+    elif (len(tokens) > 2 and
+          tokens[0].type == lexer.TokenType.NEWLINE and
+          tokens[1].type == lexer.TokenType.WHITESPACE and
+          is_valid_trailing_comment(tokens[2])):
       comment_tokens.append(tokens.pop(0))
       comment_tokens.append(tokens.pop(0))
 
@@ -237,208 +250,640 @@ def get_normalized_kwarg(token):
   return token.spelling.upper()
 
 
-def kwarg_breaks_stack(kwarg, currspec, argstack=None):
-  if argstack is None:
-    return False
-
-  if kwarg is None:
-    return False
-
-  if isinstance(currspec, dict) and kwarg in currspec:
-    return False
-
-  for cmdspec in argstack[::-1]:
-    if (isinstance(cmdspec, commands.CommandSpec)
-        and cmdspec.name == 'COMMAND'
-        and kwarg.startswith('--')):
+def should_break(token, breakstack):
+  """
+  Return true if any function in breakstack evaluates to true on the current
+  token. Otherwise return false.
+  """
+  for breakcheck in breakstack[::-1]:
+    if breakcheck(token):
       return True
-
-    if isinstance(cmdspec, dict) and kwarg in cmdspec:
-      if kwarg == "STREQUAL":
-        print(currspec)
-      return True
-
   return False
 
 
-def token_is_flag(normalized_token, cmdspec):
-  if normalized_token is None:
-    return False
+def pargs_are_full(npargs, nconsumed):
+  if isinstance(npargs, int):
+    return nconsumed >= npargs
 
-  if not isinstance(cmdspec, commands.CommandSpec):
-    return False
+  assert isinstance(npargs, STRING_TYPES), (
+      "Unexpected npargs type {}".format(type(npargs)))
 
-  if (cmdspec.name == 'COMMAND'
-      and len(normalized_token) > 1
-      and normalized_token[0] == '-'
-      and normalized_token[1] != '-'):
-    return True
+  if npargs == "?":
+    return nconsumed >= 1
 
-  return cmdspec.is_flag(normalized_token)
-
-
-def token_is_kwarg(normalized_token, cmdspec):
-  if normalized_token is None:
-    return False
-
-  if not isinstance(cmdspec, commands.CommandSpec):
-    return False
-
-  if (cmdspec.name == 'COMMAND'
-      and normalized_token.startswith('--')):
-    return True
-
-  return cmdspec.is_kwarg(normalized_token)
-
-
-def is_full(pargs, spec):
-  """
-  Return true if the current node is full due to command specification
-  """
-
-  if isinstance(spec, int):
-    if pargs >= spec:
-      return True
-  elif hasattr(spec, 'pargs'):
-    spec_pargs = getattr(spec, 'pargs')
-    if isinstance(spec_pargs, int) and pargs >= spec_pargs:
-      return True
-
+  assert npargs in ("*", "+"), ("Unexepected npargs {}".format(npargs))
   return False
 
 
-def consume_arguments(node, tokens, cmdspec, argstack=None):
+def npargs_is_exact(npargs):
   """
-  Consume a parenthetical group of arguments.
+  Return true if npargs has an exact specification
+  """
+  return isinstance(npargs, int)
+
+
+LINE_TAG = re.compile(r"#\s*(cmake-format|cmf): ([^\n]*)")
+BRACKET_TAG = re.compile(r"#\[(=*)\[(cmake-format|cmf):(.*)\]\1\]")
+
+
+def get_tag(token):
+  """
+  If the token is a comment with one of the cmake-format tag forms, then
+  extract the tag.
+  """
+  if token.type is lexer.TokenType.COMMENT:
+    match = LINE_TAG.match(token.spelling)
+    if match:
+      return match.group(2).strip().lower()
+  elif token.type is lexer.TokenType.BRACKET_COMMENT:
+    match = BRACKET_TAG.match(token.spelling)
+    if match:
+      return match.group(3).strip().lower()
+
+  return None
+
+
+def comment_is_tag(token):
+  """
+  Return true if the comment token has one of the tag-forms:
+
+  # cmake-format: <tag>
+  # cmf: <tag>
+  #[[cmake-format:<tag>]]
+  #[[cmf:<tag>]]
+  """
+  return get_tag(token) is not None
+
+
+def parse_positionals(tokens, npargs, flags, breakstack, sortable=False):
+  """
+  Parse a continuous sequence of `npargs` positional arguments. If npargs is
+  an integer we will consume exactly that many arguments. If it is not an
+  integer then it is a string meaning:
+
+  * "?": zero or one
+  * "*": zero or more
+  * "+": one or more
   """
 
-  if argstack is None:
-    argstack = []
+  tree = TreeNode(NodeType.PARGGROUP, sortable=sortable)
+  nconsumed = 0
 
-  children = node.children
+  # Strip off any preceeding whitespace (note that in most cases this has
+  # already been done but in some cases (such ask kwarg subparser) where
+  # it hasn't
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
 
-  # Number of positional arguments accumulated for the current command
-  pargs = 0
+  # If the first non-whitespace token is a cmake-format tag annotating
+  # sortability, then parse it out here and record the annotation
+  if tokens and get_tag(tokens[0]) in ("sortable", "sort"):
+    tree.sortable = True
+  elif tokens and get_tag(tokens[0]) in ("unsortable", "unsort"):
+    tree.sortable = False
 
   while tokens:
-    if tokens[0].type == lexer.TokenType.LEFT_PAREN:
-      # LEFT_PAREN signals the start of a conditional group
+    # Break if we have consumed   enough positional arguments
+    if pargs_are_full(npargs, nconsumed):
+      break
 
-      # NOTE(josh): since parenthetical groups act as positional arguments,
-      # if the current compliment of positional arguments is full, we can
-      # go ahead and close this node...
-      if is_full(pargs, cmdspec):
-        return
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      # NOTE(josh): if npargs is an exact number of arguments, then we
+      # shouldn't break on kwarg match from a parent parser. Instead, we should
+      # consume the token. This is a hack to deal with
+      # ```install(RUNTIME COMPONENT runtime)``. In this case the second
+      # occurance of "runtime" should not match the ``RUNTIME`` keyword
+      # and should not break the positional parser.
+      # TODO(josh): this is kind of hacky because it will force the positional
+      # parser to consume a right parenthesis and will lead to parse errors
+      # in the event of a missing positional argument. Such errors will be
+      # difficult to debug for the user.
+      if not npargs_is_exact(npargs):
+        break
+      elif tokens[0].type == lexer.TokenType.RIGHT_PAREN:
+        break
 
-      subtree = TreeNode(NodeType.ARGGROUP)
-      lparen = TreeNode(NodeType.LPAREN)
-      lparen.children.append(tokens.pop(0))
-      subtree.children.append(lparen)
+    # Otherwise we will consume the token
+    token = tokens.pop(0)
 
-      # NOTE(josh): we pass in conditional cmdspec since argument groups
-      # aren't arbitrary and are only allowed for conditional statements.
-      # I have a feeling this might change in the future as the cmake language
-      # develops further.
-      consume_arguments(subtree, tokens, CONDITIONAL_KWARGS)
-      children.append(subtree)
-
-      if tokens[0].type != lexer.TokenType.RIGHT_PAREN:
-        raise ValueError(
-            "Unexpected {} token at {}, expecting r-paren, got {}"
-            .format(tokens[0].type.name, tokens[0].get_location(),
-                    tokens[0].content))
-      rparen = TreeNode(NodeType.RPAREN)
-      rparen.children.append(tokens.pop(0))
-      subtree.children.append(rparen)
-
-      # NOTE(josh): parenthetical groups can have trailing comments because
-      # they have closing punctuation
-      consume_trailing_comment(subtree, tokens)
-      pargs += 1
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if token.type in WHITESPACE_TOKENS:
+      tree.children.append(token)
       continue
 
-    if tokens[0].type == lexer.TokenType.RIGHT_PAREN:
-      # RIGHT_PARENT signals the end of the currently opened parenthentical
-      # group. This case is handled by the caller.
-      return
-
-    if tokens[0].type in WHITESPACE_TOKENS:
-      children.append(tokens.pop(0))
-      continue
-
-    if tokens[0].type in (lexer.TokenType.COMMENT,
-                          lexer.TokenType.BRACKET_COMMENT):
-
-      # NOTE(josh): if the current command is full, then break out of it and
-      # associate the comment with the parent command
-      if is_full(pargs, cmdspec):
-        return
-
+    # If it's a comment token not associated with an argument, then put it
+    # directly into the parse tree at the current depth
+    if token.type in (lexer.TokenType.COMMENT,
+                      lexer.TokenType.BRACKET_COMMENT):
       child = TreeNode(NodeType.COMMENT)
-      children.append(child)
-      child.children.append(tokens.pop(0))
+      tree.children.append(child)
+      child.children.append(token)
       continue
 
-    kwarg = get_normalized_kwarg(tokens[0])
-    if token_is_kwarg(kwarg, cmdspec):
-      subtree = TreeNode(NodeType.KWARGGROUP)
-      children.append(subtree)
-
-      child = TreeNode(NodeType.KEYWORD)
-      subtree.children.append(child)
-      child.children.append(tokens.pop(0))
-      # NOTE(josh): don't allow keywords to have trailing comments. This
-      # complicates our ability to compute the location of the cursor where
-      # to write the next element. In particular the reflow() cursor returned
-      # will point to the end of the comment, but we really want to know
-      # where the keyword ends, so that we can follow that column for each
-      # child. Instead we treat the keyword comment as a positional comment
-      # which makes it a node at the same level as the rest of it's children.
-      # consume_trailing_comment(child, tokens)
-
-      consume_arguments(subtree, tokens, cmdspec.get(kwarg),
-                        argstack + [cmdspec])
-      # NOTE(josh): kwarg groups can't have trailing comments because they
-      # have no closing puncutation
-      continue
-
-    if token_is_flag(kwarg, cmdspec):
+    # Otherwise is it is a positional argument, so add it to the tree as such
+    if get_normalized_kwarg(token) in flags:
       child = TreeNode(NodeType.FLAG)
-      children.append(child)
-      child.children.append(tokens.pop(0))
-      consume_trailing_comment(child, tokens)
+    else:
+      child = TreeNode(NodeType.ARGUMENT)
+
+    child.children.append(token)
+    consume_trailing_comment(child, tokens)
+    tree.children.append(child)
+    nconsumed += 1
+  return tree
+
+
+def parse_positional_tuples(tokens, npargs, ntup, flags, breakstack):
+  """
+  Parse a continuous sequence of `npargs` positional argument pairs.
+  If npargs is an integer we will consume exactly that many arguments.
+  If it is not an integer then it is a string meaning:
+
+  * "?": zero or one
+  * "*": zero or more
+  * "+": one or more
+  """
+
+  tree = TreeNode(NodeType.PARGGROUP)
+  subtree = None
+  active_depth = tree
+
+  npargs_consumed = 0
+  ntup_consumed = 0
+
+  while tokens:
+    # Break if we have consumed enough positional arguments
+    if pargs_are_full(npargs, npargs_consumed):
+      break
+
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # Otherwise we will consume the token
+    token = tokens.pop(0)
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if token.type in WHITESPACE_TOKENS:
+      active_depth.children.append(token)
       continue
 
-    if kwarg_breaks_stack(kwarg, cmdspec, argstack):
-      # NOTE(josh): the next token matches a keyword of some command
-      # higher up in the stack, so we are done here. We will return from
-      # every callee up to the caller with the approprate cmdspec.
-      return
+    # If it's a comment token not associated with an argument, then put it
+    # directly into the parse tree at the current depth
+    if token.type in (lexer.TokenType.COMMENT,
+                      lexer.TokenType.BRACKET_COMMENT):
+      child = TreeNode(NodeType.COMMENT)
+      tree.children.append(child)
+      child.children.append(token)
+      continue
 
-    # The current token is an argument and if it is a WORD then it doesn't
-    # match a keyword of any specification in the stack so it must be
-    # a positional argument
+    if subtree is None:
+      subtree = TreeNode(NodeType.PARGGROUP)
+      tree.children.append(subtree)
+      ntup_consumed = 0
 
-    # If the current node has a full compliment of positional arguments, then
-    # the next argument must belong to a node higher up in the call stack.
-    if is_full(pargs, cmdspec):
-      return
+    # Otherwise is it is a positional argument, so add it to the tree as such
+    if get_normalized_kwarg(token) in flags:
+      child = TreeNode(NodeType.FLAG)
+    else:
+      child = TreeNode(NodeType.ARGUMENT)
 
-    child = TreeNode(NodeType.ARGUMENT)
-    children.append(child)
+    child.children.append(token)
+    consume_trailing_comment(child, tokens)
+    subtree.children.append(child)
+    ntup_consumed += 1
+
+    if ntup_consumed > ntup:
+      npargs_consumed += 1
+      subtree = None
+
+  return tree
+
+
+def parse_kwarg(tokens, word, subparser, breakstack):
+  """
+  Parse a standard `KWARG arg1 arg2 arg3...` style keyword argument list.
+  """
+  assert tokens[0].spelling.upper() == word.upper()
+
+  tree = TreeNode(NodeType.KWARGGROUP)
+  kwnode = TreeNode(NodeType.KEYWORD)
+  kwnode.children.append(tokens.pop(0))
+  tree.children.append(kwnode)
+  # consume_trailing_comment(kwnode, tokens)
+
+  ntokens = len(tokens)
+  subtree = subparser(tokens, breakstack)
+  if len(tokens) < ntokens:
+    tree.children.append(subtree)
+  return tree
+
+
+def parse_flags(tokens, flags, breakstack):
+  """
+  Parse a continuous sequence of flags
+  """
+
+  tree = TreeNode(NodeType.FLAGGROUP)
+  while tokens:
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # Break if the next token is not a known flag
+    if tokens[0].spelling.upper() not in flags:
+      break
+
+    # Otherwise is it is a flag, so add it to the tree as such
+    child = TreeNode(NodeType.FLAG)
     child.children.append(tokens.pop(0))
     consume_trailing_comment(child, tokens)
-    pargs += 1
+    tree.children.append(child)
 
-  raise ValueError(
-      "Token stream expired while parsing statement arguments starting at {}"
-      .format(node.get_location()))
+  return tree
 
 
-def consume_statement(tokens, cmdspec):
+def parse_standard(tokens, npargs, kwargs, flags, breakstack):
+  """
+  Standard parser for the commands in the form of::
+
+      command_name(parg1 parg2 parg3...
+                   KEYWORD1 kwarg1 kwarg2...
+                   KEYWORD2 kwarg3 kwarg4...
+                   FLAG1 FLAG2 FLAG3)
+
+  The parser starts off as a positional parser. If a keyword or flag is
+  encountered the positional parser is popped off the parse stack. If it was
+  a keyword then the keyword parser is pushed on the parse stack. If it was
+  a flag than a new flag parser is pushed onto the stack.
+  """
+
+  tree = TreeNode(NodeType.ARGGROUP)
+
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
+    continue
+
+  flags = [flag.upper() for flag in flags]
+  kwarg_breakstack = breakstack + [KwargBreaker(list(kwargs.keys()) + flags)]
+  positional_breakstack = breakstack + [KwargBreaker(list(kwargs.keys()))]
+
+  while tokens:
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # If it's a comment, then add it at the current depth
+    if tokens[0].type in (lexer.TokenType.COMMENT,
+                          lexer.TokenType.BRACKET_COMMENT):
+      child = TreeNode(NodeType.COMMENT)
+      tree.children.append(child)
+      child.children.append(tokens.pop(0))
+      continue
+
+    ntokens = len(tokens)
+    # NOTE(josh): each flag is also stored in kwargs as with a positional parser
+    # of size zero. This is a legacy thing that should be removed, but for now
+    # just make sure we check flags first.
+    word = get_normalized_kwarg(tokens[0])
+    if word in kwargs:
+      subtree = parse_kwarg(tokens, word, kwargs[word], kwarg_breakstack)
+    else:
+      subtree = parse_positionals(tokens, npargs, flags, positional_breakstack)
+
+    assert len(tokens) < ntokens
+    tree.children.append(subtree)
+  return tree
+
+
+def parse_parengroup(tokens, breakstack):  # pylint: disable=unused-argument
+  """
+  Consume a parenthetical group of arguments from `tokens` and return the
+  parse subtree rooted at this group.  `argstack` contains a stack of all
+  early break conditions that are currently "opened".
+  """
+
+  assert tokens[0].type == lexer.TokenType.LEFT_PAREN
+  tree = TreeNode(NodeType.PARENGROUP)
+  lparen = TreeNode(NodeType.LPAREN)
+  lparen.children.append(tokens.pop(0))
+  tree.children.append(lparen)
+
+  subtree = parse_conditional(tokens, [ParenBreaker()])
+  tree.children.append(subtree)
+
+  if tokens[0].type != lexer.TokenType.RIGHT_PAREN:
+    raise ValueError(
+        "Unexpected {} token at {}, expecting r-paren, got {}"
+        .format(tokens[0].type.name, tokens[0].get_location(),
+                tokens[0].content))
+  rparen = TreeNode(NodeType.RPAREN)
+  rparen.children.append(tokens.pop(0))
+  tree.children.append(rparen)
+
+  # NOTE(josh): parenthetical groups can have trailing comments because
+  # they have closing punctuation
+  consume_trailing_comment(tree, tokens)
+
+  return tree
+
+
+CONDITIONAL_FLAGS = [
+    "COMMAND",
+    "DEFINED",
+    "EQUAL",
+    "EXISTS",
+    "GREATER",
+    "LESS",
+    "IS_ABSOLUTE",
+    "IS_DIRECTORY",
+    "IS_NEWER_THAN",
+    "IS_SYMLINK",
+    "MATCHES",
+    "NOT",
+    "POLICY",
+    "STRLESS",
+    "STRGREATER",
+    "STREQUAL",
+    "TARGET",
+    "TEST",
+    "VERSION_EQUAL",
+    "VERSION_GREATER",
+    "VERSION_LESS",
+]
+
+
+def parse_conditional(tokens, breakstack):
+  """
+  Parser for the commands that take conditional arguments. Similar to the
+  standard parser but it understands parentheses and can generate
+  parenthentical groups::
+
+      while(CONDITION1 AND (CONDITION2 OR CONDITION3)
+            OR (CONDITION3 AND (CONDITION4 AND CONDITION5)
+            OR CONDITION6)
+  """
+  kwargs = {
+      'AND': parse_conditional,
+      'OR': parse_conditional
+  }
+  flags = list(CONDITIONAL_FLAGS)
+  tree = TreeNode(NodeType.ARGGROUP)
+
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
+    continue
+
+  flags = [flag.upper() for flag in flags]
+  breaker = KwargBreaker(list(kwargs.keys()))
+  child_breakstack = breakstack + [breaker]
+
+  while tokens:
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # If it's a comment, then add it at the current depth
+    if tokens[0].type in (lexer.TokenType.COMMENT,
+                          lexer.TokenType.BRACKET_COMMENT):
+      child = TreeNode(NodeType.COMMENT)
+      tree.children.append(child)
+      child.children.append(tokens.pop(0))
+      continue
+
+    # If this is the start of a parenthetical group, then parse the group
+    if tokens[0].type == lexer.TokenType.LEFT_PAREN:
+      subtree = parse_parengroup(tokens, breakstack)
+      tree.children.append(subtree)
+      continue
+
+    ntokens = len(tokens)
+    word = get_normalized_kwarg(tokens[0])
+    if word in kwargs:
+      subtree = parse_kwarg(tokens, word, kwargs[word], child_breakstack)
+    else:
+      subtree = parse_positionals(tokens, '*', flags, child_breakstack)
+
+    assert len(tokens) < ntokens
+    tree.children.append(subtree)
+  return tree
+
+
+def parse_shell_flags(tokens, breakstack):
+  """
+  Parse a continuous sequence of flags
+  """
+  tree = TreeNode(NodeType.FLAGGROUP)
+  while tokens:
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # Break if the next token is not a flag
+    if not tokens[0].spelling.startswith("-"):
+      break
+
+    # Break if the next token is a long flag
+    if tokens[0].spelling.startswith("--"):
+      break
+
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # Otherwise is it is a flag, so add it to the tree as such
+    child = TreeNode(NodeType.FLAG)
+    child.children.append(tokens.pop(0))
+    consume_trailing_comment(child, tokens)
+    tree.children.append(child)
+
+  return tree
+
+
+def is_shell_flag(token):
+  return token.spelling.startswith("-")
+
+
+def parse_shell_kwarg(tokens, breakstack):
+  """
+  Parse a standard `--long-flag foo bar baz` sequence
+  """
+  assert tokens[0].spelling.startswith("--")
+
+  tree = TreeNode(NodeType.KWARGGROUP)
+  kwnode = TreeNode(NodeType.KEYWORD)
+  kwnode.children.append(tokens.pop(0))
+  tree.children.append(kwnode)
+
+  ntokens = len(tokens)
+  subtree = parse_positionals(tokens, "*", [], breakstack + [is_shell_flag])
+  if len(tokens) < ntokens:
+    tree.children.append(subtree)
+  return tree
+
+
+def parse_shell_command(tokens, breakstack):
+  """
+  Parser for the COMMAND kwarg lists in the form of::
+
+      COMMAND foo --long-flag1 arg1 arg2 --long-flag2 -a -b -c arg3 arg4
+
+  The parser acts very similar to a standard parser where `--xxx` is treated
+  as a keyword argument and `-x` is treated as a flag.
+  """
+
+  tree = TreeNode(NodeType.ARGGROUP)
+
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
+    continue
+
+  while tokens:
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    ntokens = len(tokens)
+    if tokens[0].spelling == "--":
+      subtree = parse_positionals(tokens, "*", [], breakstack + [is_shell_flag])
+    elif tokens[0].spelling.startswith("--"):
+      subtree = parse_shell_kwarg(tokens, breakstack)
+    elif tokens[0].spelling.startswith("-"):
+      subtree = parse_shell_flags(tokens, breakstack)
+    else:
+      subtree = parse_positionals(tokens, "*", [], breakstack + [is_shell_flag])
+
+    assert len(tokens) < ntokens
+    tree.children.append(subtree)
+  return tree
+
+
+class PositionalParser(object):
+  def __init__(self, npargs=None, flags=None, sortable=False):
+    if npargs is None:
+      npargs = "*"
+    if flags is None:
+      flags = []
+
+    self.npargs = npargs
+    self.flags = flags
+    self.sortable = sortable
+
+  def __call__(self, tokens, breakstack):
+    return parse_positionals(tokens, self.npargs, self.flags, breakstack,
+                             self.sortable)
+
+
+class PositionalTupleParser(object):
+  def __init__(self, ntup, npargs=None, flags=None):
+    if npargs is None:
+      npargs = "*"
+    if flags is None:
+      flags = []
+
+    self.npargs = npargs
+    self.ntup = ntup
+    self.flags = flags
+
+  def __call__(self, tokens, breakstack):
+    return parse_positional_tuples(tokens, self.npargs, self.ntup, self.flags,
+                                   breakstack)
+
+
+class StandardParser(object):
+  def __init__(self, npargs=None, kwargs=None, flags=None, doc=None):
+    if npargs is None:
+      npargs = "*"
+    if flags is None:
+      flags = []
+    if kwargs is None:
+      kwargs = {}
+
+    self.npargs = npargs
+    self.kwargs = kwargs
+    self.flags = flags
+    self.doc = doc
+
+  def __call__(self, tokens, breakstack):
+    return parse_standard(tokens, self.npargs, self.kwargs, self.flags,
+                          breakstack)
+
+
+class ParenBreaker(object):
+  """
+  Callable that returns true if the supplied token is a right parenthential
+  """
+
+  def __call__(self, token):
+    return token.type == lexer.TokenType.RIGHT_PAREN
+
+
+class KwargBreaker(object):
+  """
+  Callable that returns true if the supplied token is in the list of keywords,
+  ignoring case.
+  """
+
+  def __init__(self, kwargs):
+    self.kwargs = [kwarg.upper() for kwarg in kwargs]
+
+  def __call__(self, token):
+    return token.spelling.upper() in self.kwargs
+
+
+def consume_statement(tokens, parse_db):
   """
   Consume a complete statement, removing tokens from the input list and
-  returning a statement Block
+  returning a STATEMENT node.
   """
   node = TreeNode(NodeType.STATEMENT)
 
@@ -465,14 +910,18 @@ def consume_statement(tokens, cmdspec):
   lparen.children.append(tokens.pop(0))
   node.children.append(lparen)
 
-  subtree = TreeNode(NodeType.ARGGROUP)
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    node.children.append(tokens.pop(0))
+    continue
+
+  breakstack = [ParenBreaker()]
+  parse_fun = parse_db.get(fnname, PositionalParser())
+  subtree = parse_fun(tokens, breakstack)
   node.children.append(subtree)
-  consume_arguments(subtree, tokens, cmdspec.get(fnname, None), [])
 
   # NOTE(josh): technically we may have a statement specification with
   # an exact number of arguments. At this point we have broken out of that
   # statement but we might have some comments or whitespace to consume
-
   while tokens and tokens[0].type != lexer.TokenType.RIGHT_PAREN:
     if tokens[0].type in WHITESPACE_TOKENS:
       node.children.append(tokens.pop(0))
@@ -488,7 +937,9 @@ def consume_statement(tokens, cmdspec):
         .format(tokens[0].type.name, tokens[0].get_location(),
                 repr(tokens[0].content)))
 
-  assert tokens, "Unexpected end of token stream while parsing statement"
+  assert tokens, (
+      "Unexpected end of token stream while parsing statement:\n {}"
+      .format(tree_string([node])))
   assert tokens[0].type == lexer.TokenType.RIGHT_PAREN, \
       ("Unexpected {} token at {}, expecting r-paren, got {}"
        .format(tokens[0].type.name, tokens[0].get_location(),
@@ -502,29 +953,30 @@ def consume_statement(tokens, cmdspec):
   return node
 
 
-def consume_ifblock(tokens, cmdspec):
+def consume_ifblock(tokens, parse_db):
   """
   Consume tokens and return a flow control tree. ``IF`` statements are special
   because they have interior ``ELSIF`` and ``ELSE`` blocks, while all other
   flow control have a single body.
   """
 
-  node = TreeNode(NodeType.FLOW_CONTROL)
-  children = node.children
+  tree = TreeNode(NodeType.FLOW_CONTROL)
   breakset = ("ELSE", "ELSEIF", "ENDIF")
 
   while tokens and tokens[0].spelling.upper() != "ENDIF":
-    stmt = consume_statement(tokens, cmdspec)
-    children.append(stmt)
-    body = consume_body(tokens, cmdspec, breakset)
-    children.append(body)
-  stmt = consume_statement(tokens, cmdspec)
-  children.append(stmt)
+    stmt = consume_statement(tokens, parse_db)
+    tree.children.append(stmt)
+    body = consume_body(tokens, parse_db, breakset)
+    tree.children.append(body)
 
-  return node
+  if tokens:
+    stmt = consume_statement(tokens, parse_db)
+    tree.children.append(stmt)
+
+  return tree
 
 
-def consume_flowcontrol(tokens, cmdspec):
+def consume_flowcontrol(tokens, parse_db):
   """
   Consume tokens and return a flow control tree. A flow control tree starts
   and ends with a statement node, and contains one or more body nodes. An if
@@ -533,22 +985,22 @@ def consume_flowcontrol(tokens, cmdspec):
   """
   flowtype = FlowType.from_name(tokens[0].spelling.upper())
   if flowtype is FlowType.IF:
-    return consume_ifblock(tokens, cmdspec)
+    return consume_ifblock(tokens, parse_db)
 
   node = TreeNode(NodeType.FLOW_CONTROL)
   children = node.children
   endflow = 'END' + flowtype.name
-  stmt = consume_statement(tokens, cmdspec)
+  stmt = consume_statement(tokens, parse_db)
   children.append(stmt)
-  body = consume_body(tokens, cmdspec, (endflow,))
+  body = consume_body(tokens, parse_db, (endflow,))
   children.append(body)
-  stmt = consume_statement(tokens, cmdspec)
+  stmt = consume_statement(tokens, parse_db)
   children.append(stmt)
 
   return node
 
 
-def consume_body(tokens, cmdspec, breakset=None):
+def consume_body(tokens, parse_db, breakset=None):
   """
   Consume tokens and return a tree of nodes. Top-level consumer parsers
   comments, whitespace, statements, and flow control blocks.
@@ -578,11 +1030,11 @@ def consume_body(tokens, cmdspec, breakset=None):
       upper = token.spelling.upper()
       if upper in breakset:
         return tree
-      elif FlowType.get(upper) is not None:
-        subtree = consume_flowcontrol(tokens, cmdspec)
+      if FlowType.get(upper) is not None:
+        subtree = consume_flowcontrol(tokens, parse_db)
         blocks.append(subtree)
       else:
-        subtree = consume_statement(tokens, cmdspec)
+        subtree = consume_statement(tokens, parse_db)
         blocks.append(subtree)
     elif token.type == lexer.TokenType.BYTEORDER_MARK:
       tokens.pop(0)
@@ -598,14 +1050,15 @@ def consume_body(tokens, cmdspec, breakset=None):
 # ------------------
 
 
-def parse(tokens, cmdspec=None):
+def parse(tokens, parse_db=None):
   """
   digest tokens, then layout the digested blocks.
   """
-  if cmdspec is None:
-    cmdspec = commands.get_fn_spec()
+  if parse_db is None:
+    from cmake_format import parse_funs
+    parse_db = parse_funs.get_parse_db()
 
-  return consume_body(tokens, cmdspec)
+  return consume_body(tokens, parse_db)
 
 
 def dump_tree(nodes, outfile=None, indent=None):
@@ -643,9 +1096,59 @@ def dump_tree(nodes, outfile=None, indent=None):
       dump_tree(node.children, outfile, indent + '│   ')
 
 
-def tree_string(nodes):
+def dump_tree_upto(nodes, history, outfile=None, indent=None):
+  """
+  Print a tree of node objects for debugging purposes
+  """
+
+  if indent is None:
+    indent = ''
+
+  if outfile is None:
+    outfile = sys.stdout
+
+  for idx, node in enumerate(nodes):
+    outfile.write(indent)
+    if idx + 1 == len(nodes):
+      outfile.write('└─ ')
+    else:
+      outfile.write('├─ ')
+
+    if history[0] is node:
+      # ANSI red
+      outfile.write("\u001b[31m")
+      if sys.version_info[0] < 3:
+        outfile.write(repr(node).decode('utf-8'))
+      else:
+        outfile.write(repr(node))
+      # ANSI reset
+      outfile.write("\u001b[0m")
+    else:
+      if sys.version_info[0] < 3:
+        outfile.write(repr(node).decode('utf-8'))
+      else:
+        outfile.write(repr(node))
+    outfile.write('\n')
+
+    if not hasattr(node, 'children'):
+      continue
+
+    subhistory = history[1:]
+    if not subhistory:
+      continue
+
+    if idx + 1 == len(nodes):
+      dump_tree_upto(node.children, subhistory, outfile, indent + '    ')
+    else:
+      dump_tree_upto(node.children, subhistory, outfile, indent + '│   ')
+
+
+def tree_string(nodes, history=None):
   outfile = io.StringIO()
-  dump_tree(nodes, outfile)
+  if history:
+    dump_tree_upto(nodes, history, outfile)
+  else:
+    dump_tree(nodes, outfile)
   return outfile.getvalue()
 
 
@@ -660,10 +1163,12 @@ def has_nontoken_children(node):
   return False
 
 
-def dump_tree_for_test(nodes, outfile=None, indent=None):
+def dump_tree_for_test(nodes, outfile=None, indent=None, increment=None):
   """
   Print a tree of node objects for debugging purposes
   """
+  if increment is None:
+    increment = '    '
 
   if indent is None:
     indent = ''
@@ -678,14 +1183,19 @@ def dump_tree_for_test(nodes, outfile=None, indent=None):
     outfile.write('({}, ['.format(node.node_type))
     if has_nontoken_children(node):
       outfile.write('\n')
-      dump_tree_for_test(node.children, outfile, indent + '    ')
+      dump_tree_for_test(node.children, outfile, indent + increment, increment)
       outfile.write(indent)
     outfile.write(']),\n')
 
 
-def test_string(nodes):
+def test_string(nodes, indent=None, increment=None):
+  if indent is None:
+    indent = ' ' * 10
+  if increment is None:
+    increment = '    '
+
   outfile = io.StringIO()
-  dump_tree_for_test(nodes, outfile, indent=(' ' * 10))
+  dump_tree_for_test(nodes, outfile, indent, increment)
   return outfile.getvalue()
 
 

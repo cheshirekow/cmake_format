@@ -60,6 +60,14 @@ cmake\_format\.markup module
     :undoc-members:
     :show-inheritance:
 
+cmake\_format\.parse_funs module
+----------------------------
+
+.. automodule:: cmake_format.parse_funs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cmake\_format\.parser module
 ----------------------------
 
@@ -68,3 +76,10 @@ cmake\_format\.parser module
     :undoc-members:
     :show-inheritance:
 
+cmake\_format\.render module
+----------------------------
+
+.. automodule:: cmake_format.render
+    :members:
+    :undoc-members:
+    :show-inheritance:

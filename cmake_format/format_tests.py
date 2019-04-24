@@ -11,6 +11,7 @@ import unittest
 
 from cmake_format import __main__
 from cmake_format import configuration
+from cmake_format import parse_funs
 
 
 def strip_indent(content, indent=6):
@@ -33,6 +34,7 @@ class TestCanonicalFormatting(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestCanonicalFormatting, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
+    self.parse_db = parse_funs.get_parse_db()
 
   def setUp(self):
     self.config.fn_spec.add(
@@ -43,6 +45,8 @@ class TestCanonicalFormatting(unittest.TestCase):
             "SOURCES": '*',
             "DEPENDS": '*'
         })
+    self.parse_db.update(
+        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
   def tearDown(self):
     pass
@@ -62,8 +66,8 @@ class TestCanonicalFormatting(unittest.TestCase):
     outfile = io.StringIO()
 
     __main__.process_file(self.config, infile, outfile)
-    delta_lines = list(difflib.unified_diff(outfile.getvalue().split('\n'),
-                                            output_str.split('\n')))
+    delta_lines = list(difflib.unified_diff(output_str.split('\n'),
+                                            outfile.getvalue().split('\n')))
     delta = '\n'.join(delta_lines[2:])
 
     if outfile.getvalue() != output_str:
@@ -78,6 +82,12 @@ class TestCanonicalFormatting(unittest.TestCase):
       if sys.version_info[0] < 3:
         message = message.encode('utf-8')
       raise AssertionError(message)
+
+
+class TestSomeExamples(TestCanonicalFormatting):
+  """
+  Given a bunch of example inputs, ensure that the output is as expected.
+  """
 
   def test_collapse_additional_newlines(self):
     self.do_format_test("""\
@@ -105,6 +115,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_comment_before_command(self):
+    self.config.max_subargs_per_line = 6
     self.do_format_test("""\
       # This comment should remain right before the command call.
       # Furthermore, the command call should be formatted
@@ -123,10 +134,8 @@ class TestCanonicalFormatting(unittest.TestCase):
       set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
       """, """\
       # This very long command should be split to multiple lines
-      set(HEADERS
-          very_long_header_name_a.h
-          very_long_header_name_b.h
-          very_long_header_name_c.h)
+      set(HEADERS very_long_header_name_a.h very_long_header_name_b.h
+                  very_long_header_name_c.h)
       """)
 
   def test_lots_of_args_command_split(self):
@@ -267,6 +276,7 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_complex_nested_stuff(self):
+    self.config.autosort = False
     self.do_format_test("""\
       if(foo)
       if(sbar)
@@ -397,19 +407,6 @@ class TestCanonicalFormatting(unittest.TestCase):
                               # takes mutiple lines to explain
       """)
 
-  def test_nested_parens(self):
-    self.do_format_test("""\
-      if((NOT HELLO) OR (NOT EXISTS ${WORLD}))
-        message(WARNING "something is wrong")
-        set(foobar FALSE)
-      endif()
-      """, """\
-      if((NOT HELLO) OR (NOT EXISTS ${WORLD}))
-        message(WARNING "something is wrong")
-        set(foobar FALSE)
-      endif()
-      """)
-
   def test_function_def(self):
     self.do_format_test("""\
       function(forbarbaz arg1)
@@ -433,23 +430,26 @@ class TestCanonicalFormatting(unittest.TestCase):
       """)
 
   def test_foreach(self):
+    self.config.max_subargs_per_line = 6
     self.do_format_test("""\
-      foreach(forbarbaz arg1 arg2, arg3)
+      foreach(forbarbaz arg1 arg2 arg3)
         message(hello ${foobarbaz})
       endforeach()
       """, """\
-      foreach(forbarbaz arg1 arg2, arg3)
+      foreach(forbarbaz arg1 arg2 arg3)
         message(hello ${foobarbaz})
       endforeach()
       """)
 
   def test_while(self):
+    self.config.max_subargs_per_line = 6
     self.do_format_test("""\
-      while(forbarbaz arg1 arg2, arg3)
+
+      while(forbarbaz arg1 arg2 arg3)
         message(hello ${foobarbaz})
       endwhile()
       """, """\
-      while(forbarbaz arg1 arg2, arg3)
+      while(forbarbaz arg1 arg2 arg3)
         message(hello ${foobarbaz})
       endwhile()
       """)
@@ -730,9 +730,8 @@ class TestCanonicalFormatting(unittest.TestCase):
     self.do_format_test("""\
       some_long_command_name(longargname longargname longargname longargname longargname)
     """, """\
-      some_long_command_name(
-        longargname longargname longargname longargname longargname
-      )
+      some_long_command_name(longargname longargname longargname longargname
+                             longargname)
     """)
 
     self.do_format_test("""\
@@ -741,9 +740,8 @@ class TestCanonicalFormatting(unittest.TestCase):
       endif()
     """, """\
       if(foo)
-        some_long_command_name(
-          longargname longargname longargname longargname longargname
-        )
+        some_long_command_name(longargname longargname longargname longargname
+                               longargname)
       endif()
     """)
 
@@ -874,40 +872,26 @@ class TestCanonicalFormatting(unittest.TestCase):
       FoO(bar baz)
       """)
 
-  def test_component(self):
-    self.do_format_test("""\
-      install(TARGETS ${PROJECT_NAME}
-              EXPORT ${CMAKE_PROJECT_NAME}Targets
-              ARCHIVE DESTINATION lib COMPONENT install-app
-              LIBRARY DESTINATION lib COMPONENT install-app
-              RUNTIME DESTINATION bin COMPONENT install-app)
-      """, """\
-      install(TARGETS ${PROJECT_NAME}
-              EXPORT ${CMAKE_PROJECT_NAME}Targets
-              ARCHIVE DESTINATION lib COMPONENT install-app
-              LIBRARY DESTINATION lib COMPONENT install-app
-              RUNTIME DESTINATION bin COMPONENT install-app)
-      """)
-
   def test_comment_in_statement(self):
     self.do_format_test("""\
       add_library(foo
         # This comment is not attached to an argument
-        foo.cc
-        bar.cc)
+        bar.cc
+        foo.cc)
       """, """\
       add_library(foo
                   # This comment is not attached to an argument
-                  foo.cc bar.cc)
+                  bar.cc foo.cc)
       """)
 
   def test_comment_at_end_of_statement(self):
     self.do_format_test("""\
-      add_library(foo foo.cc bar.cc
+      add_library(foo bar.cc foo.cc
                   # This comment is not attached to an argument
                   )
       """, """\
-      add_library(foo foo.cc bar.cc
+      add_library(foo
+                  bar.cc foo.cc
                   # This comment is not attached to an argument
                   )
       """)
@@ -941,45 +925,16 @@ class TestCanonicalFormatting(unittest.TestCase):
 
   def test_comment_in_kwarg(self):
     self.do_format_test("""\
-      install(ARCHIVE DESTINATION foobar
+      install(TARGETS foob
+              ARCHIVE DESTINATION foobar
               # this is a line comment, not a comment on foobar
               COMPONENT baz)
       """, """\
-      install(ARCHIVE DESTINATION foobar
+      install(TARGETS foob
+              ARCHIVE DESTINATION foobar
                       # this is a line comment, not a comment on foobar
                       COMPONENT baz)
       """)
-
-  def test_complicated_boolean(self):
-    self.config.max_subargs_per_line = 10
-    self.do_format_test("""\
-      set(matchme
-          "_DATA_\\|_CMAKE_\\|INTRA_PRED\\|_COMPILED\\|_HOSTING\\|_PERF_\\|CODER_")
-      if (("${var}" MATCHES "_TEST_" AND NOT
-            "${var}" MATCHES
-            "${matchme}")
-          OR (CONFIG_AV1_ENCODER AND CONFIG_ENCODE_PERF_TESTS AND
-              "${var}" MATCHES "_ENCODE_PERF_TEST_")
-          OR (CONFIG_AV1_DECODER AND CONFIG_DECODE_PERF_TESTS AND
-              "${var}" MATCHES "_DECODE_PERF_TEST_")
-          OR (CONFIG_AV1_ENCODER AND "${var}" MATCHES "_TEST_ENCODER_")
-          OR (CONFIG_AV1_DECODER AND  "${var}" MATCHES "_TEST_DECODER_"))
-        list(APPEND aom_test_source_vars ${var})
-      endif ()
-    """, """\
-      set(matchme "_DATA_\\|_CMAKE_\\|INTRA_PRED\\|_COMPILED\\|_HOSTING\\|_PERF_\\|CODER_")
-      if(("${var}" MATCHES "_TEST_" AND NOT "${var}" MATCHES "${matchme}")
-         OR (CONFIG_AV1_ENCODER
-             AND CONFIG_ENCODE_PERF_TESTS
-             AND "${var}" MATCHES "_ENCODE_PERF_TEST_")
-         OR (CONFIG_AV1_DECODER
-             AND CONFIG_DECODE_PERF_TESTS
-             AND "${var}" MATCHES "_DECODE_PERF_TEST_")
-         OR (CONFIG_AV1_ENCODER AND "${var}" MATCHES "_TEST_ENCODER_")
-         OR (CONFIG_AV1_DECODER AND "${var}" MATCHES "_TEST_DECODER_"))
-        list(APPEND aom_test_source_vars ${var})
-      endif()
-    """)
 
   def test_algoorder_preference(self):
     self.config.max_subargs_per_line = 10
@@ -991,7 +946,7 @@ class TestCanonicalFormatting(unittest.TestCase):
                              longargument longargument)
       """)
 
-    self.config.algorithm_order = [0, 2]
+    self.config.algorithm_order = [0, 3]
     self.do_format_test("""\
       some_long_command_name(longargument longargument longargument longargument
         longargument longargument)
@@ -1105,14 +1060,6 @@ class TestCanonicalFormatting(unittest.TestCase):
 
   def test_kwarg_match_consumes(self):
     self.do_format_test("""\
-      install(TARGETS myprog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
-    """, """\
-      install(TARGETS myprog
-              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT
-              runtime)
-    """)
-
-    self.do_format_test("""\
       add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
     """, """\
       add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
@@ -1203,8 +1150,132 @@ class TestCanonicalFormatting(unittest.TestCase):
           ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
     """, """\
       set(cubepp_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/AppDelegate.h
-          ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
+                      ${CMAKE_CURRENT_SOURCE_DIR}/macOS/cubepp/DemoViewController.h)
     """)
+
+  def test_rulers_preserved_without_markup(self):
+    self.config.enable_markup = False
+    self.do_format_test("""
+      #########################################################################
+      # Custom targets
+      #########################################################################
+    """, """\
+      #########################################################################
+      # Custom targets
+      #########################################################################
+    """)
+
+  def test_canonical_spelling(self):
+    self.do_format_test("""\
+      ExternalProject_Add(
+        foobar
+        URL https://foobar.baz/latest.tar.gz
+        TLS_VERIFY TRUE
+        CONFIGURE_COMMAND configure
+        BUILD_COMMAND make
+        INSTALL_COMMAND make install)
+    """, """
+      ExternalProject_Add(foobar
+                          URL https://foobar.baz/latest.tar.gz
+                          TLS_VERIFY TRUE
+                          CONFIGURE_COMMAND configure
+                          BUILD_COMMAND make
+                          INSTALL_COMMAND make install)
+    """[1:])
+
+  def test_comment_hashrulers(self):
+    self.config.line_width = 74
+    self.do_format_test("""
+      ##################
+      # This comment has a long block before it.
+      #############
+    """, """\
+      # ########################################################################
+      # This comment has a long block before it.
+      # ########################################################################
+    """)
+    self.do_format_test("""
+      ###############################################
+      # This is a section in the CMakeLists.txt file.
+      ############
+      # This stuff below here
+      #     should get re-flowed like
+      # normal comments.  Across multiple
+      #lines and
+      #             beyond.
+    """, """\
+      # ########################################################################
+      # This is a section in the CMakeLists.txt file.
+      # ########################################################################
+      # This stuff below here should get re-flowed like normal comments.  Across
+      # multiple lines and beyond.
+    """)
+
+    # verify the original behavior is as described (they truncate to one #)
+    self.config.hashruler_min_length = 1000
+    self.do_format_test("""
+      ##########################################################################
+      # This comment has a long block before it.
+      ##########################################################################
+    """, """\
+      #
+      # This comment has a long block before it.
+      #
+    """)
+    self.do_format_test("""
+      ##########################################################################
+      # This is a section in the CMakeLists.txt file.
+      ##########################################################################
+      # This stuff below here
+      #     should get re-flowed like
+      # normal comments.  Across multiple
+      #lines and
+      #             beyond.
+    """, """\
+      #
+      # This is a section in the CMakeLists.txt file.
+      #
+      # This stuff below here should get re-flowed like normal comments.  Across
+      # multiple lines and beyond.
+    """)
+
+    # make sure changing hashruler_min_length works correctly
+    # self.config.enable_markup = False
+    for min_width in {3, 5, 7, 9}:
+      self.config.hashruler_min_length = min_width
+
+      # NOTE(josh): these tests use short rulers that wont be picked up by
+      # the default pattern
+      self.config.ruler_pattern = (r'#{%d}#*' % (min_width - 1))
+
+      just_shy = '#' * (min_width - 1)
+      just_right = '#' * min_width
+      longer = '#' * (min_width + 2)
+      full_line = '#' * (self.config.line_width - 2)
+
+      self.do_format_test("""
+      # A comment: min_width={min_width}, just_shy
+      {just_shy}
+      """.format(min_width=min_width, just_shy=just_shy), """\
+      # A comment: min_width={min_width}, just_shy
+      #
+      """.format(min_width=min_width))
+
+      self.do_format_test("""
+      # A comment: min_width={min_width}, just_right
+      {just_right}
+      """.format(min_width=min_width, just_right=just_right), """\
+      # A comment: min_width={min_width}, just_right
+      # {full_line}
+      """.format(min_width=min_width, full_line=full_line))
+
+      self.do_format_test("""
+      # A comment: min_width={min_width}, longer
+      {longer}
+      """.format(min_width=min_width, longer=longer), """\
+      # A comment: min_width={min_width}, longer
+      # {full_line}
+      """.format(min_width=min_width, full_line=full_line))
 
 
 if __name__ == '__main__':

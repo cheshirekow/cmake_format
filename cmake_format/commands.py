@@ -37,6 +37,31 @@ CONDITIONAL_FLAGS = [
     "VERSION_LESS",
 ]
 
+CANONICAL_SPELLINGS = {
+    "FetchContent_Declare",
+    "FetchContent_MakeAvailable",
+    "FetchContent_GetProperties",
+    "FetchContent_Populate",
+    "ExternalProject_Add",
+    "ExternalProject_Add_Step",
+    "ExternalProject_Add_StepDependencies",
+    "ExternalProject_Add_StepTargets",
+    "ExternalProject_Get_Property",
+}
+
+
+def get_default_config():
+  """
+  Return the default per-command configuration database
+  """
+  per_command = {}
+  for spelling in CANONICAL_SPELLINGS:
+    per_command[spelling.lower()] = {
+        "spelling": spelling
+    }
+
+  return per_command
+
 
 def make_conditional_spec(name=None):
   if name is None:
@@ -64,11 +89,17 @@ class CommandSpec(dict):
     if pargs is None:
       pargs = ZERO_OR_MORE
 
+    if flags is None:
+      flags = []
+
     self.name = name
     self.pargs = pargs
-    if flags is not None:
-      for flagname in flags:
-        self[flagname] = 0
+
+    for flagname in flags:
+      self[flagname] = 0
+
+    self.flags = list(flags)
+
     if kwargs is not None:
       if isinstance(kwargs, dict):
         items = kwargs.items()
@@ -101,10 +132,10 @@ class CommandSpec(dict):
                      .format(key, type(subspec)))
 
   def add(self, name, pargs=None, flags=None, kwargs=None):
-    self[name] = CommandSpec(name, pargs, flags, kwargs)
+    self[name.lower()] = CommandSpec(name, pargs, flags, kwargs)
 
   def add_conditional(self, name):
-    self[name] = make_conditional_spec(name)
+    self[name.lower()] = make_conditional_spec(name)
 
 
 def get_fn_spec():
@@ -114,22 +145,6 @@ def get_fn_spec():
   """
 
   fn_spec = CommandSpec('<root>')
-  fn_spec.add(
-      "add_custom_command",
-      flags=["APPEND", "VERBATIM",
-             "PRE_BUILD", "PRE_LINK", "POST_BUILD"],
-      kwargs={
-          "COMMAND": dict(
-              pargs=ONE_OR_MORE,
-              kwargs=[('ARGS', ZERO_OR_MORE)]
-          ),
-          "COMMENT": ZERO_OR_MORE,
-          "DEPENDS": ZERO_OR_MORE,
-          "IMPLICIT_DEPENDS": ZERO_OR_MORE,
-          "MAIN_DEPENDENCY": 1,
-          "OUTPUT": ONE_OR_MORE,
-          "WORKING_DIRECTORY": 1,
-      })
 
   fn_spec.add(
       "add_custom_target",
@@ -144,17 +159,6 @@ def get_fn_spec():
           "SOURCES": ZERO_OR_MORE,
           "WORKING_DIRECTORY": 1
       })  # pylint: disable=bad-continuation
-
-  fn_spec.add(
-      "add_executable",
-      flags=["EXCLUDE_FROM_ALL", "MACOSX_BUNDLE",
-             "WIN32"],
-      kwargs={})
-
-  fn_spec.add(
-      "add_library",
-      flags=["EXCLUDE_FROM_ALL", "MODULE", "SHARED", "STATIC"],
-      kwargs={})
 
   fn_spec.add(
       "add_test",
@@ -233,52 +237,6 @@ def get_fn_spec():
           "NAMESPACE": 1,
           "PACKAGE": 1,
           "TARGETS": ONE_OR_MORE
-      })
-
-  fn_spec.add(
-      "file",
-      flags=["FOLLOW_SYMLINKS", "GENERATE", "HEX", "NEWLINE_CONSUME",
-             "NO_HEX_CONVERSION", "SHOW_PROGRESS", "UTC"],
-      kwargs={
-          "APPEND": ZERO_OR_MORE,
-          "DOWNLOAD": ZERO_OR_MORE,
-          "EXPECTED_HASH": ZERO_OR_MORE,
-          "EXPECTED_MD5": ZERO_OR_MORE,
-          "GLOB": ZERO_OR_MORE,
-          "GLOB_RECURSE": ZERO_OR_MORE,
-          "INACTIVITY_TIMEOUT": ZERO_OR_MORE,
-          "LENGTH_MAXIMUM": ZERO_OR_MORE,
-          "LENGTH_MINIMUM": ZERO_OR_MORE,
-          "LIMIT": ZERO_OR_MORE,
-          "LIMIT_COUNT": ZERO_OR_MORE,
-          "LIMIT_INPUT": ZERO_OR_MORE,
-          "LIMIT_OUTPUT": ZERO_OR_MORE,
-          "LOG": ZERO_OR_MORE,
-          "MAKE_DIRECTORY": ZERO_OR_MORE,
-          "MD5": ZERO_OR_MORE,
-          "OFFSET": ZERO_OR_MORE,
-          "OUTPUTINPUTCONTENTCONDITION": ZERO_OR_MORE,
-          "READ": ZERO_OR_MORE,
-          "REGEX": ZERO_OR_MORE,
-          "RELATIVE": ZERO_OR_MORE,
-          "RELATIVE_PATH": ZERO_OR_MORE,
-          "REMOVE": ZERO_OR_MORE,
-          "REMOVE_RECURSE": ZERO_OR_MORE,
-          "RENAME": ZERO_OR_MORE,
-          "SHA1": ZERO_OR_MORE,
-          "SHA256": ZERO_OR_MORE,
-          "SHA384": ZERO_OR_MORE,
-          "SHA512": ZERO_OR_MORE,
-          "STATUS": ZERO_OR_MORE,
-          "STRINGS": ZERO_OR_MORE,
-          "TIMEOUT": ZERO_OR_MORE,
-          "TIMESTAMP": ZERO_OR_MORE,
-          "TLS_CAINFO": ZERO_OR_MORE,
-          "TLS_VERIFY": ZERO_OR_MORE,
-          "TO_CMAKE_PATH": ZERO_OR_MORE,
-          "TO_NATIVE_PATH": ZERO_OR_MORE,
-          "UPLOAD": ZERO_OR_MORE,
-          "WRITE": ZERO_OR_MORE
       })
 
   fn_spec.add(
@@ -377,56 +335,6 @@ def get_fn_spec():
       "include_directories",
       flags=["AFTER", "BEFORE", "SYSTEM"], kwargs={})
 
-  subspec = dict(
-      pargs=ONE_OR_MORE,
-      flags=[
-          'OPTIONAL',
-          'NAMELINK_ONLY',
-          'NAMELINK_SKIP'
-      ],
-      kwargs={
-          'DESTINATION': 1,
-          'COMPONENT': 1,
-          'CONFIGURATIONS': ONE_OR_MORE,
-          'PERMISSIONS': ONE_OR_MORE,
-      }
-  )
-
-  fn_spec.add(
-      "install",
-      flags=["MESSAGE_NEVER",
-             "NAMELINK_ONLY",
-             "NAMELINK_SKIP",
-             "OPTIONAL",
-             "USE_SOURCE_PERMISSIONS"],
-      kwargs={
-          "ARCHIVE": subspec,
-          "BUNDLE": subspec,
-          'COMPONENT': 1,
-          'CONFIGURATIONS': ONE_OR_MORE,
-          "DESTINATION": 1,
-          "DIRECTORY": ZERO_OR_MORE,
-          "DIRECTORY_PERMISSIONS": ZERO_OR_MORE,
-          "EXCLUDE": ONE_OR_MORE,
-          "EXPORT": 1,
-          "FILES": ZERO_OR_MORE,
-          "FILES_MATCHING": ZERO_OR_MORE,
-          "FILE_PERMISSIONS": ZERO_OR_MORE,
-          "FRAMEWORK": subspec,
-          "INCLUDES": ZERO_OR_MORE,
-          "INCLUDESPERMISSIONS": ZERO_OR_MORE,
-          "LIBRARY": subspec,
-          "NAMESPACE": 1,
-          "PATTERN": ZERO_OR_MORE,
-          "PRIVATE_HEADER": subspec,
-          "PROGRAMS": ZERO_OR_MORE,
-          "PUBLIC_HEADER": subspec,
-          "RENAME": ZERO_OR_MORE,
-          "RESOURCE": subspec,
-          "RUNTIME": subspec,
-          "TARGETS": ZERO_OR_MORE
-      })
-
   fn_spec.add(
       "list", flags=[], kwargs={
           "APPEND": ZERO_OR_MORE,
@@ -456,13 +364,10 @@ def get_fn_spec():
 
   fn_spec.add(
       "project", flags=[], kwargs={
+          "DESCRIPTION": 1,
+          "HOMEPAGE_URL": 1,
           "LANGUAGES": ZERO_OR_MORE,
-          "VERSION": ZERO_OR_MORE
-      })
-
-  fn_spec.add(
-      "set", flags=["FORCE", "PARENT_SCOPE"], kwargs={
-          "CACHE": ZERO_OR_MORE
+          "VERSION": ZERO_OR_MORE,
       })
 
   fn_spec.add(
@@ -562,9 +467,9 @@ def get_fn_spec():
           "RUN_OUTPUT_VARIABLE": ZERO_OR_MORE
       })
 
-  fn_spec.add_conditional("if")
-  fn_spec.add_conditional("elseif")
-  fn_spec.add_conditional("while")
+  # fn_spec.add_conditional("if")
+  # fn_spec.add_conditional("elseif")
+  # fn_spec.add_conditional("while")
 
   # TODO(josh): should this be user-enabled? Maybe some kind of plugin/extension
   # system?

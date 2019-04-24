@@ -5,17 +5,56 @@ Release Notes
 Details of changes can be found in the changelog, but this file will contain
 some high level notes and highlights from each release.
 
-v0.4
-====
+v0.5 series
+===========
+
+------
+v0.5.0
+------
+
+* Overhauled the parser logic enabling arbitrary implementations of statement
+  parsers. The generic statement parser is now implemented by the
+  ``standard_parse`` function (or the ``StandardParser`` functor, which is used
+  to load legacy ``additional_commands``).
+* New custom parser logic for deep cmake statements such as:
+
+  * ``install``
+  * ``file``
+  * ``ExternalProject_XXX``
+  * ``FetchContent_XXX``
+
+* ``cmake-format`` can now sort your argument lists for you (such as lists
+  of files). This enabled with the ``autosort`` config option. Some argument
+  lists are inherently sortable (e.g. the list of sources supplied to
+  ``add_library`` or ``add_executable``). Other commands (e.g. ``set()`` which
+  cannot be inferred sortable can be explicitly tagged using a comment at the
+  beginning of the list. See the README for more information.
+* A consequence of the above is that the parse tree for ``set()`` has changed,
+  and so it's default formatting in many cases has also changed. You can
+  restore the old behavior by adding the following to your config::
+
+      additional_commands = {
+        "set": {
+          "flags": ["FORCE", "PARENT_SCOPE"],
+          "kwargs": {
+            "CACHE": "*"
+          }
+        }
+      }
+
+* The default command case has changed from ``lower`` to ``canonical``
+  (which is a new option). In most cases this is the same as ``lower`` but for
+  some standard, non-builtin commands the canonical spelling is
+  CamelCase (i.e. ``ExternalProject_Add``).
+* There is a new ``cmake-annotate`` program distributed with the package. It
+  can generate semantic HTML renderings of your listfiles (see the
+  documentation for details).
+
+v0.4 series
+===========
 
 ------
 v0.4.5
-------
-
-* Add travis CI configuration for public github repo
-
-------
-v0.4.4
 ------
 
 * Add travis CI configuration for public github repo

@@ -56,4 +56,3 @@ if(NOT IS_TRAVIS_CI)
 endif()
 
 add_subdirectory(doc)
-add_subdirectory(test)

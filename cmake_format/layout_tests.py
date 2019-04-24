@@ -8,6 +8,7 @@ from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import lexer
 from cmake_format import parser
+from cmake_format import parse_funs
 from cmake_format import formatter
 from cmake_format.parser import NodeType
 from cmake_format.formatter import WrapAlgo
@@ -96,6 +97,7 @@ class TestCanonicalLayout(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestCanonicalLayout, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
+    self.parse_db = parse_funs.get_parse_db()
 
   def setUp(self):
     self.config.fn_spec.add(
@@ -106,6 +108,9 @@ class TestCanonicalLayout(unittest.TestCase):
             "SOURCES": '*',
             "DEPENDS": '*'
         })
+
+    self.parse_db.update(
+        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
   def tearDown(self):
     pass
@@ -118,7 +123,7 @@ class TestCanonicalLayout(unittest.TestCase):
 
     input_str = strip_indent(input_str, strip_len)
     tokens = lexer.tokenize(input_str)
-    parse_tree = parser.parse(tokens, self.config.fn_spec)
+    parse_tree = parser.parse(tokens, self.parse_db)
     box_tree = formatter.layout_tree(parse_tree, self.config)
     assert_tree(self, [box_tree], expect_tree)
 
@@ -132,7 +137,9 @@ class TestCanonicalLayout(unittest.TestCase):
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 22, 23, []),
                   (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 23, 37, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 23, 30, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 31, 37, []),
+                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 31, 37, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 31, 37, []),
+                      ]),
                   ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 0, 37, 38, []),
               ]),
@@ -156,7 +163,9 @@ class TestCanonicalLayout(unittest.TestCase):
                   (NodeType.LPAREN, WrapAlgo.HPACK, 2, 22, 23, []),
                   (NodeType.KWARGGROUP, WrapAlgo.HPACK, 2, 23, 37, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 23, 30, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 31, 37, []),
+                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 31, 37, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 31, 37, []),
+                      ]),
                   ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 2, 37, 38, []),
               ]),
@@ -179,16 +188,20 @@ class TestCanonicalLayout(unittest.TestCase):
       # This very long command should be split to multiple lines
       set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 58, [
+          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 63, [
               (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 58, []),
-              (NodeType.STATEMENT, WrapAlgo.VPACK, 1, 0, 30, [
+              (NodeType.STATEMENT, WrapAlgo.HWRAP, 1, 0, 63, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 3, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 1, 3, 4, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 11, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 4, 29, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 4, 29, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 4, 29, []),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 4, 29, 30, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 4, 11, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 11, []),
+                  ]),
+                  (NodeType.PARGGROUP, WrapAlgo.HWRAP, 1, 12, 63, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 12, 37, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 38, 63, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 12, 37, []),
+                  ]),
+                  (NodeType.RPAREN, WrapAlgo.HPACK, 2, 37, 38, []),
               ]),
           ]),
       ])
@@ -204,7 +217,9 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.KWNVPACK, 2, 0, 70, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 22, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 2, 22, 23, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 2, 69, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 2, 69, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 2, 69, []),
+                  ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 3, 69, 70, []),
               ]),
           ]),
@@ -221,19 +236,24 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 78, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
-                  (NodeType.ARGUMENT, WrapAlgo.VPACK, 2, 4, 78, [
-                      (NodeType.COMMENT, WrapAlgo.HPACK, 2, 15, 78, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 11, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
                   ]),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 4, 14, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 4, 14, []),
+                  (NodeType.PARGGROUP, WrapAlgo.VPACK, 1, 4, 78, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
+                      (NodeType.ARGUMENT, WrapAlgo.VPACK, 2, 4, 78, [
+                          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 15, 78, []),
+                      ]),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 4, 14, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 4, 14, []),
+                  ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 5, 14, 15, []),
               ]),
           ]),
       ])
 
   def test_complex_nested_stuff(self):
+    self.config.autosort = False
     self.do_layout_test("""\
       if(foo)
       if(sbar)
@@ -254,7 +274,9 @@ class TestCanonicalLayout(unittest.TestCase):
         (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 7, [
             (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
             (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-            (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 3, 6, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 3, 6, [
+                (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 3, 6, []),
+            ]),
             (NodeType.RPAREN, WrapAlgo.HPACK, 0, 6, 7, []),
         ]),
         (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 79, [
@@ -262,7 +284,9 @@ class TestCanonicalLayout(unittest.TestCase):
                 (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 10, [
                     (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 4, []),
                     (NodeType.LPAREN, WrapAlgo.HPACK, 1, 4, 5, []),
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 5, 9, []),
+                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 5, 9, [
+                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 5, 9, []),
+                    ]),
                     (NodeType.RPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
                 ]),
                 (NodeType.BODY, WrapAlgo.HPACK, 2, 4, 79, [
@@ -270,21 +294,29 @@ class TestCanonicalLayout(unittest.TestCase):
                     (NodeType.STATEMENT, WrapAlgo.VPACK, 3, 4, 76, [
                         (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 4, 15, []),
                         (NodeType.LPAREN, WrapAlgo.HPACK, 3, 15, 16, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
-                        (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
-                            (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
+                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 16, 27, [
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
                         ]),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),
-                        (NodeType.RPAREN, WrapAlgo.HPACK, 7, 22, 23, []),
-                        (NodeType.COMMENT, WrapAlgo.HPACK, 7, 24, 61, []),
+
+ (NodeType.PARGGROUP, WrapAlgo.VPACK, 4, 16, 76, [
+     (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
+     (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
+         (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
+     ]),
+     (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),
+ ]),
+ (NodeType.RPAREN, WrapAlgo.HPACK, 7, 22, 23, []),
+ (NodeType.COMMENT, WrapAlgo.HPACK, 7, 24, 61, []),
+
                     ]),
                     (NodeType.WHITESPACE, WrapAlgo.HPACK, 8, 4, 0, []),
                     (NodeType.STATEMENT, WrapAlgo.HPACK, 9, 4, 79, [
                         (NodeType.FUNNAME, WrapAlgo.HPACK, 9, 4, 17, []),
                         (NodeType.LPAREN, WrapAlgo.HPACK, 9, 17, 18, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 18, 36, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 37, 55, []),
+                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 18, 55, [
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 18, 36, []),
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 37, 55, []),
+                        ]),
                         (NodeType.RPAREN, WrapAlgo.HPACK, 9, 55, 56, []),
                         (NodeType.COMMENT, WrapAlgo.HPACK, 9, 57, 79, []),
                     ]),
@@ -292,9 +324,11 @@ class TestCanonicalLayout(unittest.TestCase):
                     (NodeType.STATEMENT, WrapAlgo.VPACK, 13, 4, 79, [
                         (NodeType.FUNNAME, WrapAlgo.HPACK, 13, 4, 17, []),
                         (NodeType.LPAREN, WrapAlgo.HPACK, 13, 17, 18, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 18, 36, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 37, 55, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 56, 74, []),
+                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 13, 18, 74, [
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 18, 36, []),
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 37, 55, []),
+                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 56, 74, []),
+                        ]),
                         (NodeType.RPAREN, WrapAlgo.HPACK, 13, 74, 75, []),
                         (NodeType.COMMENT, WrapAlgo.HPACK, 14, 4, 79, []),
                     ]),
@@ -302,6 +336,7 @@ class TestCanonicalLayout(unittest.TestCase):
                 (NodeType.STATEMENT, WrapAlgo.HPACK, 16, 2, 9, [
                     (NodeType.FUNNAME, WrapAlgo.HPACK, 16, 2, 7, []),
                     (NodeType.LPAREN, WrapAlgo.HPACK, 16, 7, 8, []),
+                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 16, 8, 8, []),
                     (NodeType.RPAREN, WrapAlgo.HPACK, 16, 8, 9, []),
                 ]),
             ]),
@@ -309,6 +344,7 @@ class TestCanonicalLayout(unittest.TestCase):
         (NodeType.STATEMENT, WrapAlgo.HPACK, 17, 0, 7, [
             (NodeType.FUNNAME, WrapAlgo.HPACK, 17, 0, 5, []),
             (NodeType.LPAREN, WrapAlgo.HPACK, 17, 5, 6, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 17, 6, 6, []),
             (NodeType.RPAREN, WrapAlgo.HPACK, 17, 6, 7, []),
         ]),
     ]),
@@ -325,29 +361,39 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.VPACK, 1, 0, 26, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 3, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 1, 3, 4, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 15, 25, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 4, 25, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 15, 25, []),
+                  ]),
                   (NodeType.KWARGGROUP, WrapAlgo.VPACK, 2, 4, 15, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 4, 11, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 12, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 12, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 12, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 12, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 6, 12, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 12, 15, []),
+                      (NodeType.PARGGROUP, WrapAlgo.VPACK, 2, 12, 15, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 12, 15, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 12, 15, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 12, 15, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 12, 15, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 6, 12, 15, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 12, 15, []),
+                      ]),
                   ]),
                   (NodeType.KWARGGROUP, WrapAlgo.HPACK, 8, 4, 26, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 8, 4, 11, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 12, 16, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 17, 21, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 22, 26, []),
+                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 8, 12, 26, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 12, 16, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 17, 21, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 22, 26, []),
+                      ]),
                   ]),
                   (NodeType.KWARGGROUP, WrapAlgo.HPACK, 9, 4, 15, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 9, 4, 11, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 12, 15, []),
+                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 12, 15, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 12, 15, []),
+                      ]),
                   ]),
-                  (NodeType.FLAG, WrapAlgo.HPACK, 10, 4, 7, []),
-                  (NodeType.FLAG, WrapAlgo.HPACK, 10, 8, 11, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 10, 4, 11, [
+                      (NodeType.FLAG, WrapAlgo.HPACK, 10, 4, 7, []),
+                      (NodeType.FLAG, WrapAlgo.HPACK, 10, 8, 11, []),
+                  ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 10, 11, 12, []),
               ]),
           ]),
@@ -363,9 +409,11 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 36, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 12, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 13, 21, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 22, 36, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 36, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 12, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 13, 21, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 22, 36, []),
+                  ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 2, 1, 2, []),
               ]),
           ]),
@@ -384,20 +432,32 @@ class TestCanonicalLayout(unittest.TestCase):
         (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 40, [
             (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
             (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-            (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 3, 14, [
+            (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 3, 14, [
                 (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                (NodeType.FLAG, WrapAlgo.HPACK, 0, 4, 7, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 8, 13, []),
+                (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
+                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
+                        (NodeType.FLAG, WrapAlgo.HPACK, 0, 4, 7, []),
+                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 8, 13, []),
+                    ]),
+                ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 0, 13, 14, []),
             ]),
             (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 15, 39, [
                 (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 15, 17, []),
                 (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 18, 39, [
-                    (NodeType.LPAREN, WrapAlgo.HPACK, 0, 18, 19, []),
-                    (NodeType.FLAG, WrapAlgo.HPACK, 0, 19, 22, []),
-                    (NodeType.FLAG, WrapAlgo.HPACK, 0, 23, 29, []),
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 38, []),
-                    (NodeType.RPAREN, WrapAlgo.HPACK, 0, 38, 39, []),
+                    (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 18, 39, [
+                        (NodeType.LPAREN, WrapAlgo.HPACK, 0, 18, 19, []),
+                        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
+                            (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
+
+(NodeType.FLAG, WrapAlgo.HPACK, 0, 19, 22, []),
+(NodeType.FLAG, WrapAlgo.HPACK, 0, 23, 29, []),
+(NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 38, []),
+
+                            ]),
+                        ]),
+                        (NodeType.RPAREN, WrapAlgo.HPACK, 0, 38, 39, []),
+                    ]),
                 ]),
             ]),
             (NodeType.RPAREN, WrapAlgo.HPACK, 0, 39, 40, []),
@@ -408,21 +468,28 @@ class TestCanonicalLayout(unittest.TestCase):
                 (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
                 (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 10, 38, [
                     (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 10, 17, []),
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 18, 38, []),
+                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 18, 38, [
+                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 18, 38, []),
+                    ]),
                 ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 1, 38, 39, []),
             ]),
             (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 2, 19, [
                 (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 2, 5, []),
                 (NodeType.LPAREN, WrapAlgo.HPACK, 2, 5, 6, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 12, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 13, 18, []),
+                (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 6, 12, [
+                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 12, []),
+                ]),
+                (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 13, 18, [
+                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 13, 18, []),
+                ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 2, 18, 19, []),
             ]),
         ]),
         (NodeType.STATEMENT, WrapAlgo.HPACK, 3, 0, 7, [
             (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 0, 5, []),
             (NodeType.LPAREN, WrapAlgo.HPACK, 3, 5, 6, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 6, 6, []),
             (NodeType.RPAREN, WrapAlgo.HPACK, 3, 6, 7, []),
         ]),
     ]),
@@ -437,6 +504,7 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 23, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 11, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 11, 12, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 12, []),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
                   (NodeType.COMMENT, WrapAlgo.HPACK, 0, 14, 23, []),
               ]),
@@ -450,6 +518,7 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 78, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 11, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 0, 11, 12, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 12, []),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
                   (NodeType.COMMENT, WrapAlgo.HPACK, 0, 14, 78, []),
               ]),
@@ -470,7 +539,9 @@ class TestCanonicalLayout(unittest.TestCase):
                 (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
                 (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 2, 74, [
                     (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 2, 13, []),
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 14, 74, []),
+                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 14, 74, [
+                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 14, 74, []),
+                    ]),
                 ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 1, 74, 75, []),
             ]),
@@ -488,7 +559,9 @@ class TestCanonicalLayout(unittest.TestCase):
                 (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
                 (NodeType.KWARGGROUP, WrapAlgo.PNVPACK, 1, 2, 83, [
                     (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 2, 13, []),
-                    (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 2, 4, 83, []),
+                    (NodeType.PARGGROUP, WrapAlgo.PNVPACK, 2, 4, 83, [
+                        (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 2, 4, 83, []),
+                    ]),
                 ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 3, 2, 3, []),
                 (NodeType.COMMENT, WrapAlgo.HPACK, 3, 4, 48, []),
@@ -505,7 +578,9 @@ class TestCanonicalLayout(unittest.TestCase):
             (NodeType.STATEMENT, WrapAlgo.PNVPACK, 0, 0, 93, [
                 (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 7, []),
                 (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
-                (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 1, 2, 93, []),
+                (NodeType.PARGGROUP, WrapAlgo.PNVPACK, 1, 2, 93, [
+                    (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 1, 2, 93, []),
+                ]),
                 (NodeType.RPAREN, WrapAlgo.HPACK, 2, 2, 3, []),
                 (NodeType.COMMENT, WrapAlgo.HPACK, 2, 4, 48, []),
             ]),
@@ -522,13 +597,17 @@ class TestCanonicalLayout(unittest.TestCase):
               (NodeType.STATEMENT, WrapAlgo.VPACK, 1, 0, 74, [
                   (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 21, []),
                   (NodeType.LPAREN, WrapAlgo.HPACK, 1, 21, 22, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 22, 25, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 26, 29, []),
-                  (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 30, 33, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 22, 33, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 22, 25, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 26, 29, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 30, 33, []),
+                  ]),
                   (NodeType.KWARGGROUP, WrapAlgo.HPACK, 2, 22, 73, [
                       (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 22, 32, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 33, 46, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 47, 73, []),
+                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 33, 73, [
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 33, 46, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 47, 73, []),
+                      ]),
                   ]),
                   (NodeType.RPAREN, WrapAlgo.HPACK, 2, 73, 74, []),
               ]),
@@ -541,34 +620,94 @@ class TestCanonicalLayout(unittest.TestCase):
         message(hello ${foobarbaz})
       endwhile()
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 32, [
-              (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 32, [
-                  (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 32, [
-                      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 5, []),
-                      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 5, 6, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 6, 15, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 16, 20, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 21, 26, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 27, 31, []),
-                      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 31, 32, []),
+# pylint: disable=bad-continuation
+(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 29, [
+    (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 29, [
+        (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 15, [
+            (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 5, []),
+            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 5, 6, []),
+            (NodeType.PARGGROUP, WrapAlgo.VPACK, 0, 6, 15, [
+                (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 6, 15, []),
+                (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 6, 10, []),
+                (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 11, []),
+                (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 6, 10, []),
+            ]),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 3, 10, 11, []),
+        ]),
+        (NodeType.BODY, WrapAlgo.HPACK, 4, 2, 29, [
+            (NodeType.STATEMENT, WrapAlgo.HPACK, 4, 2, 29, [
+                (NodeType.FUNNAME, WrapAlgo.HPACK, 4, 2, 9, []),
+                (NodeType.LPAREN, WrapAlgo.HPACK, 4, 9, 10, []),
+                (NodeType.PARGGROUP, WrapAlgo.HPACK, 4, 10, 28, [
+                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 10, 15, []),
+                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 28, []),
+                ]),
+                (NodeType.RPAREN, WrapAlgo.HPACK, 4, 28, 29, []),
+            ]),
+        ]),
+        (NodeType.STATEMENT, WrapAlgo.HPACK, 5, 0, 10, [
+            (NodeType.FUNNAME, WrapAlgo.HPACK, 5, 0, 8, []),
+            (NodeType.LPAREN, WrapAlgo.HPACK, 5, 8, 9, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 5, 9, 9, []),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 5, 9, 10, []),
+        ]),
+    ]),
+]),
+      ])
+
+  def test_keyword_comment(self):
+    self.do_layout_test("""\
+      find_package(package REQUIRED
+                   COMPONENTS # --------------------------------------
+                              # @TODO: This has to be filled manually
+                              # --------------------------------------
+                              this_is_a_really_long_word_foo)
+      """, [
+          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 64, [
+              (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 64, [
+                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 12, []),
+                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 13, 29, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 13, 20, []),
+                      (NodeType.FLAG, WrapAlgo.HPACK, 0, 21, 29, []),
                   ]),
-                  (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 29, [
-                      (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 29, [
-                          (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
-                          (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 10, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 16, 28, []),
-                          (NodeType.RPAREN, WrapAlgo.HPACK, 1, 28, 29, []),
+                  (NodeType.KWARGGROUP, WrapAlgo.VPACK, 1, 13, 64, [
+                      (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 13, 23, []),
+                      (NodeType.PARGGROUP, WrapAlgo.VPACK, 1, 24, 64, [
+                          (NodeType.COMMENT, WrapAlgo.HPACK, 1, 24, 64, []),
+                          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 24, 63, []),
+                          (NodeType.COMMENT, WrapAlgo.HPACK, 3, 24, 64, []),
+                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 24, 54, []),
                       ]),
                   ]),
-                  (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 0, 10, [
-                      (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 8, []),
-                      (NodeType.LPAREN, WrapAlgo.HPACK, 2, 8, 9, []),
-                      (NodeType.RPAREN, WrapAlgo.HPACK, 2, 9, 10, []),
-                  ]),
+                  (NodeType.RPAREN, WrapAlgo.HPACK, 4, 54, 55, []),
               ]),
           ]),
       ])
+
+  def test_sortable_set(self):
+    self.config.max_subargs_per_line = 6
+    self.do_layout_test("""\
+      set(SOURCES #[[cmf:sortable]] foo.cc bar.cc baz.cc)
+      """, [
+          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 51, [
+              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 51, [
+                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
+                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 11, [
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
+                  ]),
+                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 50, [
+                      (NodeType.COMMENT, WrapAlgo.HPACK, 0, 12, 29, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 36, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 37, 43, []),
+                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 44, 50, []),
+                  ]),
+                  (NodeType.RPAREN, WrapAlgo.HPACK, 0, 50, 51, []),
+              ]),
+          ]),
+      ])
+
 
 if __name__ == '__main__':
   format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'

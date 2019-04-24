@@ -15,9 +15,9 @@ separate_fn_name_with_space = False
 
 # Additional FLAGS and KWARGS for custom commands
 additional_commands = {
-  "foo" : {
-    "flags" : ["BAR", "BAZ"],
-    "kwargs" : {
+  "foo": {
+    "flags": ["BAR", "BAZ"],
+    "kwargs": {
       "HEADERS": '*',
       "SOURCES": '*',
       "DEPENDS": '*',
