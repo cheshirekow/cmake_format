@@ -1489,7 +1489,7 @@ def dump_tree_for_test(nodes, outfile=None, indent=None, increment=None):
     indent = ''
 
   if increment is None:
-    increment = '    '
+    increment = '  '
 
   if outfile is None:
     outfile = sys.stdout
@@ -1509,9 +1509,9 @@ def dump_tree_for_test(nodes, outfile=None, indent=None, increment=None):
 
 def test_string(nodes, indent=None, increment=None):
   if indent is None:
-    indent = ' ' * 10
+    indent = ' ' * 0
   if increment is None:
-    increment = ' ' * 4
+    increment = ' ' * 2
 
   outfile = io.StringIO()
   dump_tree_for_test(nodes, outfile, indent, increment)

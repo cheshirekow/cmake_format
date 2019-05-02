@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 
+
 def format_directive(content, codetag):
   outlines = [".. code:: {}".format(codetag), ""]
   for line in content.split("\n"):
@@ -18,34 +19,18 @@ def format_directive(content, codetag):
   outlines.append("")
   return "\n".join(outlines)
 
-def main():
-  docdir = os.path.dirname(os.path.realpath(__file__))
-  projectdir = os.path.dirname(docdir)
-  os.chdir(projectdir)
-  env = os.environ.copy()
-  env["PYTHONPATH"] = os.path.dirname(projectdir)
 
-  dynamic_text = {}
-  dynamic_text["usage"] = format_directive(
-      subprocess.check_output(
-          [sys.executable, "-Bm", "cmake_format", "--help"], env=env
-          ).decode("utf-8"),
-      "text")
-  dynamic_text["configuration"] = format_directive(
-      subprocess.check_output(
-          [sys.executable, "-Bm", "cmake_format", "--dump-config"], env=env
-          ).decode("utf-8"),
-      "text")
-
-  with open("test/test_in.cmake") as infile:
-    dynamic_text["example-in"] = format_directive(infile.read(), "cmake")
-  with open("test/test_out.cmake") as infile:
-    dynamic_text["example-out"] = format_directive(infile.read(), "cmake")
-
+def process_file(filepath, dynamic_text):
+  """
+  Create a copy of the file replacing any dynamic sections with updated
+  text. Then replace the original with the updated copy.
+  """
   tag_pattern = re.compile("^.. tag: (.*)-(begin|end)$")
   active_section = None
-  with open("doc/README.rst", "r") as infile:
-    with open("doc/README.rst.next", "w") as outfile:
+
+  nextpath = filepath + ".next"
+  with open(filepath, "r") as infile:
+    with open(nextpath, "w") as outfile:
       for line in infile:
         match = tag_pattern.match(line.strip())
         if active_section is None:
@@ -63,7 +48,45 @@ def main():
           else:
             raise RuntimeError("Unexpected tag")
 
-  os.rename("doc/README.rst.next", "doc/README.rst")
+  os.rename(nextpath, filepath)
+
+
+def main():
+  docdir = os.path.dirname(os.path.realpath(__file__))
+  projectdir = os.path.dirname(docdir)
+  os.chdir(projectdir)
+  env = os.environ.copy()
+  env["PYTHONPATH"] = os.path.dirname(projectdir)
+
+  dynamic_text = {}
+  dynamic_text["usage"] = format_directive(
+      subprocess.check_output(
+          [sys.executable, "-Bm", "cmake_format", "--help"], env=env
+      ).decode("utf-8"),
+      "text")
+  dynamic_text["configuration"] = format_directive(
+      subprocess.check_output(
+          [sys.executable, "-Bm", "cmake_format", "--dump-config"], env=env
+      ).decode("utf-8"),
+      "text")
+
+  with open(os.path.join(docdir, "features.rst")) as infile:
+    copylines = []
+    for idx, line in enumerate(infile):
+      if idx > 3:
+        copylines.append(line)
+    copylines.append("\n")
+  dynamic_text["features"] = "".join(copylines)
+
+  with open("test/test_in.cmake") as infile:
+    dynamic_text["example-in"] = format_directive(infile.read(), "cmake")
+  with open("test/test_out.cmake") as infile:
+    dynamic_text["example-out"] = format_directive(infile.read(), "cmake")
+
+  process_file("doc/README.rst", dynamic_text)
+  process_file("doc/usage.rst", dynamic_text)
+  process_file("doc/example.rst", dynamic_text)
+
 
 if __name__ == "__main__":
   main()

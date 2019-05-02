@@ -1,4 +1,5 @@
 # pylint: disable=bad-continuation
+from __future__ import unicode_literals
 import unittest
 
 from cmake_format.command_tests import TestBase
@@ -111,6 +112,7 @@ install(TARGETS myprog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT run
 install(TARGETS myprog
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
 """
+
 
 if __name__ == '__main__':
   unittest.main()

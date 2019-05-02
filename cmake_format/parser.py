@@ -315,6 +315,78 @@ def comment_is_tag(token):
   return get_tag(token) is not None
 
 
+def only_comments_and_whitespace_remain(tokens, breakstack):
+  skip_tokens = (lexer.TokenType.WHITESPACE,
+                 lexer.TokenType.NEWLINE,
+                 lexer.TokenType.COMMENT,
+                 lexer.TokenType.BRACKET_COMMENT)
+
+  for token in tokens:
+    if token.type in skip_tokens:
+      continue
+    elif should_break(token, breakstack):
+      return True
+    else:
+      return False
+  return True
+
+
+def consume_whitespace_and_comments(tokens, tree):
+  """
+  Consume any whitespace or comments that occur at the current depth
+  """
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens:
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # If it's a comment token not associated with an argument, then put it
+    # directly into the parse tree at the current depth
+    if tokens[0].type in (lexer.TokenType.COMMENT,
+                          lexer.TokenType.BRACKET_COMMENT):
+      child = TreeNode(NodeType.COMMENT)
+      tree.children.append(child)
+      child.children.append(tokens.pop(0))
+      continue
+    break
+
+
+def get_first_semantic_token(tokens):
+  """
+  Return the first token with semantic meaning
+  """
+  skip_tokens = (lexer.TokenType.WHITESPACE,
+                 lexer.TokenType.NEWLINE,
+                 lexer.TokenType.COMMENT,
+                 lexer.TokenType.BRACKET_COMMENT)
+
+  for token in tokens:
+    if token.type in skip_tokens:
+      continue
+    return token
+  return None
+
+
+def parse_pattern(tokens, breakstack):
+  """
+  ::
+
+    [PATTERN <pattern> | REGEX <regex>]
+    [EXCLUDE] [PERMISSIONS <permissions>...]
+  """
+  return parse_standard(
+      tokens,
+      npargs='+',
+      kwargs={"PERMISSIONS": PositionalParser('+'), },
+      flags=["EXCLUDE"],
+      breakstack=breakstack
+  )
+
+
 def parse_positionals(tokens, npargs, flags, breakstack, sortable=False):
   """
   Parse a continuous sequence of `npargs` positional arguments. If npargs is
@@ -365,6 +437,14 @@ def parse_positionals(tokens, npargs, flags, breakstack, sortable=False):
         break
       elif tokens[0].type == lexer.TokenType.RIGHT_PAREN:
         break
+
+    # If this is the start of a parenthetical group, then parse the group
+    # NOTE(josh): syntatically this probably shouldn't be allowed here, but
+    # cmake seems to accept it so we probably should too.
+    if tokens[0].type == lexer.TokenType.LEFT_PAREN:
+      subtree = parse_parengroup(tokens, breakstack)
+      tree.children.append(subtree)
+      continue
 
     # Otherwise we will consume the token
     token = tokens.pop(0)
@@ -478,6 +558,11 @@ def parse_kwarg(tokens, word, subparser, breakstack):
   kwnode.children.append(tokens.pop(0))
   tree.children.append(kwnode)
   # consume_trailing_comment(kwnode, tokens)
+
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
 
   ntokens = len(tokens)
   subtree = subparser(tokens, breakstack)
@@ -696,11 +781,21 @@ def parse_conditional(tokens, breakstack):
     word = get_normalized_kwarg(tokens[0])
     if word in kwargs:
       subtree = parse_kwarg(tokens, word, kwargs[word], child_breakstack)
-    else:
-      subtree = parse_positionals(tokens, '*', flags, child_breakstack)
+      assert len(tokens) < ntokens
+      tree.children.append(subtree)
+      continue
 
-    assert len(tokens) < ntokens
-    tree.children.append(subtree)
+    # Otherwise is it is a positional argument, so add it to the tree as such
+    token = tokens.pop(0)
+    if get_normalized_kwarg(token) in flags:
+      child = TreeNode(NodeType.FLAG)
+    else:
+      child = TreeNode(NodeType.ARGUMENT)
+
+    child.children.append(token)
+    consume_trailing_comment(child, tokens)
+    tree.children.append(child)
+
   return tree
 
 
@@ -794,7 +889,7 @@ def parse_shell_command(tokens, breakstack):
 
     ntokens = len(tokens)
     if tokens[0].spelling == "--":
-      subtree = parse_positionals(tokens, "*", [], breakstack + [is_shell_flag])
+      subtree = parse_positionals(tokens, "*", [], breakstack)
     elif tokens[0].spelling.startswith("--"):
       subtree = parse_shell_kwarg(tokens, breakstack)
     elif tokens[0].spelling.startswith("-"):
@@ -802,7 +897,7 @@ def parse_shell_command(tokens, breakstack):
     else:
       subtree = parse_positionals(tokens, "*", [], breakstack + [is_shell_flag])
 
-    assert len(tokens) < ntokens
+    assert len(tokens) < ntokens, "at {}".format(tokens[0])
     tree.children.append(subtree)
   return tree
 

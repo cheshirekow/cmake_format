@@ -269,85 +269,78 @@ class TestCanonicalLayout(unittest.TestCase):
       endif()
       """, [
 # pylint: disable=bad-continuation
+# noqa: E122
 (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 79, [
-    (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 79, [
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 7, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 3, 6, [
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 3, 6, []),
-            ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 0, 6, 7, []),
-        ]),
-        (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 79, [
-            (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 1, 2, 79, [
-                (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 10, [
-                    (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 4, []),
-                    (NodeType.LPAREN, WrapAlgo.HPACK, 1, 4, 5, []),
-                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 5, 9, [
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 5, 9, []),
-                    ]),
-                    (NodeType.RPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-                ]),
-                (NodeType.BODY, WrapAlgo.HPACK, 2, 4, 79, [
-                    (NodeType.COMMENT, WrapAlgo.HPACK, 2, 4, 31, []),
-                    (NodeType.STATEMENT, WrapAlgo.VPACK, 3, 4, 76, [
-                        (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 4, 15, []),
-                        (NodeType.LPAREN, WrapAlgo.HPACK, 3, 15, 16, []),
-                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 16, 27, [
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
-                        ]),
-
- (NodeType.PARGGROUP, WrapAlgo.VPACK, 4, 16, 76, [
-     (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
-     (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
-         (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
-     ]),
-     (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),
- ]),
- (NodeType.RPAREN, WrapAlgo.HPACK, 7, 22, 23, []),
- (NodeType.COMMENT, WrapAlgo.HPACK, 7, 24, 61, []),
-
-                    ]),
-                    (NodeType.WHITESPACE, WrapAlgo.HPACK, 8, 4, 0, []),
-                    (NodeType.STATEMENT, WrapAlgo.HPACK, 9, 4, 79, [
-                        (NodeType.FUNNAME, WrapAlgo.HPACK, 9, 4, 17, []),
-                        (NodeType.LPAREN, WrapAlgo.HPACK, 9, 17, 18, []),
-                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 18, 55, [
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 18, 36, []),
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 37, 55, []),
-                        ]),
-                        (NodeType.RPAREN, WrapAlgo.HPACK, 9, 55, 56, []),
-                        (NodeType.COMMENT, WrapAlgo.HPACK, 9, 57, 79, []),
-                    ]),
-                    (NodeType.WHITESPACE, WrapAlgo.HPACK, 12, 4, 0, []),
-                    (NodeType.STATEMENT, WrapAlgo.VPACK, 13, 4, 79, [
-                        (NodeType.FUNNAME, WrapAlgo.HPACK, 13, 4, 17, []),
-                        (NodeType.LPAREN, WrapAlgo.HPACK, 13, 17, 18, []),
-                        (NodeType.PARGGROUP, WrapAlgo.HPACK, 13, 18, 74, [
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 18, 36, []),
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 37, 55, []),
-                            (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 56, 74, []),
-                        ]),
-                        (NodeType.RPAREN, WrapAlgo.HPACK, 13, 74, 75, []),
-                        (NodeType.COMMENT, WrapAlgo.HPACK, 14, 4, 79, []),
-                    ]),
-                ]),
-                (NodeType.STATEMENT, WrapAlgo.HPACK, 16, 2, 9, [
-                    (NodeType.FUNNAME, WrapAlgo.HPACK, 16, 2, 7, []),
-                    (NodeType.LPAREN, WrapAlgo.HPACK, 16, 7, 8, []),
-                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 16, 8, 8, []),
-                    (NodeType.RPAREN, WrapAlgo.HPACK, 16, 8, 9, []),
-                ]),
-            ]),
-        ]),
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 17, 0, 7, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 17, 0, 5, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 17, 5, 6, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 17, 6, 6, []),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 17, 6, 7, []),
-        ]),
+  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 79, [
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 7, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
+      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 3, 6, []),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 6, 7, []),
     ]),
+    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 79, [
+      (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 1, 2, 79, [
+        (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 10, [
+          (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 4, []),
+          (NodeType.LPAREN, WrapAlgo.HPACK, 1, 4, 5, []),
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 5, 9, []),
+          (NodeType.RPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
+        ]),
+        (NodeType.BODY, WrapAlgo.HPACK, 2, 4, 79, [
+          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 4, 31, []),
+          (NodeType.STATEMENT, WrapAlgo.VPACK, 3, 4, 76, [
+            (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 4, 15, []),
+            (NodeType.LPAREN, WrapAlgo.HPACK, 3, 15, 16, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 16, 27, [
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
+            ]),
+            (NodeType.PARGGROUP, WrapAlgo.VPACK, 4, 16, 76, [
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
+              (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
+                (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
+              ]),
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),
+            ]),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 7, 22, 23, []),
+            (NodeType.COMMENT, WrapAlgo.HPACK, 7, 24, 61, []),
+          ]),
+          (NodeType.WHITESPACE, WrapAlgo.HPACK, 8, 4, 0, []),
+          (NodeType.STATEMENT, WrapAlgo.HPACK, 9, 4, 79, [
+            (NodeType.FUNNAME, WrapAlgo.HPACK, 9, 4, 17, []),
+            (NodeType.LPAREN, WrapAlgo.HPACK, 9, 17, 18, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 18, 55, [
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 18, 36, []),
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 37, 55, []),
+            ]),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 9, 55, 56, []),
+            (NodeType.COMMENT, WrapAlgo.HPACK, 9, 57, 79, []),
+          ]),
+          (NodeType.WHITESPACE, WrapAlgo.HPACK, 12, 4, 0, []),
+          (NodeType.STATEMENT, WrapAlgo.VPACK, 13, 4, 79, [
+            (NodeType.FUNNAME, WrapAlgo.HPACK, 13, 4, 17, []),
+            (NodeType.LPAREN, WrapAlgo.HPACK, 13, 17, 18, []),
+            (NodeType.PARGGROUP, WrapAlgo.HPACK, 13, 18, 74, [
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 18, 36, []),
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 37, 55, []),
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 56, 74, []),
+            ]),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 13, 74, 75, []),
+            (NodeType.COMMENT, WrapAlgo.HPACK, 14, 4, 79, []),
+          ]),
+        ]),
+        (NodeType.STATEMENT, WrapAlgo.HPACK, 16, 2, 9, [
+          (NodeType.FUNNAME, WrapAlgo.HPACK, 16, 2, 7, []),
+          (NodeType.LPAREN, WrapAlgo.HPACK, 16, 7, 8, []),
+          (NodeType.RPAREN, WrapAlgo.HPACK, 16, 8, 9, []),
+        ]),
+      ]),
+    ]),
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 17, 0, 7, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 17, 0, 5, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 17, 5, 6, []),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 17, 6, 7, []),
+    ]),
+  ]),
 ]),
       ])
 
@@ -427,72 +420,66 @@ class TestCanonicalLayout(unittest.TestCase):
       endif()
       """, [
 # pylint: disable=bad-continuation
+# noqa: E122
 (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 40, [
-    (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 40, [
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 40, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-            (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 3, 14, [
-                (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
-                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
-                        (NodeType.FLAG, WrapAlgo.HPACK, 0, 4, 7, []),
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 8, 13, []),
-                    ]),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 0, 13, 14, []),
-            ]),
-            (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 15, 39, [
-                (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 15, 17, []),
-                (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 18, 39, [
-                    (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 18, 39, [
-                        (NodeType.LPAREN, WrapAlgo.HPACK, 0, 18, 19, []),
-                        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
-                            (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
-
-(NodeType.FLAG, WrapAlgo.HPACK, 0, 19, 22, []),
-(NodeType.FLAG, WrapAlgo.HPACK, 0, 23, 29, []),
-(NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 38, []),
-
-                            ]),
-                        ]),
-                        (NodeType.RPAREN, WrapAlgo.HPACK, 0, 38, 39, []),
-                    ]),
-                ]),
-            ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 0, 39, 40, []),
+  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 40, [
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 40, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
+      (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 3, 14, [
+        (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
+        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
+          (NodeType.FLAG, WrapAlgo.HPACK, 0, 4, 7, []),
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 8, 13, []),
         ]),
-        (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 39, [
-            (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 39, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-                (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 10, 38, [
-                    (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 10, 17, []),
-                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 18, 38, [
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 18, 38, []),
-                    ]),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 1, 38, 39, []),
+        (NodeType.RPAREN, WrapAlgo.HPACK, 0, 13, 14, []),
+      ]),
+      (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 15, 39, [
+        (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 15, 17, []),
+        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 18, 39, [
+          (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 18, 39, [
+            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 18, 19, []),
+            (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
+              (NodeType.FLAG, WrapAlgo.HPACK, 0, 19, 22, []),
+              (NodeType.FLAG, WrapAlgo.HPACK, 0, 23, 29, []),
+              (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 38, []),
             ]),
-            (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 2, 19, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 2, 5, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 2, 5, 6, []),
-                (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 6, 12, [
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 12, []),
-                ]),
-                (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 13, 18, [
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 13, 18, []),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 2, 18, 19, []),
-            ]),
+            (NodeType.RPAREN, WrapAlgo.HPACK, 0, 38, 39, []),
+          ]),
         ]),
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 3, 0, 7, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 0, 5, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 3, 5, 6, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 6, 6, []),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 3, 6, 7, []),
-        ]),
+      ]),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 39, 40, []),
     ]),
+    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 39, [
+      (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 39, [
+        (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
+        (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
+        (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 10, 38, [
+          (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 10, 17, []),
+          (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 18, 38, [
+            (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 18, 38, []),
+          ]),
+        ]),
+        (NodeType.RPAREN, WrapAlgo.HPACK, 1, 38, 39, []),
+      ]),
+      (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 2, 19, [
+        (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 2, 5, []),
+        (NodeType.LPAREN, WrapAlgo.HPACK, 2, 5, 6, []),
+        (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 6, 12, [
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 12, []),
+        ]),
+        (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 13, 18, [
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 13, 18, []),
+        ]),
+        (NodeType.RPAREN, WrapAlgo.HPACK, 2, 18, 19, []),
+      ]),
+    ]),
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 3, 0, 7, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 0, 5, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 3, 5, 6, []),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 3, 6, 7, []),
+    ]),
+  ]),
 ]),
       ])
 
@@ -621,37 +608,35 @@ class TestCanonicalLayout(unittest.TestCase):
       endwhile()
       """, [
 # pylint: disable=bad-continuation
-(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 29, [
-    (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 29, [
-        (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 15, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 5, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 5, 6, []),
-            (NodeType.PARGGROUP, WrapAlgo.VPACK, 0, 6, 15, [
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 6, 15, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 6, 10, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 11, []),
-                (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 6, 10, []),
-            ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 3, 10, 11, []),
-        ]),
-        (NodeType.BODY, WrapAlgo.HPACK, 4, 2, 29, [
-            (NodeType.STATEMENT, WrapAlgo.HPACK, 4, 2, 29, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 4, 2, 9, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 4, 9, 10, []),
-                (NodeType.PARGGROUP, WrapAlgo.HPACK, 4, 10, 28, [
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 10, 15, []),
-                    (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 28, []),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 4, 28, 29, []),
-            ]),
-        ]),
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 5, 0, 10, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 5, 0, 8, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 5, 8, 9, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 5, 9, 9, []),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 5, 9, 10, []),
-        ]),
+# noqa: E122
+(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 32, [
+  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 32, [
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 32, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 5, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 5, 6, []),
+      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 6, 15, []),
+      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 16, 20, []),
+      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 21, 26, []),
+      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 27, 31, []),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 31, 32, []),
     ]),
+    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 29, [
+      (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 29, [
+        (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
+        (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
+        (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 10, 28, [
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 10, 15, []),
+          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 16, 28, []),
+        ]),
+        (NodeType.RPAREN, WrapAlgo.HPACK, 1, 28, 29, []),
+      ]),
+    ]),
+    (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 0, 10, [
+      (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 8, []),
+      (NodeType.LPAREN, WrapAlgo.HPACK, 2, 8, 9, []),
+      (NodeType.RPAREN, WrapAlgo.HPACK, 2, 9, 10, []),
+    ]),
+  ]),
 ]),
       ])
 

@@ -3,16 +3,19 @@
 # Create format and lint rules for module files
 #
 # usage:
+# ~~~
 # format_and_lint(module
 #                 bar.h bar.cc
 #                 CMAKE CMakeLists.txt test/CMakeLists.txt
 #                 CC foo.h foo.cc
 #                 PY foo.py)
-#
+# ~~~
+
 # Will create rules `${module}_lint` and `${module}_format` using the standard
 # code formatters and lint checkers for the appropriate language. These
 # tools are:
 #
+# ~~~
 # CMAKE:
 #   formatter: cmake-format
 #
@@ -23,7 +26,7 @@
 # PYTHON:
 #   formatter: autopep8
 #   linter: pylint
-#
+# ~~~
 function(format_and_lint module)
   set(cmake_files_)
   set(cc_files_)

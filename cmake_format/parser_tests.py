@@ -277,7 +277,6 @@ class TestCanonicalParse(unittest.TestCase):
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGGROUP, []),
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),

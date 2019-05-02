@@ -106,6 +106,8 @@ Parser Refactor
   we've implemented.
 * Add a config option for users to specify custom commands using custom
   parse functions, rather than just the legacy dictionary specification.
+* Split parse_funs into modules to better organize custom parsers
+* Implement custom parser for the different forms of ``list()``
 
 Documentation
 =============
@@ -116,3 +118,11 @@ Documentation
   reuse snippets, possibly through some python scripting to generate the README
   page, but the README should probably contain a more compressed subset of the
   information on the documentation pages.
+
+Current Issues
+==============
+
+* Need some kind of fallback for commands like `file()` when the descriminator
+  argument is a variable dereference. For instance `file(${descr})`. What
+  should we do in that case? Should we infer based on remaining arguments,
+  fallback to a standard parser with a large set of kwargs and flags?

@@ -15,10 +15,13 @@ like crap.
    :maxdepth: 2
    :caption: Contents:
 
-   README<README>
-   render_html
+   installation
+   features
+   usage
+   example
    parse_tree
    format_algorithm
+   render_html
 
    release_notes
    changelog

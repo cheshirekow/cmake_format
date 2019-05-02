@@ -257,15 +257,29 @@ class TestBase(unittest.TestCase):
         setattr(self, name, WrapTestWithRunFun(self, value))
 
   def assertExpectations(self):
-    if self.expect_lex is not None:
-      with self.subTest(phase="lex"):
+    # Empty source_str is shorthand for "assertInvariant"
+    if self.source_str is None:
+      self.source_str = self.expect_format
+
+    if sys.version_info < (3, 0, 0):
+      if self.expect_lex is not None:
         assert_lex(self, self.source_str, self.expect_lex)
-    if self.expect_parse is not None:
-      with self.subTest(phase="parse"):
+      if self.expect_parse is not None:
         assert_parse(self, self.source_str, self.expect_parse)
-    if self.expect_layout is not None:
-      with self.subTest(phase="layout"):
+      if self.expect_layout is not None:
         assert_layout(self, self.source_str, self.expect_layout)
-    if self.expect_format is not None:
-      with self.subTest(phase="format"):
+      if self.expect_format is not None:
         assert_format(self, self.source_str, self.expect_format)
+    else:
+      if self.expect_lex is not None:
+        with self.subTest(phase="lex"):  # pylint: disable=no-member
+          assert_lex(self, self.source_str, self.expect_lex)
+      if self.expect_parse is not None:
+        with self.subTest(phase="parse"):  # pylint: disable=no-member
+          assert_parse(self, self.source_str, self.expect_parse)
+      if self.expect_layout is not None:
+        with self.subTest(phase="layout"):  # pylint: disable=no-member
+          assert_layout(self, self.source_str, self.expect_layout)
+      if self.expect_format is not None:
+        with self.subTest(phase="format"):  # pylint: disable=no-member
+          assert_format(self, self.source_str, self.expect_format)

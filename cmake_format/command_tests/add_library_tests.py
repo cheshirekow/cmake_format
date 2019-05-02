@@ -1,4 +1,5 @@
 # pylint: disable=bad-continuation
+from __future__ import unicode_literals
 import unittest
 
 from cmake_format.command_tests import TestBase

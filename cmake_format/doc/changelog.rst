@@ -6,8 +6,38 @@ Changelog
 v0.5 series
 -----------
 
-v0.5.0 -- in progress
----------------------
+v0.5.1
+------
+
+* Fix empty kwarg can yield a parg group node with only whitespace
+  children
+* Fix ``file(READ ...)`` and ``file(STRINGS ...)`` parser kwargs using set
+  syntax instead of dict syntax
+* Fix agressive positional parser within conditional parser
+* Fix missing endif, endwhile in parsemap
+* Split parse functions out into separate modules for better organization
+* Add more sanity tests for ``file(...)``.
+* Remove README from online docs, replace with expanded documentation for
+  each README section
+* Restore ability to accept paren-group in arbitrary parg-group
+* Fix missing tests on travis
+* Fix new tests using unicode literals (affects python2)
+* Fix command parser after --
+
+* Closes `#104`_: Extra space for export targets
+* Closes `#106`_: Formatting of ``file(READ)`` fails
+* Closes `#107`_: multiline cmake commands
+* Closes `#108`_: Formatting of ``file(STRING)`` fails
+* Closes `#110`_: Formatting of Nested Expressions Fails
+
+.. _#104: https://github.com/cheshirekow/cmake_format/issues/104
+.. _#106: https://github.com/cheshirekow/cmake_format/issues/106
+.. _#107: https://github.com/cheshirekow/cmake_format/issues/107
+.. _#108: https://github.com/cheshirekow/cmake_format/issues/108
+.. _#110: https://github.com/cheshirekow/cmake_format/issues/110
+
+v0.5.0
+------
 
 * Implement canonical command case
 * Canonicalize capitalization of keys in cmdspec

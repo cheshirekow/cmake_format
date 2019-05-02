@@ -9,6 +9,20 @@ v0.5 series
 ===========
 
 ------
+v0.5.1
+------
+
+The 0.5.0 release involved some pretty big changes to the parsing engine and
+introduced a new format algorithm. These two things combined unfortunately
+lead to a lot of new bugs. The full battery of pre-release tests wasn't run
+and so a lot of those issues popped up after release. Hopefully most of those
+are squashed in this release.
+
+* Fixed lots of bugs introduced in 0.5.0
+* ``cmake-format`` has a channel on discord now. Come chat about it at
+  https://discord.gg/NgjwyPy
+
+------
 v0.5.0
 ------
 

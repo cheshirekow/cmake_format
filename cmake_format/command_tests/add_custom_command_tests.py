@@ -1,4 +1,5 @@
 # pylint: disable=bad-continuation
+from __future__ import unicode_literals
 import unittest
 
 from cmake_format.command_tests import TestBase
@@ -85,6 +86,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/foobar_doc.stamp
                    DEPENDS ${foobar_docs}
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 """
+
 
 if __name__ == '__main__':
   unittest.main()

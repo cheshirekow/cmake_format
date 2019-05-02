@@ -1,18 +1,38 @@
 format_and_lint(cmake_format
+                # cmake-format: sort
                 __init__.py
                 __main__.py
+                annotate.py
                 commands.py
+                command_tests/add_custom_command_tests.py
+                command_tests/add_executable_tests.py
+                command_tests/add_library_tests.py
+                command_tests/conditional_tests.py
+                command_tests/export_tests.py
+                command_tests/file_tests.py
+                command_tests/__init__.py
+                command_tests/install_tests.py
+                command_tests/set_tests.py
                 common.py
                 configuration.py
-                format_tests.py
+                doc/update_readme.py
                 formatter.py
+                format_tests.py
                 invocation_tests.py
-                lexer_tests.py
+                layout_tests.py
                 lexer.py
-                markup_tests.py
+                lexer_tests.py
                 markup.py
-                parser_tests.py
+                markup_tests.py
+                parse_funs/add_xxx.py
+                parse_funs/external_project.py
+                parse_funs/fetch_content.py
+                parse_funs/file.py
+                parse_funs/__init__.py
                 parser.py
+                parser_tests.py
+                pypi/setup.py
+                render.py
                 tests.py)
 
 add_test(NAME cmake_format-format_tests
@@ -56,3 +76,4 @@ if(NOT IS_TRAVIS_CI)
 endif()
 
 add_subdirectory(doc)
+add_subdirectory(command_tests)

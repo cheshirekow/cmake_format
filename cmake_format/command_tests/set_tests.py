@@ -1,8 +1,10 @@
 # pylint: disable=bad-continuation
+from __future__ import unicode_literals
 import unittest
 
 from cmake_format.command_tests import TestBase
 from cmake_format.parser import NodeType
+
 
 class TestSetCommand(TestBase):
   """
@@ -113,6 +115,7 @@ set(SOURCES
     source_f.cc
     source_g.cc)
 """
+
 
 if __name__ == '__main__':
   unittest.main()

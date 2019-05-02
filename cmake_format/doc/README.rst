@@ -6,7 +6,7 @@ cmake format
     :target: https://travis-ci.com/cheshirekow/cmake_format
 
 .. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
-    :target: https://cmake_format.readthedocs.io
+    :target: https://cmake-format.readthedocs.io
 
 ``cmake-format`` can format your listfiles nicely so that they don't look
 like crap.
@@ -17,11 +17,17 @@ Installation
 
 Install from ``pypi`` using ``pip``::
 
-    pip install --user cmake_format
+    pip install cmake_format
 
-or::
+------------
+Integrations
+------------
 
-    sudo pip install cmake_format
+* There is an official `vscode extension`__
+* Someone also created a `sublime plugin`__
+
+.. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
+.. __: https://packagecontrol.io/packages/CMakeFormat
 
 -----
 Usage
@@ -141,16 +147,6 @@ Usage
 
 .. tag: usage-end
 
-------------
-Integrations
-------------
-
-* There is an official `vscode extension`__
-* Someone also created a `sublime plugin`__
-
-.. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
-.. __: https://packagecontrol.io/packages/CMakeFormat
-
 -------------
 Configuration
 -------------
@@ -215,7 +211,7 @@ pleasant way.
 
     # If true, the argument lists which are known to be sortable will be sorted
     # lexicographicall
-    autosort = False
+    autosort = True
 
     # enable comment markup parsing and reflow
     enable_markup = True
@@ -275,6 +271,8 @@ If you'd like to create a new configuration file, ``cmake-format`` can help
 by dumping out the default configuration in your preferred format. You can run
 ``cmake-format --dump-config [yaml|json|python]`` to print the default
 configuration ``stdout`` and use that as a starting point.
+
+.. tag: features-begin
 
 -------
 Markup
@@ -360,8 +358,9 @@ comments ``# cmake-format: off`` and ``# cmake-format: on``.
 Sort Argument Lists
 -------------------
 
-``cmake-format`` can sort your argument lists for you. If the configuration
-includes ``autosort=True`` (the default), it will replace::
+Starting with version `0.5.0`, ``cmake-format`` can sort your argument lists
+for you. If the configuration includes ``autosort=True`` (the default), it
+will replace::
 
     add_library(foobar STATIC EXCLUDE_FROM_ALL
                 sourcefile_06.cc
@@ -426,9 +425,11 @@ Note that this is only needed if your configuration has enabled ``autosort``,
 and you can globally disable sorting by making setting this configuration to
 ``False``.
 
-------
-Issues
-------
+.. tag: features-end
+
+---------------------------------
+Reporting Issues and Getting Help
+---------------------------------
 
 If you encounter any bugs or regressions or if ``cmake-format`` doesn't behave
 in the way that you expect, please post an issue on the
@@ -436,6 +437,11 @@ in the way that you expect, please post an issue on the
 listfile snippets that demonstrate any issues you encounter.
 
 .. _`github issue tracker`: https://github.com/cheshirekow/cmake_format/issues
+
+You can also join the ``#cmake-format`` channel on our discord server.
+
+.. _`discord server`: https://discord.gg/NgjwyPy
+
 
 ----------
 Developers
@@ -650,10 +656,10 @@ into this:
       if(sbar)
         # This comment is in-scope.
         add_library(foo_bar_baz
-                    foo.cc
                     bar.cc # this is a comment for arg2 this is more comment for
                            # arg2, it should be joined with the first.
-                    baz.cc) # This comment is part of add_library
+                    baz.cc
+                    foo.cc) # This comment is part of add_library
 
         other_command(some_long_argument some_long_argument) # this comment is very
                                                              # long and gets split

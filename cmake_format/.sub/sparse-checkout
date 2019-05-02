@@ -1,0 +1,10 @@
+/.cmake-format.py
+/.gitignore
+/.flake8
+/.pep8
+/cmake/*.cmake
+/cmake_format
+/CMakeLists.txt
+/doc/conf.py
+/Makefile
+/pylintrc
