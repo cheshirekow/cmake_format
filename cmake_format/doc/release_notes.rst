@@ -9,6 +9,24 @@ v0.5 series
 ===========
 
 ------
+v0.5.2
+------
+
+This release fixes a few bugs and does some internal prep work for upcoming
+format algorithm changes. The documentation on the format algorithm is a little
+ahead of the code state in this release. Also, the documentation theme has
+changed to something based on read-the-docs (I hope you like it).
+
+* Add missing forms of ``add_library()`` and ``add_executable()``
+* ``--autosort`` now defaults to ``False`` (it can be somewhat suprising) and
+  it doesn't always get it right.
+* Configuration options in ``--help`` and in the example configurations from
+  ``--dump-config`` are now split into hopefully meaningful sections.
+* ``cmake-format`` no longer tries to infer "keywords" or "flags" from
+  ``COMMAND`` strings. This matching wasn't good enough as there is way too
+  much variance in how programs design their command line options.
+
+------
 v0.5.1
 ------
 

@@ -15,18 +15,28 @@ add_custom_target(
 # DEPENDS scanrst-cmake_format_doc COMMENT "Stubbing RST scan for
 # cmake_format_doc")
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
-                   COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR} sphinx-build -M
-                           html ${CMAKE_CURRENT_SOURCE_DIR}
-                           ${CMAKE_CURRENT_BINARY_DIR}
-                   COMMAND touch
-                           ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
-                   DEPENDS ${CMAKE_SOURCE_DIR}/doc/conf.py
-                           ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
-                           ${additional_sources}
-                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
+  COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR} sphinx-build -M
+          html ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND touch
+          ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
+  DEPENDS conf.py
+          ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
+          ${CMAKE_SOURCE_DIR}/doc/conf.py
+          ${CMAKE_SOURCE_DIR}/doc/sphinx-static/css/cheshire_theme.css
+          ${additional_sources}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_custom_target(cmake_format_doc
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp)
+add_custom_target(
+  cmake_format-doc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp)
 
-add_dependencies(doc cmake_format_doc)
+add_custom_target(
+  show-cmake_format-doc
+  COMMAND xdg-open ${CMAKE_CURRENT_BINARY_DIR}/html/index.html
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp
+)
+
+add_dependencies(doc cmake_format-doc)

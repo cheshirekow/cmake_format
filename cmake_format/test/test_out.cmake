@@ -73,10 +73,10 @@ if(foo)
   if(sbar)
     # This comment is in-scope.
     add_library(foo_bar_baz
+                foo.cc
                 bar.cc # this is a comment for arg2 this is more comment for
                        # arg2, it should be joined with the first.
-                baz.cc
-                foo.cc) # This comment is part of add_library
+                baz.cc) # This comment is part of add_library
 
     other_command(some_long_argument some_long_argument) # this comment is very
                                                          # long and gets split

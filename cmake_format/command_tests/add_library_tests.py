@@ -144,6 +144,109 @@ add_library(foobar STATIC
             sourcefile_02.cc)
 """
 
+  def test_imported_form(self):
+    self.config.max_subargs_per_line = 5
+    self.expect_format = """\
+add_library(foobar SHARED IMPORTED GLOBAL)
+"""
+    self.expect_parse = [
+      (NodeType.BODY, [
+        (NodeType.STATEMENT, [
+          (NodeType.FUNNAME, []),
+          (NodeType.LPAREN, []),
+          (NodeType.ARGGROUP, [
+            (NodeType.PARGGROUP, [
+              (NodeType.ARGUMENT, []),
+              (NodeType.FLAG, []),
+              (NodeType.FLAG, []),
+              (NodeType.FLAG, []),
+            ]),
+          ]),
+          (NodeType.RPAREN, []),
+        ]),
+        (NodeType.WHITESPACE, []),
+      ]),
+    ]
+
+  def test_object_form(self):
+    self.expect_format = """\
+add_library(foobar OBJECT bar.cc baz.cc foo.cc)
+"""
+    self.expect_parse = [
+      (NodeType.BODY, [
+        (NodeType.STATEMENT, [
+          (NodeType.FUNNAME, []),
+          (NodeType.LPAREN, []),
+          (NodeType.ARGGROUP, [
+            (NodeType.PARGGROUP, [
+              (NodeType.ARGUMENT, []),
+              (NodeType.FLAG, []),
+            ]),
+            (NodeType.PARGGROUP, [
+              (NodeType.ARGUMENT, []),
+              (NodeType.ARGUMENT, []),
+              (NodeType.ARGUMENT, []),
+            ]),
+          ]),
+          (NodeType.RPAREN, []),
+        ]),
+        (NodeType.WHITESPACE, []),
+      ]),
+    ]
+
+  def test_alias_form(self):
+    self.expect_format = """\
+add_library(foobar ALIAS foobarbaz)
+"""
+    self.expect_parse = [
+      (NodeType.BODY, [
+        (NodeType.STATEMENT, [
+          (NodeType.FUNNAME, []),
+          (NodeType.LPAREN, []),
+          (NodeType.ARGGROUP, [
+            (NodeType.PARGGROUP, [
+              (NodeType.ARGUMENT, []),
+              (NodeType.FLAG, []),
+              (NodeType.ARGUMENT, []),
+            ]),
+          ]),
+          (NodeType.RPAREN, []),
+        ]),
+        (NodeType.WHITESPACE, []),
+      ]),
+    ]
+
+  def test_interface_form(self):
+    self.config.max_subargs_per_line = 5
+    self.expect_format = """\
+add_library(foobar INTERFACE IMPORTED GLOBAL)
+"""
+    self.expect_parse = [
+      (NodeType.BODY, [
+        (NodeType.STATEMENT, [
+          (NodeType.FUNNAME, []),
+          (NodeType.LPAREN, []),
+          (NodeType.ARGGROUP, [
+            (NodeType.PARGGROUP, [
+              (NodeType.ARGUMENT, []),
+              (NodeType.FLAG, []),
+              (NodeType.FLAG, []),
+              (NodeType.FLAG, []),
+            ]),
+          ]),
+          (NodeType.RPAREN, []),
+        ]),
+        (NodeType.WHITESPACE, []),
+      ]),
+    ]
+
+  def test_descriminator_hidden_behind_variable(self):
+    self.config.max_subargs_per_line = 5
+    self.expect_format = """\
+set(libtype OBJECT)
+add_library(foobar ${libtype} ${alpha}.cc bar.cc baz.cc foo.cc)
+"""
+
 
 if __name__ == '__main__':
   unittest.main()

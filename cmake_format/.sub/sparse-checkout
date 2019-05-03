@@ -6,5 +6,6 @@
 /cmake_format
 /CMakeLists.txt
 /doc/conf.py
+/doc/sphinx-static
 /Makefile
 /pylintrc

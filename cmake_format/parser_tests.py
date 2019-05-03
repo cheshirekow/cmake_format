@@ -180,12 +180,10 @@ class TestCanonicalParse(unittest.TestCase):
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGGROUP, [
-                              (NodeType.PARGGROUP, [
-                                  (NodeType.ARGUMENT, []),
-                                  (NodeType.ARGUMENT, []),
-                                  (NodeType.ARGUMENT, []),
-                              ]),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
                           ]),
                       ]),
                       (NodeType.KWARGGROUP, [
@@ -280,25 +278,15 @@ class TestCanonicalParse(unittest.TestCase):
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGGROUP, [
-                              (NodeType.FLAGGROUP, [
-                                  (NodeType.FLAG, []),
-                                  (NodeType.FLAG, []),
-                              ]),
-                              (NodeType.KWARGGROUP, [
-                                  (NodeType.KEYWORD, []),
-                                  (NodeType.PARGGROUP, [
-                                      (NodeType.ARGUMENT, []),
-                                      (NodeType.ARGUMENT, []),
-                                  ]),
-                              ]),
-                              (NodeType.KWARGGROUP, [
-                                  (NodeType.KEYWORD, []),
-                                  (NodeType.PARGGROUP, [
-                                      (NodeType.ARGUMENT, []),
-                                      (NodeType.ARGUMENT, []),
-                                  ]),
-                              ]),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
+                              (NodeType.ARGUMENT, []),
                           ]),
                       ]),
                       (NodeType.KWARGGROUP, [

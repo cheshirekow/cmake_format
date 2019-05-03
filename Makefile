@@ -28,3 +28,5 @@ test: all
 	mkdir -p .build
 	touch .build/CMakeCache.txt
 	cd .build && env cmake -DIS_TRAVIS_CI=True ../
+
+PHONY: all doc test

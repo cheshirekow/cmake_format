@@ -355,9 +355,10 @@ def consume_whitespace_and_comments(tokens, tree):
     break
 
 
-def get_first_semantic_token(tokens):
+def iter_semantic_tokens(tokens):
   """
-  Return the first token with semantic meaning
+  Return a generator over the list of tokens yielding only those that
+  have semantic meaning
   """
   skip_tokens = (lexer.TokenType.WHITESPACE,
                  lexer.TokenType.NEWLINE,
@@ -367,6 +368,15 @@ def get_first_semantic_token(tokens):
   for token in tokens:
     if token.type in skip_tokens:
       continue
+    yield token
+
+
+def get_first_semantic_token(tokens):
+  """
+  Return the first token with semantic meaning
+  """
+
+  for token in iter_semantic_tokens(tokens):
     return token
   return None
 
@@ -865,7 +875,20 @@ def parse_shell_command(tokens, breakstack):
   The parser acts very similar to a standard parser where `--xxx` is treated
   as a keyword argument and `-x` is treated as a flag.
   """
+  return parse_positionals(tokens, '*', [], breakstack)
 
+
+def deprecated_parse_shell_command(tokens, breakstack):
+  """
+  Parser for the COMMAND kwarg lists in the form of::
+
+      COMMAND foo --long-flag1 arg1 arg2 --long-flag2 -a -b -c arg3 arg4
+
+  The parser acts very similar to a standard parser where `--xxx` is treated
+  as a keyword argument and `-x` is treated as a flag.
+  """
+
+  # TODO(josh): remove dead code, or figure out when to enable it
   tree = TreeNode(NodeType.ARGGROUP)
 
   # If it is a whitespace token then put it directly in the parse tree at

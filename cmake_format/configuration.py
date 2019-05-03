@@ -1,7 +1,13 @@
 from __future__ import unicode_literals
+
+import collections
 import inspect
+import io
+import json
 import logging
+import pprint
 import sys
+import textwrap
 
 from cmake_format import commands
 from cmake_format import markup
@@ -32,11 +38,73 @@ def parse_bool(string):
   return False
 
 
-class ConfigObject(object):
+def get_default(value, default):
   """
-  Provides simple serialization to a dictionary based on the assumption that
-  all args in the __init__() function are fields of this object.
+  return ``value`` if it is not None, else default
   """
+  if value is None:
+    return default
+
+  return value
+
+
+COMMENT_GROUP = (
+    "bullet_char", "enum_char", "first_comment_is_literal",
+    "literal_comment_pattern", "fence_pattern", "ruler_pattern",
+    "hashruler-min-length", "canonicalize_hashrulers",
+    "enable_markup")
+
+MISC_GROUP = ("emit_byteorder_mark", "input_encoding", "output_encoding")
+
+
+def python_dump(cfg, outfile):
+  ppr = pprint.PrettyPrinter(indent=2)
+  format_buffer = io.StringIO()
+  format_buffer.write("""
+# --------------------------
+# General Formatting Options
+# --------------------------
+""")
+  comment_buffer = io.StringIO()
+  comment_buffer.write("""
+# --------------------------
+# Comment Formatting Options
+# --------------------------
+""")
+  misc_buffer = io.StringIO()
+  misc_buffer.write("""
+# ---------------------------------
+# Miscellaneous Options
+# ---------------------------------
+""")
+  for key in cfg.get_field_names():
+    if key in COMMENT_GROUP:
+      outbuf = comment_buffer
+    elif key in MISC_GROUP:
+      outbuf = misc_buffer
+    else:
+      outbuf = format_buffer
+
+    helptext = VARDOCS.get(key, None)
+    if helptext:
+      for line in textwrap.wrap(helptext, 78):
+        outbuf.write('# ' + line + '\n')
+    value = getattr(cfg, key)
+    if isinstance(value, dict):
+      outbuf.write('{} = {}\n\n'.format(key, json.dumps(value, indent=2)))
+    else:
+      outbuf.write('{} = {}\n\n'.format(key, ppr.pformat(value)))
+  outfile.write(format_buffer.getvalue())
+  outfile.write(comment_buffer.getvalue())
+  outfile.write(misc_buffer.getvalue())
+
+
+class Configuration(object):
+  """
+  Encapsulates various configuration options/parameters for formatting
+  """
+  # pylint: disable=too-many-arguments
+  # pylint: disable=too-many-instance-attributes
 
   @classmethod
   def get_field_names(cls):
@@ -61,24 +129,36 @@ class ConfigObject(object):
     return {field: serialize(getattr(self, field))
             for field in self.get_field_names()}
 
+  def as_odict(self, with_comments=False):
+    """
+    Return a dictionary mapping field names to their values only for fields
+    specified in the constructor
+    """
+    format_group = []
+    comment_group = []
+    misc_group = []
 
-def get_default(value, default):
-  """
-  return ``value`` if it is not None, else default
-  """
-  if value is None:
-    return default
+    for field in self.get_field_names():
+      if field in COMMENT_GROUP:
+        group = comment_group
+      elif field in MISC_GROUP:
+        group = misc_group
+      else:
+        group = format_group
+      group.append((field, serialize(getattr(self, field))))
 
-  return value
+    out = collections.OrderedDict()
+    if with_comments:
+      out["_group0"] = ["General formatting options"]
+    out.update(format_group)
+    if with_comments:
+      out["_group1"] = ["Options affecting comment formatting"]
+    out.update(comment_group)
+    if with_comments:
+      out["_group2"] = ["Miscellaneous options"]
+    out.update(misc_group)
+    return out
 
-
-class Configuration(ConfigObject):
-  """
-  Encapsulates various configuration options/parameters for formatting
-  """
-
-  # pylint: disable=too-many-arguments
-  # pylint: disable=too-many-instance-attributes
   def __init__(self, line_width=80, tab_size=2,
                max_subargs_per_line=3,
                separate_ctrl_name_with_space=False,
@@ -92,7 +172,7 @@ class Configuration(ConfigObject):
                additional_commands=None,
                always_wrap=None,
                algorithm_order=None,
-               autosort=True,
+               autosort=False,
                enable_markup=True,
                first_comment_is_literal=False,
                literal_comment_pattern=None,

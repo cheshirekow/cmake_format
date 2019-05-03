@@ -20,7 +20,9 @@ like crap.
    usage
    example
    parse_tree
+   parser_algorithm
    format_algorithm
+   case_studies
    render_html
 
    release_notes

@@ -1,0 +1,156 @@
+@import url("theme.css");
+@import url("../pygments.css");
+body {
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+}
+
+h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.caption {
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+}
+
+/* Use white for navigation background */
+/* navigation background */
+.wy-nav-side {
+  background-color: #fff;
+}
+/* search area background color */
+.wy-side-nav-search {
+  background-color: #fff;
+}
+/* submenu background color */
+.wy-nav-content-wrap, .wy-menu li.current > a  {
+  background-color: #fff;
+}
+/* responsive (mobile) titlebar color */
+@media screen and (min-width: 1400px) {
+  .wy-nav-content {
+    background-color: #fff;
+  }
+}
+
+/* Mobile title bar */
+.wy-nav-top {
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-position: center;
+  padding: 0;
+  margin: 0.4045em 0.809em;
+  color: #333;
+}
+.wy-nav-top > a {
+  display: none;
+}
+
+/* shrink the logo image */
+@media screen and (max-width: 768px) {
+  .wy-side-nav-search>a img.logo {
+    height: 60px;
+  }
+}
+
+/* This is needed to ensure that logo above search scales properly */
+.wy-side-nav-search a {
+  display: block;
+}
+
+.wy-side-nav-search input[type="text"] {
+  border-color:  #007eb9;
+}
+
+
+/* This ensures that multiple constructors will remain in separate lines. */
+.rst-content dl:not(.docutils) dt {
+  display: table;
+  color: rgba(0, 102, 150, 0.9);
+  background-color: rgba(0, 111, 185, 0.15);
+  border-top-color: rgba(0, 82, 150, 0.9);
+}
+
+/* Soften the inline literal color to something a little less angry-red.
+   This is the same saturation/lightness but the hue is more orange. */
+.rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
+  color: rgb(231, 123, 60) !important;
+}
+
+.rst-content tt.xref, a .rst-content tt, .rst-content tt.xref,
+.rst-content code.xref, a .rst-content tt, a .rst-content code {
+  color: #fff;
+}
+
+/* Soften the code blocks background color so it's not quite so harsh against
+   the white canvas */
+.rst-content div.highlight {
+  background-color: rgb(253, 255, 226);
+}
+
+/* Change link colors (except for the menu) */
+
+a {
+  color: #007eb9;
+}
+
+a:hover {
+  color: #0094b9;
+}
+
+a:visited {
+  color: #0066b9;
+}
+
+.wy-menu a {
+  color: #838383;
+}
+
+.wy-menu a:hover {
+  color: #b3b3b3;
+}
+
+/* Default footer text is quite big */
+footer {
+  font-size: 80%;
+}
+
+footer .rst-footer-buttons {
+  font-size: 125%; /* revert footer settings - 1/80% = 125% */
+}
+
+footer p {
+  font-size: 100%;
+}
+
+/* For hidden headers that appear in TOC tree */
+/* see http://stackoverflow.com/a/32363545/3343043 */
+.rst-content .hidden-section {
+  display: none;
+}
+
+nav .hidden-section {
+  display: inherit;
+}
+
+.wy-side-nav-search>div.version {
+  color: #000;
+}
+
+/* Provides nice properties to make screenshots stand out clearly. */
+.screenshot {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+span.eqno {
+  float: right;
+}
+
+/* NOTE(josh): I added the following to style the epitaph admonition */
+blockquote.epigraph  {
+  background-color: rgb(206, 233, 255);
+}
+
+.epigraph .admonition-title {
+  background-color: rgb(101, 163, 204);
+  margin: 0px;
+}
+
+.epigraph .attribution {
+  background-color: rgb(180, 210, 228);
+}

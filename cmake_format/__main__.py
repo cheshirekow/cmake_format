@@ -15,15 +15,14 @@ for customization. Run with `--dump-config [yaml|json|python]`.
 from __future__ import unicode_literals
 
 import argparse
+import collections
 import io
 import json
 import logging
 import os
-import pprint
 import shutil
 import sys
 import tempfile
-import textwrap
 
 import cmake_format
 from cmake_format import commands
@@ -210,6 +209,7 @@ def get_config(infile_path, configfile_path):
   """
   if configfile_path is None:
     configfile_path = find_config_file(infile_path)
+  configfile_path = os.path.expanduser(configfile_path)
 
   config_dict = {}
   if configfile_path:
@@ -227,6 +227,14 @@ def get_config(infile_path, configfile_path):
         config_dict = try_get_configdict(configfile_path)
 
   return config_dict
+
+
+def yaml_odict_handler(dumper, value):
+  return dumper.represent_mapping(u'tag:yaml.org,2002:map', value)
+
+
+def yaml_register_odict(dumper):
+  dumper.add_representer(collections.OrderedDict, yaml_odict_handler)
 
 
 def dump_config(args, config_dict, outfile):
@@ -248,25 +256,17 @@ def dump_config(args, config_dict, outfile):
 
   if outfmt == 'yaml':
     import yaml
-    yaml.dump(cfg.as_dict(), sys.stdout, indent=2,
-              default_flow_style=False)
+    yaml_register_odict(yaml.SafeDumper)
+    yaml_register_odict(yaml.Dumper)
+    yaml.dump(cfg.as_odict(), outfile, indent=2,
+              default_flow_style=False, sort_keys=False)
     return
   if outfmt == 'json':
-    json.dump(cfg.as_dict(), sys.stdout, indent=2)
-    sys.stdout.write('\n')
+    json.dump(cfg.as_odict(), outfile, indent=2)
+    outfile.write('\n')
     return
 
-  ppr = pprint.PrettyPrinter(indent=2)
-  for key in cfg.get_field_names():
-    helptext = configuration.VARDOCS.get(key, None)
-    if helptext:
-      for line in textwrap.wrap(helptext, 78):
-        outfile.write('# ' + line + '\n')
-    value = getattr(cfg, key)
-    if isinstance(value, dict):
-      outfile.write('{} = {}\n\n'.format(key, json.dumps(value, indent=2)))
-    else:
-      outfile.write('{} = {}\n\n'.format(key, ppr.pformat(value)))
+  configuration.python_dump(cfg, outfile)
 
 
 USAGE_STRING = """
@@ -277,10 +277,22 @@ cmake-format [-h]
 """
 
 
-def add_config_options(optgroup):
+def add_config_options(arg_parser):
   """
   Add configuration options as flags to the argument parser
   """
+  format_group = arg_parser.add_argument_group(
+      title="Formatter Configuration",
+      description="Override configfile options affecting general formatting")
+
+  comment_group = arg_parser.add_argument_group(
+      title="Comment Formatting",
+      description="Override config options affecting comment formatting")
+
+  misc_group = arg_parser.add_argument_group(
+      title="Misc Options",
+      description="Override miscellaneous config options")
+
   default_config = configuration.Configuration().as_dict()
   if sys.version_info[0] >= 3:
     value_types = (str, int, float)
@@ -288,6 +300,13 @@ def add_config_options(optgroup):
     value_types = (str, unicode, int, float)
 
   for key in configuration.Configuration.get_field_names():
+    if key in configuration.COMMENT_GROUP:
+      optgroup = comment_group
+    elif key in configuration.MISC_GROUP:
+      optgroup = misc_group
+    else:
+      optgroup = format_group
+
     value = default_config[key]
     helptext = configuration.VARDOCS.get(key, None)
     # NOTE(josh): argparse store_true isn't what we want here because we want
@@ -343,12 +362,7 @@ def setup_argparser(arg_parser):
   arg_parser.add_argument('-c', '--config-file',
                           help='path to configuration file')
   arg_parser.add_argument('infilepaths', nargs='*')
-
-  optgroup = arg_parser.add_argument_group(
-      title='Formatter Configuration',
-      description='Override configfile options')
-
-  add_config_options(optgroup)
+  add_config_options(arg_parser)
 
 
 def main():

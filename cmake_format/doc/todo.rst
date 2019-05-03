@@ -81,6 +81,11 @@ Sortabe Arguments
 
 * Implement implicit sortable parts for add_executable and any other things
   that we know take a list of files.
+* For add_library and add_executable, currently if the descriminator is a
+  cmake variable it will get gobbled up
+  with the positional arguments. They wont be sortable by default but they
+  might be tagged sortable. In this case, break the pair of argument groups
+  at the comment tag instead of after library/executable name.
 
 Parser Refactor
 ===============
@@ -114,10 +119,6 @@ Documentation
 
 * Remove all the config command line options from the README, as well as the
   example configuration. Move them into a separate documentation page.
-* Don't embed the README in the official documentation. We could perhaps
-  reuse snippets, possibly through some python scripting to generate the README
-  page, but the README should probably contain a more compressed subset of the
-  information on the documentation pages.
 
 Current Issues
 ==============
@@ -126,3 +127,25 @@ Current Issues
   argument is a variable dereference. For instance `file(${descr})`. What
   should we do in that case? Should we infer based on remaining arguments,
   fallback to a standard parser with a large set of kwargs and flags?
+* Right now adding a line comment forces the line into HVPACK, but for a
+  COMMAND we probably actually want HWRAP so that we can manually pack our
+  shell commands
+* Idea: an empty line comment after the first argument forces VPACK. An empty
+  line comment after any other argument forces HPACK. Not perfect, but might
+  work OK.
+
+Cost Function
+=============
+
+Implement something better than max-subargs per line and algorithm order.
+Probably both of these can be rolled up into a some kind of cost function
+that accounts for both issues. For instance, a cost function which
+penalizes number of lines, number of arguments on a line, and indentation
+would generally perfer a single line, would perhaps allow HWRAP but only
+if it was at most two lines, would allow VPACK but only if the statment
+name is not too long.
+
+Cost per line:
+--------------
+
+* Number of arguments per line?

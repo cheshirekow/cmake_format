@@ -6,6 +6,30 @@ Changelog
 v0.5 series
 -----------
 
+v0.5.2
+------
+
+* add parsers for different forms of ``add_library()`` and ``add_executable()``
+* move ``add_library``, ``add_executable()`` and ``install()`` parsers to their
+  own modules
+* don't infer sortability in ``add_library`` or ``add_executable()`` if the
+  descriminator token might be a cmake variable hiding the descriminator
+  spelling
+* Split configuration options into different groups during dump and --help
+* Refactor long ``_reflow()`` implementations, splitting into methods for
+  the different wrap cases. This is in preparation for the next rev of the
+  format algorithm.
+* Add documentation on the format algorithm and some case studies.
+* Autosort defaults to ``False``
+* Changed documentation theme to something based on rtd
+* Get rid of ``COMMAND`` kwarg specialization
+
+* Closes `#111`_: Formatting breaks ``add_library``
+* Closes `#112`_: expanduser on configfile_path
+
+.. _#111: https://github.com/cheshirekow/cmake_format/issues/111
+.. _#112: https://github.com/cheshirekow/cmake_format/issues/112
+
 v0.5.1
 ------
 
