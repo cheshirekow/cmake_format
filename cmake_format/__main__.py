@@ -210,6 +210,8 @@ def get_config(infile_path, configfile_path):
   """
   if configfile_path is None:
     configfile_path = find_config_file(infile_path)
+  else:
+    configfile_path = os.path.expanduser(configfile_path)
 
   config_dict = {}
   if configfile_path:
