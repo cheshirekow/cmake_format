@@ -13,6 +13,44 @@ Lots of short args, looks good all on one line::
 
     add_subdirectories(foo bar baz foo2 bar2 baz2)
 
+
+Also doesn't look too bad when wrapped horizontally::
+
+    add_subdirectories(
+        foo bar baz foo2 bar2 baz2 foo3 bar3 baz3 foo4 bar4 baz4 foo5 bar5 baz5
+        foo6 bar6 baz6 foo7 bar7 baz7 foo8 bar8 baz8 foo9 bar9 baz9)
+
+Though probably matches expectations better if it is wrapped vertically::
+
+    add_subdirectories(
+        foo
+        bar
+        baz
+        foo2
+        bar2
+        baz2
+        foo3
+        bar3
+        baz3
+        foo4
+        bar4
+        baz4
+        foo5
+        bar5
+        baz5
+        foo6
+        bar6
+        baz6
+        foo7
+        bar7
+        baz7
+        foo8
+        bar8
+        baz8
+        foo9
+        bar9
+        baz9)
+
 Just a couple of long args, looks bad wrapped horizontally::
 
     set(HEADERS very_long_header_name_a.h very_long_header_name_b.h
@@ -134,34 +172,44 @@ Note that ``set()`` isn't the only command like this. There are likely to be
 other commands, specifically wrapper commands, that might take an unstructured
 argument list which becomes structured under the hood.
 
+.. _comments-case-study:
 
 --------
 Comments
 --------
 
-Argument comments can get a little tricky, because this  this looks bad::
+Argument comments can get a little tricky, because this looks bad::
 
-    set(HEADERS header_a.h header_b.h # This comment should
-                                      # be preserved, moreover it should be split
-                                      # across two lines.
-        header_c.h header_d.h)
+    set(HEADERS header_a.h header_b.h header_c.h header_d.h # This comment is
+                                                            # pretty long and
+                                                            # if it's argument
+                                                            # is close to the
+                                                            # edge of the column
+                                                            # then the comment
+                                                            # gets wrapped very
+                                                            # poorly
+        header_e.h header_f.h)
 
 and this looks good::
 
     set(HEADERS
         header_a.h
-        header_b.h # This comment should be preserved, moreover it should be split
-                   # across two lines.
+        header_b.h
         header_c.h
-        header_d.h)
+        header_d.h # This comment is pretty long and if it's argument is close
+                   # to the edge of the column then the comment gets wrapped
+                   # very poorly
+        header_e.h
+        header_f.h)
 
 but this also looks acceptable and I could imagine some organization choosing
 to go this route with their style configuration::
 
-    set(HEADERS header_a.h
-        header_b.h # This comment should  be preserved, moreover it should
-                   # be split across two lines.
-        header_c.h header_d.h)
+    set(HEADERS header_a.h header_b.h header_c.h
+        header_d.h # This comment is pretty long and if it's argument is close
+                   # to the edge of the column then the comment gets wrapped
+                   # very poorly
+        header_e.h header_f.h)
 
 So I'm not sure that the presence of a line comment should necessarily
 predicate a vertical wrapping. Rather, I think the choice of wrapping strategy
@@ -170,24 +218,33 @@ wrapping though, we need some kind of threshold or score to determine when
 a comment has gotten "too smooshed" and the whole thing should move to the
 next line. In the example above::
 
-    # option A:                       ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-    set(HEADERS header_a.h header_b.h ▏# This comment should                ▕
-                                      ▏# be preserved, moreover it should be▕
-                                      ▏# split across two lines.            ▕
-        header_c.h header_d.h)        ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+    # option A:                                             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+    set(HEADERS header_a.h header_b.h header_c.h header_d.h ▏# This comment is   ▕
+                                                            ▏# pretty long and   ▕
+                                                            ▏# if it's argument  ▕
+                                                            ▏# is close to the   ▕
+                                                            ▏# edge of the column▕
+                                                            ▏# then the comment  ▕
+                                                            ▏# gets wrapped very ▕
+                                                            ▏# poorly            ▕
+        header_e.h header_f.h)                              ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
     # option B:
-    set(HEADERS header_a.h ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-        header_b.h ▏# This comment should  be preserved, moreover it should▕
-                   ▏# be split across two lines.                           ▕
-        header_c.h header_d.h)▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+    set(HEADERS header_a.h header_b.h header_c.h▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+        header_d.h ▏# This comment is pretty long and if it's argument is close▕
+                   ▏# to the edge of the column then the comment gets wrapped  ▕
+                   ▏# very poorly                                              ▕
+        header_e.h header_f.h)▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-"Option A" lays out the comment on three lines while "option B" lays out the
-comment in two lines. I'm not sure what the threshold should be for choosing
+"Option A" lays out the comment on eight lines while "option B" lays out the
+comment in three lines. I'm not sure what the threshold should be for choosing
 one over the other. Should it be based on how many lines the comment is, or
-how much whitespace we introduce due to it? In "Option A" we introduce two
+how much whitespace we introduce due to it? In "Option A" we introduce seven
 lines of whitespace between consecutive rows of arguments whereas in "Option B"
-we only add one.
+we only add two. Should it be based on aspect ratio?
+
+And, honestly, "Option A" isn't all that bad. I'm not sure it would cross
+everyones threshold for inducing a wrap.
 
 For this particular example I think the best looking layout is the vertical
 wrapping, but we don't want the presence of a line comment to automatically
@@ -279,3 +336,74 @@ Another good example is ``add_custom_comand()``::
 But note the tricky bit here. I think we definitely want the COMMAND
 ARGGOUP (which is a single PARGGROUP) to be horizontally wrapped.
 
+.. _install-case-study:
+
+There are also some commands with second (or more) levels of keyword
+arguments, and it's not clear if the nesting rules are best applied
+top-down::
+
+  install(
+    TARGETS foo bar baz
+    ARCHIVE DESTINATION <dir>
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            CONFIGURATIONS Debug Release
+            COMPONENT foo-component
+            OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP
+    LIBRARY DESTINATION <dir>
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            CONFIGURATIONS Debug Release
+            COMPONENT foo-component
+            OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP
+    RUNTIME DESTINATION <dir>
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            CONFIGURATIONS Debug Release
+            COMPONENT foo-component
+            OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP)
+
+Or bottom-up::
+
+  install(
+    TARGETS foo bar baz
+    ARCHIVE
+      DESTINATION <dir>
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      CONFIGURATIONS Debug Release
+      COMPONENT foo-component
+      OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP
+    LIBRARY
+      DESTINATION <dir>
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      CONFIGURATIONS Debug Release
+      COMPONENT foo-component
+      OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP
+    RUNTIME
+      DESTINATION <dir>
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      CONFIGURATIONS Debug Release
+      COMPONENT foo-component
+      OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP)
+
+------------
+Conditionals
+------------
+
+Treating boolean operators as keyword arguments works pretty well, so long
+as we treat parenthetical groups as a single unit::
+
+    set(matchme "_DATA_\\|_CMAKE_\\|INTRA_PRED\\|_COMPILED\\|_HOSTING\\|_PERF_\\|CODER_")
+    if(("${var}" MATCHES "_TEST_" AND NOT "${var}" MATCHES "${matchme}")
+       OR (CONFIG_AV1_ENCODER
+           AND CONFIG_ENCODE_PERF_TESTS
+           AND "${var}" MATCHES "_ENCODE_PERF_TEST_")
+       OR (CONFIG_AV1_DECODER
+           AND CONFIG_DECODE_PERF_TESTS
+           AND "${var}" MATCHES "_DECODE_PERF_TEST_")
+       OR (CONFIG_AV1_ENCODER AND "${var}" MATCHES "_TEST_ENCODER_")
+       OR (CONFIG_AV1_DECODER AND "${var}" MATCHES "_TEST_DECODER_"))
+      list(APPEND aom_test_source_vars ${var})
+    endif()
+
+I don't think there's any reason to add structure for the internal operators
+like ``MATCHES``. In particular children of a boolean operator can be simple
+positional argument groups (horizontally-wrapped). We can tag the internal
+operator as a keyword but we don't need to create a KWARGGROUP for it.

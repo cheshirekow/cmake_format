@@ -13,7 +13,6 @@ like crap.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    installation
    features

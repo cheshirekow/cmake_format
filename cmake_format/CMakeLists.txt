@@ -15,7 +15,8 @@ format_and_lint(cmake_format
                 command_tests/set_tests.py
                 common.py
                 configuration.py
-                doc/update_readme.py
+                doc/conf.py
+                doc/gendoc_sources.py
                 formatter.py
                 format_tests.py
                 invocation_tests.py
@@ -24,15 +25,20 @@ format_and_lint(cmake_format
                 lexer_tests.py
                 markup.py
                 markup_tests.py
+                parse_funs/add_executable.py
+                parse_funs/add_library.py
                 parse_funs/add_xxx.py
                 parse_funs/external_project.py
                 parse_funs/fetch_content.py
                 parse_funs/file.py
                 parse_funs/__init__.py
+                parse_funs/install.py
                 parser.py
                 parser_tests.py
                 pypi/setup.py
                 render.py
+                screw_users_test.py
+                test/cmake-format.py
                 tests.py)
 
 add_test(NAME cmake_format-format_tests

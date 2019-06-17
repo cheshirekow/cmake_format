@@ -6,6 +6,21 @@ Changelog
 v0.5 series
 -----------
 
+v0.5.3
+------
+
+* add some configuration options for next format Refactor
+* update documentation source generator scripts and run to get updated
+  dynamic doc texts
+* add a couple more case studies
+* split reflow methods into smaller methods per case
+* fix os.expanduser on None
+
+* Closes `#115`_: crash when no config file
+
+.. _#115: https://github.com/cheshirekow/cmake_format/issues/115
+
+
 v0.5.2
 ------
 

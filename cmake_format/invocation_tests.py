@@ -14,6 +14,7 @@ class TestInvocations(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestInvocations, self).__init__(*args, **kwargs)
     self.tempdir = None
+    self.tempconfig = None
 
   def setUp(self):
     self.tempdir = tempfile.mkdtemp(prefix='cmakeformattest_')
@@ -24,7 +25,8 @@ class TestInvocations(unittest.TestCase):
     }
 
     configpath = os.path.join(thisdir, 'test/cmake-format.py')
-    shutil.copyfile(configpath, os.path.join(self.tempdir, '.cmake-format.py'))
+    self.tempconfig = os.path.join(self.tempdir, '.cmake-format.py')
+    shutil.copyfile(configpath, self.tempconfig)
 
   def tearDown(self):
     shutil.rmtree(self.tempdir)
@@ -181,6 +183,30 @@ class TestInvocations(unittest.TestCase):
       actual_text = infile.read()
 
     with io.open(expectfile_path, 'r', encoding='latin1') as infile:
+      expected_text = infile.read()
+
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
+    if delta_lines:
+      raise AssertionError('\n'.join(delta_lines[2:]))
+
+  def test_no_config_invocation(self):
+    """
+    Test invocation with no config file specified
+    """
+    os.unlink(self.tempconfig)
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
+    expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
+
+    subprocess.check_call([sys.executable, '-Bm', 'cmake_format',
+                           '-o', os.path.join(self.tempdir, 'test_out.cmake'),
+                           infile_path], cwd=self.tempdir, env=self.env)
+
+    with io.open(os.path.join(self.tempdir, 'test_out.cmake'), 'r',
+                 encoding='utf8') as infile:
+      actual_text = infile.read()
+    with io.open(expectfile_path, 'r', encoding='utf8') as infile:
       expected_text = infile.read()
 
     delta_lines = list(difflib.unified_diff(expected_text.split('\n'),

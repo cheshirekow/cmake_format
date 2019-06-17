@@ -7,7 +7,7 @@ _ = os.path.dirname(this_dir)
 root_dir = os.path.dirname(_)
 
 with open(os.path.join(root_dir, "doc/conf.py")) as infile:
-  exec(infile.read())
+  exec(infile.read())  # pylint: disable=W0122
 
 project = "cmake_format"
 module = importlib.import_module(project)

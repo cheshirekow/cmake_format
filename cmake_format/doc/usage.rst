@@ -24,6 +24,10 @@ pleasant way.
 
 .. code:: text
 
+
+    # --------------------------
+    # General Formatting Options
+    # --------------------------
     # How wide to allow formatted cmake files
     line_width = 80
 
@@ -43,11 +47,9 @@ pleasant way.
     # parenthesis on it's own line
     dangle_parens = False
 
-    # What character to use for bulleted lists
-    bullet_char = '*'
-
-    # What character to use as punctuation after numerals in an enumerated list
-    enum_char = '.'
+    # If the statement spelling length (including space and parenthesis is larger
+    # than the tab width by more than this amoung, then force vertical nesting
+    nest_threshold = 2
 
     # What style line endings to use in the output.
     line_ending = 'unix'
@@ -75,7 +77,26 @@ pleasant way.
 
     # If true, the argument lists which are known to be sortable will be sorted
     # lexicographicall
-    autosort = True
+    autosort = False
+
+    # If a comment line starts with at least this many consecutive hash characters,
+    # then don't lstrip() them off. This allows for lazy hash rulers where the first
+    # hash char is not separated by space
+    hashruler_min_length = 10
+
+    # A dictionary containing any per-command configuration overrides. Currently
+    # only `command_case` is supported.
+    per_command = {}
+
+
+    # --------------------------
+    # Comment Formatting Options
+    # --------------------------
+    # What character to use for bulleted lists
+    bullet_char = '*'
+
+    # What character to use as punctuation after numerals in an enumerated list
+    enum_char = '.'
 
     # enable comment markup parsing and reflow
     enable_markup = True
@@ -97,17 +118,16 @@ pleasant way.
     # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
     ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
 
-    # If true, emit the unicode byte-order mark (BOM) at the start of the file
-    emit_byteorder_mark = False
-
-    # If a comment line starts with at least this many consecutive hash characters,
-    # then don't lstrip() them off. This allows for lazy hash rulers where the first
-    # hash char is not separated by space
-    hashruler_min_length = 10
-
     # If true, then insert a space between the first hash char and remaining hash
     # chars in a hash ruler, and normalize it's length to fill the column
     canonicalize_hashrulers = True
+
+
+    # ---------------------------------
+    # Miscellaneous Options
+    # ---------------------------------
+    # If true, emit the unicode byte-order mark (BOM) at the start of the file
+    emit_byteorder_mark = False
 
     # Specify the encoding of the input file. Defaults to utf-8.
     input_encoding = 'utf-8'
@@ -115,10 +135,6 @@ pleasant way.
     # Specify the encoding of the output file. Defaults to utf-8. Note that cmake
     # only claims to support utf-8 so be careful when using anything else
     output_encoding = 'utf-8'
-
-    # A dictionary containing any per-command configuration overrides. Currently
-    # only `command_case` is supported.
-    per_command = {}
 
 
 .. tag: configuration-end
@@ -181,7 +197,7 @@ Usage
                             path to configuration file
 
     Formatter Configuration:
-      Override configfile options
+      Override configfile options affecting general formatting
 
       --line-width LINE_WIDTH
                             How wide to allow formatted cmake files
@@ -197,11 +213,10 @@ Usage
       --dangle-parens [DANGLE_PARENS]
                             If a statement is wrapped to more than one line, than
                             dangle the closing parenthesis on it's own line
-      --bullet-char BULLET_CHAR
-                            What character to use for bulleted lists
-      --enum-char ENUM_CHAR
-                            What character to use as punctuation after numerals in
-                            an enumerated list
+      --nest-threshold NEST_THRESHOLD
+                            If the statement spelling length (including space and
+                            parenthesis is larger than the tab width by more than
+                            this amoung, then force vertical nesting
       --line-ending {windows,unix,auto}
                             What style line endings to use in the output.
       --command-case {lower,upper,canonical,unchanged}
@@ -218,6 +233,20 @@ Usage
       --autosort [AUTOSORT]
                             If true, the argument lists which are known to be
                             sortable will be sorted lexicographicall
+      --hashruler-min-length HASHRULER_MIN_LENGTH
+                            If a comment line starts with at least this many
+                            consecutive hash characters, then don't lstrip() them
+                            off. This allows for lazy hash rulers where the first
+                            hash char is not separated by space
+
+    Comment Formatting:
+      Override config options affecting comment formatting
+
+      --bullet-char BULLET_CHAR
+                            What character to use for bulleted lists
+      --enum-char ENUM_CHAR
+                            What character to use as punctuation after numerals in
+                            an enumerated list
       --enable-markup [ENABLE_MARKUP]
                             enable comment markup parsing and reflow
       --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
@@ -234,18 +263,17 @@ Usage
       --ruler-pattern RULER_PATTERN
                             Regular expression to match rulers in comments
                             default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
-                            If true, emit the unicode byte-order mark (BOM) at the
-                            start of the file
-      --hashruler-min-length HASHRULER_MIN_LENGTH
-                            If a comment line starts with at least this many
-                            consecutive hash characters, then don't lstrip() them
-                            off. This allows for lazy hash rulers where the first
-                            hash char is not separated by space
       --canonicalize-hashrulers [CANONICALIZE_HASHRULERS]
                             If true, then insert a space between the first hash
                             char and remaining hash chars in a hash ruler, and
                             normalize it's length to fill the column
+
+    Misc Options:
+      Override miscellaneous config options
+
+      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
+                            If true, emit the unicode byte-order mark (BOM) at the
+                            start of the file
       --input-encoding INPUT_ENCODING
                             Specify the encoding of the input file. Defaults to
                             utf-8.

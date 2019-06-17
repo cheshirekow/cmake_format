@@ -76,47 +76,54 @@ the ``(row, col)`` location is the location of the character while the
 ``offset`` is the index of the first byte of the character.
 
 You can inspect the tokenization of a listfile by executing ``cmake-format``
-with ``--dump lex``. For example::
+with ``--dump lex``. For example:
 
-    Token(type=WORD, content=u'cmake_minimum_required', line=1, col=0)
-    Token(type=LEFT_PAREN, content=u'(', line=1, col=22)
-    Token(type=WORD, content=u'VERSION', line=1, col=23)
-    Token(type=WHITESPACE, content=u' ', line=1, col=30)
-    Token(type=UNQUOTED_LITERAL, content=u'3.5', line=1, col=31)
-    Token(type=RIGHT_PAREN, content=u')', line=1, col=34)
-    Token(type=NEWLINE, content=u'\n', line=1, col=35)
-    Token(type=WORD, content=u'project', line=2, col=0)
-    Token(type=LEFT_PAREN, content=u'(', line=2, col=7)
-    Token(type=WORD, content=u'demo', line=2, col=8)
-    Token(type=RIGHT_PAREN, content=u')', line=2, col=12)
-    Token(type=NEWLINE, content=u'\n', line=2, col=13)
-    Token(type=WORD, content=u'if', line=3, col=0)
-    Token(type=LEFT_PAREN, content=u'(', line=3, col=2)
-    Token(type=WORD, content=u'FOO', line=3, col=3)
-    Token(type=WHITESPACE, content=u' ', line=3, col=6)
-    Token(type=WORD, content=u'AND', line=3, col=7)
-    Token(type=WHITESPACE, content=u' ', line=3, col=10)
-    Token(type=LEFT_PAREN, content=u'(', line=3, col=11)
-    Token(type=WORD, content=u'BAR', line=3, col=12)
-    Token(type=WHITESPACE, content=u' ', line=3, col=15)
-    Token(type=WORD, content=u'OR', line=3, col=16)
-    Token(type=WHITESPACE, content=u' ', line=3, col=18)
-    Token(type=WORD, content=u'BAZ', line=3, col=19)
-    Token(type=RIGHT_PAREN, content=u')', line=3, col=22)
-    Token(type=RIGHT_PAREN, content=u')', line=3, col=23)
-    Token(type=NEWLINE, content=u'\n', line=3, col=24)
-    Token(type=WHITESPACE, content=u'  ', line=4, col=0)
-    Token(type=WORD, content=u'add_library', line=4, col=2)
-    Token(type=LEFT_PAREN, content=u'(', line=4, col=13)
-    Token(type=WORD, content=u'hello', line=4, col=14)
-    Token(type=WHITESPACE, content=u' ', line=4, col=19)
-    Token(type=UNQUOTED_LITERAL, content=u'hello.cc', line=4, col=20)
-    Token(type=RIGHT_PAREN, content=u')', line=4, col=28)
-    Token(type=NEWLINE, content=u'\n', line=4, col=29)
-    Token(type=WORD, content=u'endif', line=5, col=0)
-    Token(type=LEFT_PAREN, content=u'(', line=5, col=5)
-    Token(type=RIGHT_PAREN, content=u')', line=5, col=6)
-    Token(type=NEWLINE, content=u'\n', line=5, col=7)
+.. dynamic: dump-example-lex-begin
+
+.. code:: text
+
+    Token(type=NEWLINE, content='\n', line=1, col=0)
+    Token(type=WORD, content='cmake_minimum_required', line=2, col=0)
+    Token(type=LEFT_PAREN, content='(', line=2, col=22)
+    Token(type=WORD, content='VERSION', line=2, col=23)
+    Token(type=WHITESPACE, content=' ', line=2, col=30)
+    Token(type=UNQUOTED_LITERAL, content='3.5', line=2, col=31)
+    Token(type=RIGHT_PAREN, content=')', line=2, col=34)
+    Token(type=NEWLINE, content='\n', line=2, col=35)
+    Token(type=WORD, content='project', line=3, col=0)
+    Token(type=LEFT_PAREN, content='(', line=3, col=7)
+    Token(type=WORD, content='demo', line=3, col=8)
+    Token(type=RIGHT_PAREN, content=')', line=3, col=12)
+    Token(type=NEWLINE, content='\n', line=3, col=13)
+    Token(type=WORD, content='if', line=4, col=0)
+    Token(type=LEFT_PAREN, content='(', line=4, col=2)
+    Token(type=WORD, content='FOO', line=4, col=3)
+    Token(type=WHITESPACE, content=' ', line=4, col=6)
+    Token(type=WORD, content='AND', line=4, col=7)
+    Token(type=WHITESPACE, content=' ', line=4, col=10)
+    Token(type=LEFT_PAREN, content='(', line=4, col=11)
+    Token(type=WORD, content='BAR', line=4, col=12)
+    Token(type=WHITESPACE, content=' ', line=4, col=15)
+    Token(type=WORD, content='OR', line=4, col=16)
+    Token(type=WHITESPACE, content=' ', line=4, col=18)
+    Token(type=WORD, content='BAZ', line=4, col=19)
+    Token(type=RIGHT_PAREN, content=')', line=4, col=22)
+    Token(type=RIGHT_PAREN, content=')', line=4, col=23)
+    Token(type=NEWLINE, content='\n', line=4, col=24)
+    Token(type=WHITESPACE, content='  ', line=5, col=0)
+    Token(type=WORD, content='add_library', line=5, col=2)
+    Token(type=LEFT_PAREN, content='(', line=5, col=13)
+    Token(type=WORD, content='hello', line=5, col=14)
+    Token(type=WHITESPACE, content=' ', line=5, col=19)
+    Token(type=UNQUOTED_LITERAL, content='hello.cc', line=5, col=20)
+    Token(type=RIGHT_PAREN, content=')', line=5, col=28)
+    Token(type=NEWLINE, content='\n', line=5, col=29)
+    Token(type=WORD, content='endif', line=6, col=0)
+    Token(type=LEFT_PAREN, content='(', line=6, col=5)
+    Token(type=RIGHT_PAREN, content=')', line=6, col=6)
+    Token(type=NEWLINE, content='\n', line=6, col=7)
+
+.. dynamic: dump-example-lex-end
 
 -------------------
 Parser: Syntax Tree
@@ -162,6 +169,7 @@ Node Types
 +--------------+---------------------------------------------+----------------+
 | ARGGROUP     | A top-level collection of one or more       | PARGGROUP      |
 |              | positional, kwarg, or flag groups           | KWARGGROUP     |
+|              |                                             | PARENGROUP     |
 |              |                                             | FLAGGROUP      |
 |              |                                             | COMMENT        |
 +--------------+---------------------------------------------+----------------+
@@ -174,6 +182,10 @@ Node Types
 | KWARGGROUP   | A KEYWORD group, starting with the keyword  | KEYWORD        |
 |              | and ending with the last argument associated| ARGGROUP       |
 |              | with that keyword                           |                |
++--------------+---------------------------------------------+----------------+
+| PARENGROUP   | A parenthetical group, starting with a left | ARGGROUP       |
+|              | parenthesis and ending with the matching    |                |
+|              | right parenthesis                           |                |
 +--------------+---------------------------------------------+----------------+
 | FUNNAME      | Consists of a single token containing the   | (token)        |
 |              | name of the function/command in a statement |                |
@@ -197,98 +209,111 @@ Node Types
 +--------------+---------------------------------------------+----------------+
 
 You can inspect the parse tree of a listfile by ``cmake-format`` with
-``--dump parse``. For example::
+``--dump parse``. For example:
+
+.. dynamic: dump-example-parse-begin
+
+.. code:: text
 
     └─ BODY: 1:0
-        ├─ STATEMENT: 1:0
-        │   ├─ FUNNAME: 1:0
-        │   │   └─ Token(type=WORD, content='cmake_minimum_required', line=1, col=0)
-        │   ├─ LPAREN: 1:22
-        │   │   └─ Token(type=LEFT_PAREN, content='(', line=1, col=22)
-        │   ├─ ARGGROUP: 1:23
-        │   │   └─ KWARGGROUP: 1:23
-        │   │       ├─ KEYWORD: 1:23
-        │   │       │   └─ Token(type=WORD, content='VERSION', line=1, col=23)
-        │   │       └─ PARGGROUP: 1:30
-        │   │           ├─ Token(type=WHITESPACE, content=' ', line=1, col=30)
-        │   │           └─ ARGUMENT: 1:31
-        │   │               └─ Token(type=UNQUOTED_LITERAL, content='3.5', line=1, col=31)
-        │   └─ RPAREN: 1:34
-        │       └─ Token(type=RIGHT_PAREN, content=')', line=1, col=34)
-        ├─ WHITESPACE: 1:35
-        │   └─ Token(type=NEWLINE, content='\n', line=1, col=35)
+        ├─ WHITESPACE: 1:0
+        │   └─ Token(type=NEWLINE, content='\n', line=1, col=0)
         ├─ STATEMENT: 2:0
         │   ├─ FUNNAME: 2:0
-        │   │   └─ Token(type=WORD, content='project', line=2, col=0)
-        │   ├─ LPAREN: 2:7
-        │   │   └─ Token(type=LEFT_PAREN, content='(', line=2, col=7)
-        │   ├─ ARGGROUP: 2:8
-        │   │   └─ PARGGROUP: 2:8
-        │   │       └─ ARGUMENT: 2:8
-        │   │           └─ Token(type=WORD, content='demo', line=2, col=8)
-        │   └─ RPAREN: 2:12
-        │       └─ Token(type=RIGHT_PAREN, content=')', line=2, col=12)
-        ├─ WHITESPACE: 2:13
-        │   └─ Token(type=NEWLINE, content='\n', line=2, col=13)
-        └─ FLOW_CONTROL: 3:0
-            ├─ STATEMENT: 3:0
-            │   ├─ FUNNAME: 3:0
-            │   │   └─ Token(type=WORD, content='if', line=3, col=0)
-            │   ├─ LPAREN: 3:2
-            │   │   └─ Token(type=LEFT_PAREN, content='(', line=3, col=2)
-            │   ├─ ARGGROUP: 3:3
-            │   │   ├─ ARGUMENT: 3:3
-            │   │   │   └─ Token(type=WORD, content='FOO', line=3, col=3)
-            │   │   ├─ Token(type=WHITESPACE, content=' ', line=3, col=6)
-            │   │   └─ KWARGGROUP: 3:7
-            │   │       ├─ KEYWORD: 3:7
-            │   │       │   └─ Token(type=WORD, content='AND', line=3, col=7)
-            │   │       ├─ Token(type=WHITESPACE, content=' ', line=3, col=10)
-            │   │       └─ PARENGROUP: 3:11
-            │   │           ├─ LPAREN: 3:11
-            │   │           │   └─ Token(type=LEFT_PAREN, content='(', line=3, col=11)
-            │   │           ├─ ARGUMENT: 3:12
-            │   │           │   └─ Token(type=WORD, content='BAR', line=3, col=12)
-            │   │           ├─ Token(type=WHITESPACE, content=' ', line=3, col=15)
-            │   │           ├─ KWARGGROUP: 3:16
-            │   │           │   ├─ KEYWORD: 3:16
-            │   │           │   │   └─ Token(type=WORD, content='OR', line=3, col=16)
-            │   │           │   ├─ Token(type=WHITESPACE, content=' ', line=3, col=18)
-            │   │           │   └─ ARGUMENT: 3:19
-            │   │           │       └─ Token(type=WORD, content='BAZ', line=3, col=19)
-            │   │           └─ RPAREN: 3:22
-            │   │               └─ Token(type=RIGHT_PAREN, content=')', line=3, col=22)
-            │   └─ RPAREN: 3:23
-            │       └─ Token(type=RIGHT_PAREN, content=')', line=3, col=23)
-            ├─ BODY: 3:24
-            │   ├─ WHITESPACE: 3:24
-            │   │   ├─ Token(type=NEWLINE, content='\n', line=3, col=24)
-            │   │   └─ Token(type=WHITESPACE, content='  ', line=4, col=0)
-            │   ├─ STATEMENT: 4:2
-            │   │   ├─ FUNNAME: 4:2
-            │   │   │   └─ Token(type=WORD, content='add_library', line=4, col=2)
-            │   │   ├─ LPAREN: 4:13
-            │   │   │   └─ Token(type=LEFT_PAREN, content='(', line=4, col=13)
-            │   │   ├─ ARGGROUP: 4:14
-            │   │   │   └─ PARGGROUP: 4:14
-            │   │   │       ├─ ARGUMENT: 4:14
-            │   │   │       │   └─ Token(type=WORD, content='hello', line=4, col=14)
-            │   │   │       ├─ Token(type=WHITESPACE, content=' ', line=4, col=19)
-            │   │   │       └─ ARGUMENT: 4:20
-            │   │   │           └─ Token(type=UNQUOTED_LITERAL, content='hello.cc', line=4, col=20)
-            │   │   └─ RPAREN: 4:28
-            │   │       └─ Token(type=RIGHT_PAREN, content=')', line=4, col=28)
-            │   └─ WHITESPACE: 4:29
-            │       └─ Token(type=NEWLINE, content='\n', line=4, col=29)
-            └─ STATEMENT: 5:0
-                ├─ FUNNAME: 5:0
-                │   └─ Token(type=WORD, content='endif', line=5, col=0)
-                ├─ LPAREN: 5:5
-                │   └─ Token(type=LEFT_PAREN, content='(', line=5, col=5)
-                ├─ PARGGROUP: 0:0
-                └─ RPAREN: 5:6
-                    └─ Token(type=RIGHT_PAREN, content=')', line=5, col=6)
+        │   │   └─ Token(type=WORD, content='cmake_minimum_required', line=2, col=0)
+        │   ├─ LPAREN: 2:22
+        │   │   └─ Token(type=LEFT_PAREN, content='(', line=2, col=22)
+        │   ├─ ARGGROUP: 2:23
+        │   │   └─ KWARGGROUP: 2:23
+        │   │       ├─ KEYWORD: 2:23
+        │   │       │   └─ Token(type=WORD, content='VERSION', line=2, col=23)
+        │   │       ├─ Token(type=WHITESPACE, content=' ', line=2, col=30)
+        │   │       └─ PARGGROUP: 2:31
+        │   │           └─ ARGUMENT: 2:31
+        │   │               └─ Token(type=UNQUOTED_LITERAL, content='3.5', line=2, col=31)
+        │   └─ RPAREN: 2:34
+        │       └─ Token(type=RIGHT_PAREN, content=')', line=2, col=34)
+        ├─ WHITESPACE: 2:35
+        │   └─ Token(type=NEWLINE, content='\n', line=2, col=35)
+        ├─ STATEMENT: 3:0
+        │   ├─ FUNNAME: 3:0
+        │   │   └─ Token(type=WORD, content='project', line=3, col=0)
+        │   ├─ LPAREN: 3:7
+        │   │   └─ Token(type=LEFT_PAREN, content='(', line=3, col=7)
+        │   ├─ ARGGROUP: 3:8
+        │   │   └─ PARGGROUP: 3:8
+        │   │       └─ ARGUMENT: 3:8
+        │   │           └─ Token(type=WORD, content='demo', line=3, col=8)
+        │   └─ RPAREN: 3:12
+        │       └─ Token(type=RIGHT_PAREN, content=')', line=3, col=12)
+        ├─ WHITESPACE: 3:13
+        │   └─ Token(type=NEWLINE, content='\n', line=3, col=13)
+        ├─ FLOW_CONTROL: 4:0
+        │   ├─ STATEMENT: 4:0
+        │   │   ├─ FUNNAME: 4:0
+        │   │   │   └─ Token(type=WORD, content='if', line=4, col=0)
+        │   │   ├─ LPAREN: 4:2
+        │   │   │   └─ Token(type=LEFT_PAREN, content='(', line=4, col=2)
+        │   │   ├─ ARGGROUP: 4:3
+        │   │   │   ├─ ARGUMENT: 4:3
+        │   │   │   │   └─ Token(type=WORD, content='FOO', line=4, col=3)
+        │   │   │   ├─ Token(type=WHITESPACE, content=' ', line=4, col=6)
+        │   │   │   └─ KWARGGROUP: 4:7
+        │   │   │       ├─ KEYWORD: 4:7
+        │   │   │       │   └─ Token(type=WORD, content='AND', line=4, col=7)
+        │   │   │       ├─ Token(type=WHITESPACE, content=' ', line=4, col=10)
+        │   │   │       └─ ARGGROUP: 4:11
+        │   │   │           └─ PARENGROUP: 4:11
+        │   │   │               ├─ LPAREN: 4:11
+        │   │   │               │   └─ Token(type=LEFT_PAREN, content='(', line=4, col=11)
+        │   │   │               ├─ ARGGROUP: 4:12
+        │   │   │               │   ├─ ARGUMENT: 4:12
+        │   │   │               │   │   └─ Token(type=WORD, content='BAR', line=4, col=12)
+        │   │   │               │   ├─ Token(type=WHITESPACE, content=' ', line=4, col=15)
+        │   │   │               │   └─ KWARGGROUP: 4:16
+        │   │   │               │       ├─ KEYWORD: 4:16
+        │   │   │               │       │   └─ Token(type=WORD, content='OR', line=4, col=16)
+        │   │   │               │       ├─ Token(type=WHITESPACE, content=' ', line=4, col=18)
+        │   │   │               │       └─ ARGGROUP: 4:19
+        │   │   │               │           └─ ARGUMENT: 4:19
+        │   │   │               │               └─ Token(type=WORD, content='BAZ', line=4, col=19)
+        │   │   │               └─ RPAREN: 4:22
+        │   │   │                   └─ Token(type=RIGHT_PAREN, content=')', line=4, col=22)
+        │   │   └─ RPAREN: 4:23
+        │   │       └─ Token(type=RIGHT_PAREN, content=')', line=4, col=23)
+        │   ├─ BODY: 4:24
+        │   │   ├─ WHITESPACE: 4:24
+        │   │   │   ├─ Token(type=NEWLINE, content='\n', line=4, col=24)
+        │   │   │   └─ Token(type=WHITESPACE, content='  ', line=5, col=0)
+        │   │   ├─ STATEMENT: 5:2
+        │   │   │   ├─ FUNNAME: 5:2
+        │   │   │   │   └─ Token(type=WORD, content='add_library', line=5, col=2)
+        │   │   │   ├─ LPAREN: 5:13
+        │   │   │   │   └─ Token(type=LEFT_PAREN, content='(', line=5, col=13)
+        │   │   │   ├─ ARGGROUP: 5:14
+        │   │   │   │   ├─ PARGGROUP: 5:14
+        │   │   │   │   │   ├─ ARGUMENT: 5:14
+        │   │   │   │   │   │   └─ Token(type=WORD, content='hello', line=5, col=14)
+        │   │   │   │   │   └─ Token(type=WHITESPACE, content=' ', line=5, col=19)
+        │   │   │   │   └─ PARGGROUP: 5:20, sortable
+        │   │   │   │       └─ ARGUMENT: 5:20
+        │   │   │   │           └─ Token(type=UNQUOTED_LITERAL, content='hello.cc', line=5, col=20)
+        │   │   │   └─ RPAREN: 5:28
+        │   │   │       └─ Token(type=RIGHT_PAREN, content=')', line=5, col=28)
+        │   │   └─ WHITESPACE: 5:29
+        │   │       └─ Token(type=NEWLINE, content='\n', line=5, col=29)
+        │   └─ STATEMENT: 6:0
+        │       ├─ FUNNAME: 6:0
+        │       │   └─ Token(type=WORD, content='endif', line=6, col=0)
+        │       ├─ LPAREN: 6:5
+        │       │   └─ Token(type=LEFT_PAREN, content='(', line=6, col=5)
+        │       ├─ ARGGROUP: 0:0
+        │       └─ RPAREN: 6:6
+        │           └─ Token(type=RIGHT_PAREN, content=')', line=6, col=6)
+        └─ WHITESPACE: 6:7
+            └─ Token(type=NEWLINE, content='\n', line=6, col=7)
 
+.. dynamic: dump-example-parse-end
 
 ----------------------
 Formatter: Layout Tree
@@ -306,7 +331,11 @@ is essentially the same as the parse tree with the following exceptions:
    represented in the layout tree.
 
 You can inspect the layout tree of a listfile by ``cmake-format`` with
-``--dump layout``. For example::
+``--dump layout``. For example:
+
+.. dynamic: dump-example-layout-begin
+
+.. code:: text
 
     └─ BODY,HPACK(0) p(0,0) ce:35
         ├─ STATEMENT,HPACK(0) p(0,0) ce:35
@@ -330,27 +359,32 @@ You can inspect the layout tree of a listfile by ``cmake-format`` with
             │   ├─ ARGUMENT,HPACK(0) p(2,3) ce:6
             │   ├─ KWARGGROUP,HPACK(0) p(2,7) ce:23
             │   │   ├─ KEYWORD,HPACK(0) p(2,7) ce:10
-            │   │   └─ PARENGROUP,HPACK(0) p(2,11) ce:23
-            │   │       ├─ LPAREN,HPACK(0) p(2,11) ce:12
-            │   │       ├─ ARGUMENT,HPACK(0) p(2,12) ce:15
-            │   │       ├─ KWARGGROUP,HPACK(0) p(2,16) ce:22
-            │   │       │   ├─ KEYWORD,HPACK(0) p(2,16) ce:18
-            │   │       │   └─ ARGUMENT,HPACK(0) p(2,19) ce:22
-            │   │       └─ RPAREN,HPACK(0) p(2,22) ce:23
+            │   │   └─ ARGGROUP,HPACK(0) p(2,11) ce:23
+            │   │       └─ PARENGROUP,HPACK(0) p(2,11) ce:23
+            │   │           ├─ LPAREN,HPACK(0) p(2,11) ce:12
+            │   │           ├─ ARGGROUP,HPACK(0) p(2,12) ce:22
+            │   │           │   ├─ ARGUMENT,HPACK(0) p(2,12) ce:15
+            │   │           │   └─ KWARGGROUP,HPACK(0) p(2,16) ce:22
+            │   │           │       ├─ KEYWORD,HPACK(0) p(2,16) ce:18
+            │   │           │       └─ ARGGROUP,HPACK(0) p(2,19) ce:22
+            │   │           │           └─ ARGUMENT,HPACK(0) p(2,19) ce:22
+            │   │           └─ RPAREN,HPACK(0) p(2,22) ce:23
             │   └─ RPAREN,HPACK(0) p(2,23) ce:24
             ├─ BODY,HPACK(0) p(3,2) ce:29
             │   └─ STATEMENT,HPACK(0) p(3,2) ce:29
             │       ├─ FUNNAME,HPACK(0) p(3,2) ce:13
             │       ├─ LPAREN,HPACK(0) p(3,13) ce:14
-            │       ├─ PARGGROUP,HPACK(0) p(3,14) ce:28
-            │       │   ├─ ARGUMENT,HPACK(0) p(3,14) ce:19
+            │       ├─ PARGGROUP,HPACK(0) p(3,14) ce:19
+            │       │   └─ ARGUMENT,HPACK(0) p(3,14) ce:19
+            │       ├─ PARGGROUP,HPACK(0) p(3,20) ce:28
             │       │   └─ ARGUMENT,HPACK(0) p(3,20) ce:28
             │       └─ RPAREN,HPACK(0) p(3,28) ce:29
             └─ STATEMENT,HPACK(0) p(4,0) ce:7
                 ├─ FUNNAME,HPACK(0) p(4,0) ce:5
                 ├─ LPAREN,HPACK(0) p(4,5) ce:6
-                ├─ PARGGROUP,HPACK(0) p(4,6) ce:6
                 └─ RPAREN,HPACK(0) p(4,6) ce:7
+
+.. dynamic: dump-example-layout-end
 
 ------------
 Example file

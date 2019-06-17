@@ -40,3 +40,13 @@ add_custom_target(
 )
 
 add_dependencies(doc cmake_format-doc)
+
+add_custom_target(
+  gendoc_sources-cmake_format
+  COMMAND python -B gendoc_sources.py
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Replacing dynamic text in documentation sources for cmake_format")
+
+add_test(NAME cmake_format-docsources-test
+         COMMAND python -B gendoc_sources.py --verify
+         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

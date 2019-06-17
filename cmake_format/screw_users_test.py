@@ -4,6 +4,7 @@ Ensure that changes to cmake-format don't screw current users
 
 # -*- coding: utf-8 -*-
 # pylint: disable=R1708
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
@@ -178,7 +179,7 @@ class DontScrewUsers(unittest.TestCase):
     self.configpath = ".cmake-format.py"
     self.last_known_good = "7212065b5a78afb13e7527379175a3b2ee939a14"
     self.exclude_patterns += [
-      ".*build-android/cmake/layerlib/CMakeLists.txt"
+        ".*build-android/cmake/layerlib/CMakeLists.txt"
     ]
 
   def test_vulkan_validation_loader(self):
@@ -200,6 +201,7 @@ class DontScrewUsers(unittest.TestCase):
   def test_openbmc_dbus_sensors(self):
     self.repository = "https://github.com/openbmc/dbus-sensors"
     self.configpath = "cmake-format.json"
+
 
 if __name__ == "__main__":
   unittest.main()

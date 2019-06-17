@@ -114,12 +114,6 @@ Parser Refactor
 * Split parse_funs into modules to better organize custom parsers
 * Implement custom parser for the different forms of ``list()``
 
-Documentation
-=============
-
-* Remove all the config command line options from the README, as well as the
-  example configuration. Move them into a separate documentation page.
-
 Current Issues
 ==============
 
@@ -145,7 +139,48 @@ would generally perfer a single line, would perhaps allow HWRAP but only
 if it was at most two lines, would allow VPACK but only if the statment
 name is not too long.
 
-Cost per line:
---------------
+Format Refactor
+===============
 
-* Number of arguments per line?
+* Separate the layout algorithm between two separate decisions for "nesting"
+  and "wrapping". The order in which to apply them will depend on the type of
+  node we are at, and can be influenced by the parser. See notes in case
+  studies.
+* Implement additional criteria for triggering a wrap:
+
+  * arguments overflow the column width
+  * exceed threshold in number or size of arguments
+  * presence of a line comment
+  * is an `always_wrap` node
+
+* Add a configuration option for nesting preference. The current order is
+  basically ``(nest,wrap)``:
+
+  * (horizontal, horizontal)
+  * (horizontal, vertical)
+  * (vertical, vertical)
+
+  and, in particular, I think that I want it to nest vertically almost always.
+  The one case not to nest vertically is if the command name is less than or
+  equal to tab width. We might include some configuration option for how many
+  characters over tab-width to continue allowing horizontal nesting. We should
+  always be able to fall back to vertical nesting in the case that horizontal
+  just can't fit.
+
+* Do a scan of TODO's in formatter.py. I'm leaving a bunch in there.
+* Should we add a configuration option for maximum sub-groups per line
+  (like max-subargs per line?)
+* Should we add a configuration option to prevent horizontal wrapping a
+  child PARGGROUP after another argument? See the current format failures
+  in cmake_format.command_tests.conditional_tests
+
+Release Process
+===============
+
+Add cmake rules for ``release`` and ``test-release`` that will double check
+certain things:
+
+1. Closes issues in changelog are also closed in the commit message
+2. Version number is not ``dev``
+3. Version number is incremented
+

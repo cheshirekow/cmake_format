@@ -33,7 +33,7 @@ Integrations
 Usage
 -----
 
-.. tag: usage-begin
+.. dynamic: usage-begin
 
 .. code:: text
 
@@ -72,7 +72,7 @@ Usage
                             path to configuration file
 
     Formatter Configuration:
-      Override configfile options
+      Override configfile options affecting general formatting
 
       --line-width LINE_WIDTH
                             How wide to allow formatted cmake files
@@ -88,11 +88,13 @@ Usage
       --dangle-parens [DANGLE_PARENS]
                             If a statement is wrapped to more than one line, than
                             dangle the closing parenthesis on it's own line
-      --bullet-char BULLET_CHAR
-                            What character to use for bulleted lists
-      --enum-char ENUM_CHAR
-                            What character to use as punctuation after numerals in
-                            an enumerated list
+      --max-prefix-chars MAX_PREFIX_CHARS
+                            If the statement spelling length (including space and
+                            parenthesis is larger than the tab width by more than
+                            this amoung, then force reject un-nested layouts.
+      --max-lines-hwrap MAX_LINES_HWRAP
+                            If a candidate layout is wrapped horizontally but it
+                            exceeds this many lines, then reject the layout.
       --line-ending {windows,unix,auto}
                             What style line endings to use in the output.
       --command-case {lower,upper,canonical,unchanged}
@@ -106,18 +108,35 @@ Usage
       --algorithm-order [ALGORITHM_ORDER [ALGORITHM_ORDER ...]]
                             Specify the order of wrapping algorithms during
                             successive reflow attempts
-      --autosort [AUTOSORT]
+      --enable-sort [ENABLE_SORT]
                             If true, the argument lists which are known to be
                             sortable will be sorted lexicographicall
+      --autosort [AUTOSORT]
+                            If true, the parsers may infer whether or not an
+                            argument list is sortable (without annotation).
+      --hashruler-min-length HASHRULER_MIN_LENGTH
+                            If a comment line starts with at least this many
+                            consecutive hash characters, then don't lstrip() them
+                            off. This allows for lazy hash rulers where the first
+                            hash char is not separated by space
+
+    Comment Formatting:
+      Override config options affecting comment formatting
+
+      --bullet-char BULLET_CHAR
+                            What character to use for bulleted lists
+      --enum-char ENUM_CHAR
+                            What character to use as punctuation after numerals in
+                            an enumerated list
       --enable-markup [ENABLE_MARKUP]
                             enable comment markup parsing and reflow
       --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
                             If comment markup is enabled, don't reflow the first
-                            comment block in eachlistfile. Use this to preserve
-                            formatting of your copyright/licensestatements.
+                            comment block in each listfile. Use this to preserve
+                            formatting of your copyright/license statements.
       --literal-comment-pattern LITERAL_COMMENT_PATTERN
                             If comment markup is enabled, don't reflow any comment
-                            block which matchesthis (regex) pattern. Default is
+                            block which matches this (regex) pattern. Default is
                             `None` (disabled).
       --fence-pattern FENCE_PATTERN
                             Regular expression to match preformat fences in
@@ -125,18 +144,17 @@ Usage
       --ruler-pattern RULER_PATTERN
                             Regular expression to match rulers in comments
                             default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
-                            If true, emit the unicode byte-order mark (BOM) at the
-                            start of the file
-      --hashruler-min-length HASHRULER_MIN_LENGTH
-                            If a comment line starts with at least this many
-                            consecutive hash characters, then don't lstrip() them
-                            off. This allows for lazy hash rulers where the first
-                            hash char is not separated by space
       --canonicalize-hashrulers [CANONICALIZE_HASHRULERS]
                             If true, then insert a space between the first hash
                             char and remaining hash chars in a hash ruler, and
                             normalize it's length to fill the column
+
+    Misc Options:
+      Override miscellaneous config options
+
+      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
+                            If true, emit the unicode byte-order mark (BOM) at the
+                            start of the file
       --input-encoding INPUT_ENCODING
                             Specify the encoding of the input file. Defaults to
                             utf-8.
@@ -145,7 +163,7 @@ Usage
                             utf-8. Note that cmake only claims to support utf-8 so
                             be careful when using anything else
 
-.. tag: usage-end
+.. dynamic: usage-end
 
 -------------
 Configuration
@@ -156,10 +174,14 @@ An example configuration file is given here. Additional flags and additional
 kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
-.. tag: configuration-begin
+.. dynamic: configuration-begin
 
 .. code:: text
 
+
+    # --------------------------
+    # General Formatting Options
+    # --------------------------
     # How wide to allow formatted cmake files
     line_width = 80
 
@@ -179,11 +201,14 @@ pleasant way.
     # parenthesis on it's own line
     dangle_parens = False
 
-    # What character to use for bulleted lists
-    bullet_char = '*'
+    # If the statement spelling length (including space and parenthesis is larger
+    # than the tab width by more than this amoung, then force reject un-nested
+    # layouts.
+    max_prefix_chars = 2
 
-    # What character to use as punctuation after numerals in an enumerated list
-    enum_char = '.'
+    # If a candidate layout is wrapped horizontally but it exceeds this many lines,
+    # then reject the layout.
+    max_lines_hwrap = 2
 
     # What style line endings to use in the output.
     line_ending = 'unix'
@@ -211,18 +236,41 @@ pleasant way.
 
     # If true, the argument lists which are known to be sortable will be sorted
     # lexicographicall
-    autosort = True
+    enable_sort = True
+
+    # If true, the parsers may infer whether or not an argument list is sortable
+    # (without annotation).
+    autosort = False
+
+    # If a comment line starts with at least this many consecutive hash characters,
+    # then don't lstrip() them off. This allows for lazy hash rulers where the first
+    # hash char is not separated by space
+    hashruler_min_length = 10
+
+    # A dictionary containing any per-command configuration overrides. Currently
+    # only `command_case` is supported.
+    per_command = {}
+
+
+    # --------------------------
+    # Comment Formatting Options
+    # --------------------------
+    # What character to use for bulleted lists
+    bullet_char = '*'
+
+    # What character to use as punctuation after numerals in an enumerated list
+    enum_char = '.'
 
     # enable comment markup parsing and reflow
     enable_markup = True
 
-    # If comment markup is enabled, don't reflow the first comment block in
-    # eachlistfile. Use this to preserve formatting of your
-    # copyright/licensestatements.
+    # If comment markup is enabled, don't reflow the first comment block in each
+    # listfile. Use this to preserve formatting of your copyright/license
+    # statements.
     first_comment_is_literal = False
 
-    # If comment markup is enabled, don't reflow any comment block which matchesthis
-    # (regex) pattern. Default is `None` (disabled).
+    # If comment markup is enabled, don't reflow any comment block which matches
+    # this (regex) pattern. Default is `None` (disabled).
     literal_comment_pattern = None
 
     # Regular expression to match preformat fences in comments
@@ -233,17 +281,16 @@ pleasant way.
     # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
     ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
 
-    # If true, emit the unicode byte-order mark (BOM) at the start of the file
-    emit_byteorder_mark = False
-
-    # If a comment line starts with at least this many consecutive hash characters,
-    # then don't lstrip() them off. This allows for lazy hash rulers where the first
-    # hash char is not separated by space
-    hashruler_min_length = 10
-
     # If true, then insert a space between the first hash char and remaining hash
     # chars in a hash ruler, and normalize it's length to fill the column
     canonicalize_hashrulers = True
+
+
+    # ---------------------------------
+    # Miscellaneous Options
+    # ---------------------------------
+    # If true, emit the unicode byte-order mark (BOM) at the start of the file
+    emit_byteorder_mark = False
 
     # Specify the encoding of the input file. Defaults to utf-8.
     input_encoding = 'utf-8'
@@ -252,12 +299,8 @@ pleasant way.
     # only claims to support utf-8 so be careful when using anything else
     output_encoding = 'utf-8'
 
-    # A dictionary containing any per-command configuration overrides. Currently
-    # only `command_case` is supported.
-    per_command = {}
 
-
-.. tag: configuration-end
+.. dynamic: configuration-end
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry
@@ -272,7 +315,7 @@ by dumping out the default configuration in your preferred format. You can run
 ``cmake-format --dump-config [yaml|json|python]`` to print the default
 configuration ``stdout`` and use that as a starting point.
 
-.. tag: features-begin
+.. dynamic: features-begin
 
 -------
 Markup
@@ -425,7 +468,7 @@ Note that this is only needed if your configuration has enabled ``autosort``,
 and you can globally disable sorting by making setting this configuration to
 ``False``.
 
-.. tag: features-end
+.. dynamic: features-end
 
 ---------------------------------
 Reporting Issues and Getting Help
@@ -468,7 +511,7 @@ Example
 
 Will turn this:
 
-.. tag: example-in-begin
+.. dynamic: example-in-begin
 
 .. code:: cmake
 
@@ -573,11 +616,11 @@ Will turn this:
                e.cc)
     # cmake-format: on
 
-.. tag: example-in-end
+.. dynamic: example-in-end
 
 into this:
 
-.. tag: example-out-begin
+.. dynamic: example-out-begin
 
 .. code:: cmake
 
@@ -656,10 +699,10 @@ into this:
       if(sbar)
         # This comment is in-scope.
         add_library(foo_bar_baz
+                    foo.cc
                     bar.cc # this is a comment for arg2 this is more comment for
                            # arg2, it should be joined with the first.
-                    baz.cc
-                    foo.cc) # This comment is part of add_library
+                    baz.cc) # This comment is part of add_library
 
         other_command(some_long_argument some_long_argument) # this comment is very
                                                              # long and gets split
@@ -701,4 +744,4 @@ into this:
                e.cc)
     # cmake-format: on
 
-.. tag: example-out-end
+.. dynamic: example-out-end

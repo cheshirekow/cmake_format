@@ -178,7 +178,7 @@ class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__)|[a-z]{2,20}_[T|R]_[a-z
 inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,f,ex,Run,_,d,dt,p,x,y,z,w,h,c,xy,op,xx,yy,ax,t,db
+good-names=i,j,k,f,ex,Run,_,d,dt,p,x,y,z,w,h,c,xy,op,xx,yy,ax,t,db,fd
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,baz,toto,tutu,tata

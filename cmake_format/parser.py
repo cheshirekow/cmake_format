@@ -83,10 +83,11 @@ class TreeNode(object):
   A node in the full-syntax-tree.
   """
 
-  def __init__(self, node_type, sortable=False):
+  def __init__(self, node_type, sortable=False, default_wrapping=None):
     self.node_type = node_type
     self.children = []
     self.sortable = sortable
+    self.default_wrapping = default_wrapping
 
   def get_location(self):
     """

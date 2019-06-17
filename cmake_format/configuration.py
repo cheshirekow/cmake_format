@@ -164,6 +164,8 @@ class Configuration(object):
                separate_ctrl_name_with_space=False,
                separate_fn_name_with_space=False,
                dangle_parens=False,
+               max_prefix_chars=2,
+               max_lines_hwrap=2,
                bullet_char=None,
                enum_char=None,
                line_ending=None,
@@ -171,7 +173,9 @@ class Configuration(object):
                keyword_case=None,
                additional_commands=None,
                always_wrap=None,
+               # TODO(josh): remove algorithm_order
                algorithm_order=None,
+               enable_sort=True,
                autosort=False,
                enable_markup=True,
                first_comment_is_literal=False,
@@ -199,6 +203,8 @@ class Configuration(object):
     self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
     self.separate_fn_name_with_space = separate_fn_name_with_space
     self.dangle_parens = dangle_parens
+    self.max_prefix_chars = max_prefix_chars
+    self.max_lines_hwrap = max_lines_hwrap
 
     self.bullet_char = str(bullet_char)[0]
     if bullet_char is None:
@@ -228,6 +234,7 @@ class Configuration(object):
 
     self.always_wrap = get_default(always_wrap, [])
     self.algorithm_order = get_default(algorithm_order, [0, 1, 2, 3, 4])
+    self.enable_sort = enable_sort
     self.autosort = autosort
     self.enable_markup = enable_markup
     self.first_comment_is_literal = first_comment_is_literal
@@ -308,67 +315,74 @@ VARCHOICES = {
 VARDOCS = {
     "line_width": "How wide to allow formatted cmake files",
     "tab_size": "How many spaces to tab for indent",
-    "max_subargs_per_line":
-    "If arglists are longer than this, break them always",
-    "separate_ctrl_name_with_space":
-    "If true, separate flow control names from their parentheses with a"
-    " space",
-    "separate_fn_name_with_space":
-    "If true, separate function names from parentheses with a space",
-    "dangle_parens":
-    "If a statement is wrapped to more than one line, than dangle the closing"
-    " parenthesis on it's own line",
-    "bullet_char":
-    "What character to use for bulleted lists",
-    "enum_char":
-    "What character to use as punctuation after numerals in an enumerated"
-    " list",
-    "line_ending":
-    "What style line endings to use in the output.",
-    "command_case":
-    "Format command names consistently as 'lower' or 'upper' case",
-    "keyword_case":
-    "Format keywords consistently as 'lower' or 'upper' case",
-    "always_wrap":
-    "A list of command names which should always be wrapped",
-    "algorithm_order":
-    "Specify the order of wrapping algorithms during successive reflow "
-    "attempts",
-    "autosort":
-    "If true, the argument lists which are known to be sortable will be "
-    "sorted lexicographicall",
-    "enable_markup":
-    "enable comment markup parsing and reflow",
-    "first_comment_is_literal":
-    "If comment markup is enabled, don't reflow the first comment block in each"
-    "listfile. Use this to preserve formatting of your copyright/license"
-    "statements. ",
-    "literal_comment_pattern":
-    "If comment markup is enabled, don't reflow any comment block which matches"
-    "this (regex) pattern. Default is `None` (disabled).",
-    "fence_pattern":
-    ("Regular expression to match preformat fences in comments default=r'{}'"
-     .format(markup.FENCE_PATTERN)),
-    "ruler_pattern":
-    ("Regular expression to match rulers in comments default=r'{}'"
-     .format(markup.RULER_PATTERN)),
-    "additional_commands":
-    "Specify structure for custom cmake functions",
-    "emit_byteorder_mark":
-    "If true, emit the unicode byte-order mark (BOM) at the start of the file",
-    "hashruler_min_length":
-    "If a comment line starts with at least this many consecutive hash "
-    "characters, then don't lstrip() them off. This allows for lazy hash "
-    "rulers where the first hash char is not separated by space",
-    "canonicalize_hashrulers":
-    "If true, then insert a space between the first hash char and remaining "
-    "hash chars in a hash ruler, and normalize it's length to fill the column",
-    "input_encoding":
-    "Specify the encoding of the input file. Defaults to utf-8.",
-    "output_encoding":
-    "Specify the encoding of the output file. Defaults to utf-8. Note that "
-    "cmake only claims to support utf-8 so be careful when using anything else",
-    "per_command":
-    "A dictionary containing any per-command configuration overrides."
-    " Currently only `command_case` is supported."
+    "max_subargs_per_line": (
+        "If arglists are longer than this, break them always"),
+    "separate_ctrl_name_with_space": (
+        "If true, separate flow control names from their parentheses with a"
+        " space"),
+    "separate_fn_name_with_space": (
+        "If true, separate function names from parentheses with a space"),
+    "dangle_parens": (
+        "If a statement is wrapped to more than one line, than dangle the"
+        " closing parenthesis on it's own line"),
+    "max_prefix_chars": (
+        "If the statement spelling length (including space and parenthesis"
+        " is larger than the tab width by more than this amoung, then"
+        " force reject un-nested layouts."),
+    "max_lines_hwrap": (
+        "If a candidate layout is wrapped horizontally but it exceeds this"
+        " many lines, then reject the layout."),
+    "bullet_char": "What character to use for bulleted lists",
+    "enum_char": (
+        "What character to use as punctuation after numerals in an"
+        " enumerated list"),
+    "line_ending": "What style line endings to use in the output.",
+    "command_case": (
+        "Format command names consistently as 'lower' or 'upper' case"),
+    "keyword_case": "Format keywords consistently as 'lower' or 'upper' case",
+    "always_wrap": "A list of command names which should always be wrapped",
+    "algorithm_order": (
+        "Specify the order of wrapping algorithms during successive reflow "
+        "attempts"),
+    "enable_sort": (
+        "If true, the argument lists which are known to be sortable will be "
+        "sorted lexicographicall"),
+    "autosort": (
+        "If true, the parsers may infer whether or not an argument list is"
+        " sortable (without annotation)."),
+    "enable_markup": "enable comment markup parsing and reflow",
+    "first_comment_is_literal": (
+        "If comment markup is enabled, don't reflow the first comment block"
+        " in each listfile. Use this to preserve formatting of your"
+        " copyright/license statements. "),
+    "literal_comment_pattern": (
+        "If comment markup is enabled, don't reflow any comment block which"
+        " matches this (regex) pattern. Default is `None` (disabled)."),
+    "fence_pattern": (
+        "Regular expression to match preformat fences in comments"
+        " default=r'{}'".format(markup.FENCE_PATTERN)),
+    "ruler_pattern": (
+        "Regular expression to match rulers in comments default=r'{}'"
+        .format(markup.RULER_PATTERN)),
+    "additional_commands": "Specify structure for custom cmake functions",
+    "emit_byteorder_mark": (
+        "If true, emit the unicode byte-order mark (BOM) at the start of"
+        " the file"),
+    "hashruler_min_length": (
+        "If a comment line starts with at least this many consecutive hash "
+        "characters, then don't lstrip() them off. This allows for lazy hash "
+        "rulers where the first hash char is not separated by space"),
+    "canonicalize_hashrulers": (
+        "If true, then insert a space between the first hash char and"
+        " remaining hash chars in a hash ruler, and normalize it's length to"
+        " fill the column"),
+    "input_encoding": (
+        "Specify the encoding of the input file. Defaults to utf-8."),
+    "output_encoding": (
+        "Specify the encoding of the output file. Defaults to utf-8. Note"
+        " that cmake only claims to support utf-8 so be careful when using"
+        " anything else"),
+    "per_command": (
+        "A dictionary containing any per-command configuration overrides."
+        " Currently only `command_case` is supported.")
 }

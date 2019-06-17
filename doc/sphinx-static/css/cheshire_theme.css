@@ -154,3 +154,11 @@ blockquote.epigraph  {
 .epigraph .attribution {
   background-color: rgb(180, 210, 228);
 }
+
+/* I guess the RTD theme sets this to `nowrap`...
+   but I think that I definately want it to wrap by default. */
+.wy-table-responsive table td {
+  /* !important prevents the common CSS stylesheets from overriding
+     this as on RTD they are loaded after this stylesheet */
+  white-space: normal !important;
+}

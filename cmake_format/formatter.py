@@ -16,31 +16,7 @@ from cmake_format import parser
 from cmake_format.lexer import TokenType
 from cmake_format.parser import FlowType, NodeType
 
-# A given node consists of arguments, or subtrees. Each of these is an
-# "element". We can either pack all elements "horizontal" or "vertical".
-# This is true recursively. This means that each tree node hs two options, and
-# the number of combinations is 2^(n) for n tree nodes. Previously, we would
-# simply prefer the first option always, and pick the second option if we
-# needed to. If we want a more general way to score options, we may need to
-# evaluate all of them.
-#
-# Even if we start by just formalizing the old strategy of preferring horizontal
-# with vertical fallback. How do we implement that? I guess verticalize
-# from the top down until it works.
-#
-# I guess what we want to do is ``compute_box(treenode, strategy)``. If the
-# strategy is ``hpack`` then iterate through all children and pack them
-# horizontally and return the box size. If the strategy is ``vpack`` then
-# do the same but vertical. If ``hvpack`` then pack all boxes horizontally
-# with a linebreak on overflow or a box greater than 1 unit high.
-#
-# I think the strategy should start as [hpack, hpack, hpack, ...] up to depth.
-# then for every failure to pack we iterate with:
-#   * [hvpack, hpack, hpack, ...]
-#   * [hvpack, hvpack, hpack, ...]
-#   * [hvpack, hvpack, hvpack, ...]
-#
-#
+logger = logging.getLogger(__name__)
 
 BLOCK_TYPES = (NodeType.FLOW_CONTROL, NodeType.BODY, NodeType.COMMENT,
                NodeType.STATEMENT, NodeType.WHITESPACE, NodeType.ONOFFSWITCH)
@@ -54,6 +30,7 @@ MATCH_TYPES = BLOCK_TYPES + GROUP_TYPES + SCALAR_TYPES + PAREN_TYPES
 
 
 def clamp(value, min_value, max_value):
+  """Simple double-ended saturation function."""
   if value > max_value:
     return max_value
   if value < min_value:
@@ -110,6 +87,7 @@ def normalize_line_endings(instr):
   return re.sub('[ \t\f\v]*((\r?\n)|(\r\n?))', '\n', instr)
 
 
+# TODO(josh): remove this
 class WrapAlgo(common.EnumObject):
   """
   Packing algorithm used
@@ -124,20 +102,12 @@ WrapAlgo.KWNVPACK = WrapAlgo(3)  # keyword nested vertical packing
 WrapAlgo.PNVPACK = WrapAlgo(4)  # parentheses nested vertical packing
 WrapAlgo.COUNT = WrapAlgo(5)
 
-# TODO(josh): add more than just the primary algorithm to the passes that we
-# take. These four should be the first four passes, but we also want to
-# add a pass where we move statement comment to the next line, or we dangle
-# the paren. The statement comment pass may be something we want to do *foreach*
-# of the other options, while the dangle paren is probably the last thing we
-# want to do ever (i.e. if we're already wrapped as much as possible and the
-# paren still wont fit).
-# TODO(josh): also add an algorithm that just simply wraps all tokens
-# in a naive way. Some people might want this for some statements.
-
 
 def need_paren_space(spelling, config):
   """
-  Return whether or not we need a space between the token and the paren
+  Return whether or not we need a space between the statement name and the
+  starting parenthesis. This aggregates the logic of the two configuration
+  options `separate_ctrl_name_with_space` and `separate_fn_name_with_space`.
   """
   upper = spelling.upper()
 
@@ -154,14 +124,20 @@ def need_paren_space(spelling, config):
 class Cursor(object):
   """
   Lightweight class to encode integer positions in a 2d grid.
+
+  * x = row
+  * y = cols
   """
 
   def __init__(self, x, y):
-    self.x = x
-    self.y = y
+    self.x = x  # row
+    self.y = y  # col
 
   def __add__(self, other):
     return Cursor(self.x + other[0], self.y + other[1])
+
+  def __sub__(self, other):
+    return Cursor(self.x - other[0], self.y - other[1])
 
   def __getitem__(self, idx):
     if idx == 0:
@@ -183,6 +159,22 @@ class Cursor(object):
 
   def __repr__(self):
     return "Cursor({},{})".format(self.x, self.y)
+
+
+def get_nest_wrap(passno):
+  """
+  Return (nest, wrap) booleans depending on the integer passno
+  """
+  if passno > 3:
+    logger.warning("Invalid passno: %d", passno)
+    passno = 3
+    # raise ValueError("Invalid passno: {}".format(passno))
+  return [
+      (False, False),
+      (False, True),
+      (True, False),
+      (True, True)
+  ][passno]
 
 
 class LayoutNode(object):
@@ -241,6 +233,7 @@ class LayoutNode(object):
   def position(self):
     return Cursor(*self._position)
 
+  # TODO(josh): rename this
   @property
   def type(self):
     return self.pnode.node_type
@@ -273,7 +266,6 @@ class LayoutNode(object):
 
     if self._children:
       return 1 + max(child.get_depth() for child in self._children)
-
     return 1
 
   # Lock the tree structure and prevent further updates.
@@ -295,8 +287,7 @@ class LayoutNode(object):
     for child in self._children:
       child.lock(config, nextdepth)
 
-  # TODO(josh): can probably just inline this now that StatementNode overrides
-  # _reflow() and reflow() both
+  # TODO(josh): get rid of this
   def _get_wrap(self, config, passno):
     algoidx = clamp(passno, 0, len(config.algorithm_order))
     algoid = config.algorithm_order[algoidx]
@@ -381,7 +372,7 @@ class ParenNode(LayoutNode):
   """Holds parenthesis '(' or ')' for statements or boolean groups."""
 
   def _reflow(self, config, cursor, passno):
-    """There is only one possible flow for this node."""
+    """There is only one possible layout for this node."""
     self._colextent = cursor[1] + 1
     return cursor + (0, 1)
 
@@ -401,8 +392,14 @@ class ScalarNode(LayoutNode):
   """
 
   def has_terminal_comment(self):
-    return (self.children
-            and self.children[-1].pnode.children[0].type == TokenType.COMMENT)
+    if not self.children:
+      return False
+
+    if not self.children[-1].pnode.children:
+      return False
+
+    # Note: bracket comments do not count as terminal comments
+    return self.children[-1].pnode.children[0].type == TokenType.COMMENT
 
   def _reflow(self, config, cursor, passno):
     """
@@ -548,6 +545,13 @@ class OnOffSwitchNode(LayoutNode):
     ctx.outfile.write_at(self.position, spelling)
 
 
+# TODO(josh): add more than just the primary algorithm to the passes that we
+# take. These four should be the first four passes, but we also want to
+# add a pass where we move statement comment to the next line, or we dangle
+# the paren. The statement comment pass may be something we want to do *foreach*
+# of the other options, while the dangle paren is probably the last thing we
+# want to do ever (i.e. if we're already wrapped as much as possible and the
+# paren still wont fit).
 class StatementNode(LayoutNode):
 
   # NOTE(josh): StatementNode is the only node that overrides reflow(), the
@@ -560,6 +564,7 @@ class StatementNode(LayoutNode):
 
     self._position = Cursor(*cursor)
     outcursor = None
+
     for repass in range(0, WrapAlgo.COUNT.value):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
@@ -722,18 +727,17 @@ class StatementNode(LayoutNode):
     columns for packing. `linewidth` is only considered for hpacking of
     consecutive scalar arguments
     """
-    paren_space = 0
     funname = self.children[0]
     assert funname.type == NodeType.FUNNAME
 
     token = funname.pnode.children[0]
     assert isinstance(token, lexer.Token)
-    if need_paren_space(token.spelling, config):
-      paren_space = 1  # <space>
 
     start_cursor = Cursor(*cursor)
     self._colextent = cursor[1]
 
+    # Layout of the statement name is always the same, we just write it out
+    # at the current cursor
     children = list(self.children)
     assert children
     child = children.pop(0)
@@ -742,7 +746,8 @@ class StatementNode(LayoutNode):
     self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
-    cursor[1] += paren_space
+    if need_paren_space(token.spelling, config):
+      cursor[1] += 1
 
     if self._wrap in (WrapAlgo.HPACK, WrapAlgo.HWRAP):
       if token.spelling.lower() in config.always_wrap:
@@ -867,6 +872,8 @@ def filename_node_key(layout_node):
 class PargGroupNode(LayoutNode):
 
   def has_terminal_comment(self):
+    if not self.children:
+      return False
     if self.children[-1].type is NodeType.COMMENT:
       return True
     return self.children[-1].has_terminal_comment()
