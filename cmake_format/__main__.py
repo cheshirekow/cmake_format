@@ -20,7 +20,6 @@ import io
 import json
 import logging
 import os
-import shutil
 import sys
 
 import cmake_format
@@ -424,7 +423,6 @@ def main():
     cfg = configuration.Configuration(**config_dict)
     outfile_content = io.StringIO()
 
-    parse_ok = True
     if infile_path == '-':
       infile = io.open(os.dup(sys.stdin.fileno()),
                        mode='r', encoding=cfg.input_encoding, newline='')
@@ -434,10 +432,8 @@ def main():
     try:
       with infile:
         infile_original_content = infile.read()
-        infile.seek(0)
-        process_file(cfg, infile, outfile_content, args.dump)
+        process_file(cfg, io.StringIO(infile_original_content), outfile_content, args.dump)
     except:
-      parse_ok = False
       sys.stderr.write('While processing {}\n'.format(infile_path))
       raise
     finally:
