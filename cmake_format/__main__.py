@@ -245,6 +245,9 @@ def dump_config(args, config_dict, outfile):
 
   outfmt = args.dump_config
 
+  if config_dict is None:
+    config_dict = {}
+
   for key, value in vars(args).items():
     if (key in configuration.Configuration.get_field_names()
         and value is not None):
@@ -422,6 +425,8 @@ def main():
           and value is not None):
         config_dict[key] = value
 
+    if config_dict is None:
+      config_dict = {}
     cfg = configuration.Configuration(**config_dict)
     if args.in_place:
       ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
