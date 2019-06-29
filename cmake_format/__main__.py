@@ -432,7 +432,8 @@ def main():
     try:
       with infile:
         infile_original_content = infile.read()
-        process_file(cfg, io.StringIO(infile_original_content), outfile_content, args.dump)
+        process_file(cfg, io.StringIO(infile_original_content), outfile_content,
+                     args.dump)
     except:
       sys.stderr.write('While processing {}\n'.format(infile_path))
       raise
@@ -456,8 +457,8 @@ def main():
           outfile = io.open(os.dup(sys.stdout.fileno()),
                             mode='w', encoding=cfg.output_encoding, newline='')
         else:
-          outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
-                            newline='')
+          outfile = io.open(args.outfile_path, 'w',
+                            encoding=cfg.output_encoding, newline='')
 
         outfile.write(outfile_content.getvalue())
 
