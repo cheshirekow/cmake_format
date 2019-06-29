@@ -22,7 +22,6 @@ import logging
 import os
 import shutil
 import sys
-import tempfile
 
 import cmake_format
 from cmake_format import commands
@@ -423,24 +422,7 @@ def main():
         config_dict[key] = value
 
     cfg = configuration.Configuration(**config_dict)
-    if args.in_place:
-      ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
-      os.close(ofd)
-      outfile = io.open(tempfile_path, 'w', encoding=cfg.output_encoding,
-                        newline='')
-    else:
-      if args.outfile_path == '-':
-        # NOTE(josh): The behavior or sys.stdout is different in python2 and
-        # python3. sys.stdout is opened in 'w' mode which means that write()
-        # takes strings in python2 and python3 and, in particular, in python3
-        # it does not take byte arrays. io.StreamWriter will write to
-        # it with byte arrays (assuming it was opened with 'wb'). So we use
-        # io.open instead of open in this case
-        outfile = io.open(os.dup(sys.stdout.fileno()),
-                          mode='w', encoding=cfg.output_encoding, newline='')
-      else:
-        outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
-                          newline='')
+    outfile_content = io.StringIO()
 
     parse_ok = True
     if infile_path == '-':
@@ -451,15 +433,37 @@ def main():
 
     try:
       with infile:
-        process_file(cfg, infile, outfile, args.dump)
+        infile_original_content = infile.read()
+        infile.seek(0)
+        process_file(cfg, infile, outfile_content, args.dump)
     except:
       parse_ok = False
       sys.stderr.write('While processing {}\n'.format(infile_path))
       raise
     finally:
-      outfile.close()
-      if args.in_place and parse_ok:
-        shutil.move(tempfile_path, infile_path)
+      if args.in_place:
+        # Only write the file if there were changes, or else we may trigger
+        # a false warning if another tool (such as a pre-commit hook)
+        # interprets changed files as a sign of us fixing a style problem.
+        if outfile_content.getvalue() != infile_original_content:
+          outfile = io.open(infile_path, 'w', encoding=cfg.output_encoding,
+                            newline='')
+          outfile.write(outfile_content.getvalue())
+      else:
+        if args.outfile_path == '-':
+          # NOTE(josh): The behavior or sys.stdout is different in python2 and
+          # python3. sys.stdout is opened in 'w' mode which means that write()
+          # takes strings in python2 and python3 and, in particular, in python3
+          # it does not take byte arrays. io.StreamWriter will write to
+          # it with byte arrays (assuming it was opened with 'wb'). So we use
+          # io.open instead of open in this case
+          outfile = io.open(os.dup(sys.stdout.fileno()),
+                            mode='w', encoding=cfg.output_encoding, newline='')
+        else:
+          outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
+                            newline='')
+
+        outfile.write(outfile_content.getvalue())
 
   return 0
 
