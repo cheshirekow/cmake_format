@@ -447,7 +447,8 @@ def main():
       infile = io.open(os.dup(sys.stdin.fileno()),
                        mode='r', encoding=cfg.input_encoding, newline='')
     else:
-      infile = io.open(infile_path, 'r', encoding=cfg.input_encoding)
+      infile = io.open(infile_path,
+                       mode='r', encoding=cfg.input_encoding, newline='')
 
     try:
       with infile:
