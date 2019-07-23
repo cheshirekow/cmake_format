@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import contextlib
 import difflib
 import io
 import os
@@ -27,6 +28,14 @@ class TestInvocations(unittest.TestCase):
     configpath = os.path.join(thisdir, 'test/cmake-format.py')
     self.tempconfig = os.path.join(self.tempdir, '.cmake-format.py')
     shutil.copyfile(configpath, self.tempconfig)
+
+  @contextlib.contextmanager
+  def subTest(self, msg=None, **params):
+    # pylint: disable=no-member
+    if sys.version_info < (3, 0, 0):
+      yield None
+    else:
+      yield super(TestInvocations, self).subTest(msg=msg, **params)
 
   def tearDown(self):
     shutil.rmtree(self.tempdir)
@@ -213,6 +222,41 @@ class TestInvocations(unittest.TestCase):
                                             actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
+
+  def test_auto_lineendings(self):
+    """
+    Verify that windows line-endings are detected and preserved on input.
+    """
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    for suffix in ["win", "unix"]:
+      with self.subTest(lineending=suffix):
+        filename = "test_lineend_{}.cmake".format(suffix)
+        infile_path = os.path.join(thisdir, 'test', filename)
+        outfile_path = os.path.join(self.tempdir, filename)
+        subprocess.check_call([sys.executable, '-Bm', 'cmake_format',
+                               '--line-ending=auto',
+                               '-o', outfile_path, infile_path],
+                              cwd=self.tempdir, env=self.env)
+        with open(infile_path, "rb") as infile:
+          infile_bytes = infile.read()
+        with open(outfile_path, "rb") as infile:
+          outfile_bytes = infile.read()
+        self.assertEqual(infile_bytes, outfile_bytes)
+
+  def test_notouch(self):
+    """
+    Verify that, if formatting is unchanged, an --in-place file is not modified
+    """
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
+    outfile_path = os.path.join(self.tempdir, 'test_out.cmake')
+    shutil.copy2(expectfile_path, outfile_path)
+    mtime_before = os.path.getmtime(outfile_path)
+    subprocess.check_call(
+        [sys.executable, '-Bm', 'cmake_format', '-i', outfile_path],
+        cwd=self.tempdir, env=self.env)
+    mtime_after = os.path.getmtime(outfile_path)
+    self.assertEqual(mtime_before, mtime_after)
 
 
 if __name__ == '__main__':

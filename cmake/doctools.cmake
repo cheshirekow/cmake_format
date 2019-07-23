@@ -32,3 +32,4 @@ function(sphinx module)
   )
   add_dependencies(doc ${module}-doc)
 endfunction()
+

@@ -9,6 +9,15 @@ v0.5 series
 ===========
 
 ------
+v0.5.3
+------
+
+This is a maintanance release fixing a couple of bugs and adding some missing
+documentation. One notable feature added is that, during in-place formatting,
+if the file content is unchanged ``cmake-format`` will no-longer write the
+file.
+
+------
 v0.5.2
 ------
 

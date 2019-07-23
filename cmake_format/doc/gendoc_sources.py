@@ -34,8 +34,8 @@ def process_file(filepath, nextpath, dynamic_text):
   tag_pattern = re.compile("^.. dynamic: (.*)-(begin|end)$")
   active_section = None
 
-  with io.open(filepath, "r") as infile:
-    with io.open(nextpath, "w") as outfile:
+  with io.open(filepath, "r", encoding="utf-8") as infile:
+    with io.open(nextpath, "w", encoding="utf-8") as outfile:
       for line in infile:
         match = tag_pattern.match(line.strip())
         if active_section is None:
@@ -81,9 +81,9 @@ def verify_file(filepath, dynamic_text):
   fd, nextpath = tempfile.mkstemp(prefix=prefix, suffix=suffix)
   os.close(fd)
   process_file(filepath, nextpath, dynamic_text)
-  with io.open(filepath, "r") as infile:
+  with io.open(filepath, "r", encoding="utf-8") as infile:
     lines_a = infile.read().split("\n")
-  with io.open(nextpath, "r") as infile:
+  with io.open(nextpath, "r", encoding="utf-8") as infile:
     lines_b = infile.read().split("\n")
 
   diff = list(difflib.unified_diff(lines_a, lines_b))
@@ -106,10 +106,10 @@ def generate_docsources(verify):
   """
 
   docdir = os.path.dirname(os.path.realpath(__file__))
-  projectdir = os.path.dirname(docdir)
-  os.chdir(projectdir)
+  projectdir = os.path.dirname(docdir.rstrip(os.sep))
+  repodir = os.path.dirname(projectdir.rstrip(os.sep))
   env = os.environ.copy()
-  env["PYTHONPATH"] = os.path.dirname(projectdir)
+  env["PYTHONPATH"] = repodir
 
   dynamic_text = {}
   dynamic_text["usage"] = format_directive(
@@ -138,7 +138,8 @@ def generate_docsources(verify):
         "text"
     )
 
-  with io.open(os.path.join(docdir, "features.rst")) as infile:
+  with io.open(os.path.join(docdir, "features.rst"),
+               encoding="utf-8") as infile:
     copylines = []
     for idx, line in enumerate(infile):
       if idx > 3:
@@ -146,9 +147,13 @@ def generate_docsources(verify):
     copylines.append("\n")
   dynamic_text["features"] = "".join(copylines)
 
-  with io.open("test/test_in.cmake") as infile:
+  with io.open(
+      os.path.join(projectdir, "test/test_in.cmake"),
+      encoding="utf-8") as infile:
     dynamic_text["example-in"] = format_directive(infile.read(), "cmake")
-  with io.open("test/test_out.cmake") as infile:
+  with io.open(
+      os.path.join(projectdir, "test/test_out.cmake"),
+      encoding="utf-8") as infile:
     dynamic_text["example-out"] = format_directive(infile.read(), "cmake")
 
   if verify:
@@ -162,7 +167,7 @@ def generate_docsources(verify):
       "doc/example.rst",
       "doc/parse_tree.rst",
   ):
-    handle_file(filename, dynamic_text)
+    handle_file(os.path.join(projectdir, filename), dynamic_text)
 
 
 def main():

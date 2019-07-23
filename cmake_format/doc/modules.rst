@@ -61,7 +61,7 @@ cmake\_format\.markup module
     :show-inheritance:
 
 cmake\_format\.parse_funs module
-----------------------------
+--------------------------------
 
 .. automodule:: cmake_format.parse_funs
     :members:

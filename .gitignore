@@ -29,3 +29,6 @@ bazel-*
 
 # node package manager
 node_modules
+
+# bazel sucks... 
+WORKSPACE

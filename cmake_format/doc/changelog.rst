@@ -6,6 +6,27 @@ Changelog
 v0.5 series
 -----------
 
+v0.5.4
+------
+
+* Don't write un-changed file content when doing in-place formatting
+* Fix windows line-endings dropped during read
+* Add documentation on how to add custom commands
+* Fix yaml-loader returns None instead of empty dictionary for an empty yaml
+  config file.
+
+* Closes `#114`_: Example of adding custom cmake functions/macros
+* Closes `#117`_: Fix handling of --dump-config with empty existing yaml config
+* Closes `#118`_: Avoid writing outfile unnecessarily
+* Closes `#119`_: Fix missing newline argument
+* Closes `#120`_: auto-line ending option not working correctly under Windows
+
+.. __#114: https://github.com/cheshirekow/cmake_format/issues/114
+.. __#117: https://github.com/cheshirekow/cmake_format/issues/117
+.. __#118: https://github.com/cheshirekow/cmake_format/issues/118
+.. __#119: https://github.com/cheshirekow/cmake_format/issues/119
+.. __#120: https://github.com/cheshirekow/cmake_format/issues/120
+
 v0.5.3
 ------
 

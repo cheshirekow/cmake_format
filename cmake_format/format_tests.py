@@ -62,21 +62,18 @@ class TestCanonicalFormatting(unittest.TestCase):
 
     if sys.version_info[0] < 3:
       assert isinstance(input_str, unicode)
-    infile = io.StringIO(input_str)
-    outfile = io.StringIO()
-
-    __main__.process_file(self.config, infile, outfile)
+    actual_str = __main__.process_file(self.config, input_str)
     delta_lines = list(difflib.unified_diff(output_str.split('\n'),
-                                            outfile.getvalue().split('\n')))
+                                            actual_str.split('\n')))
     delta = '\n'.join(delta_lines[2:])
 
-    if outfile.getvalue() != output_str:
+    if actual_str != output_str:
       message = ('Input text:\n-----------------\n{}\n'
                  'Output text:\n-----------------\n{}\n'
                  'Expected Output:\n-----------------\n{}\n'
                  'Diff:\n-----------------\n{}'
                  .format(input_str,
-                         outfile.getvalue(),
+                         actual_str,
                          output_str,
                          delta))
       if sys.version_info[0] < 3:

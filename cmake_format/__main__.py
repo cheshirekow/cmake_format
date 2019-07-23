@@ -22,7 +22,6 @@ import logging
 import os
 import shutil
 import sys
-import tempfile
 
 import cmake_format
 from cmake_format import commands
@@ -32,6 +31,8 @@ from cmake_format import lexer
 from cmake_format import markup
 from cmake_format import parser
 from cmake_format import parse_funs
+
+logger = logging.getLogger(__name__)
 
 
 def detect_line_endings(infile_content):
@@ -91,12 +92,12 @@ def dump_markup(nodes, config, outfile=None, indent=None):
       dump_markup(node.children, config, outfile, indent + '│   ')
 
 
-def process_file(config, infile, outfile, dump=None):
+def process_file(config, infile_content, dump=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
   """
 
-  infile_content = infile.read()
+  outfile = io.StringIO(newline='')
   if config.line_ending == 'auto':
     detected = detect_line_endings(infile_content)
     config = config.clone()
@@ -105,27 +106,27 @@ def process_file(config, infile, outfile, dump=None):
   if dump == "lex":
     for token in tokens:
       outfile.write("{}\n".format(token))
-    return
+    return outfile.getvalue()
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
   parse_tree = parser.parse(tokens, parse_db)
   if dump == "parse":
     parser.dump_tree([parse_tree], outfile)
-    return
+    return outfile.getvalue()
   if dump == "markup":
     dump_markup([parse_tree], config, outfile)
-    return
+    return outfile.getvalue()
 
   box_tree = formatter.layout_tree(parse_tree, config)
   if dump == "layout":
     formatter.dump_tree([box_tree], outfile)
-    return
+    return outfile.getvalue()
 
-  text = formatter.write_tree(box_tree, config, infile_content)
+  outstr = formatter.write_tree(box_tree, config, infile_content)
   if config.emit_byteorder_mark:
-    outfile.write("\ufeff")
-  outfile.write(text)
+    return "\ufeff" + outstr
+  return outstr
 
 
 def find_config_file(infile_path):
@@ -166,7 +167,10 @@ def load_yaml(config_file):
     from yaml import CLoader as Loader
   except ImportError:
     from yaml import Loader
-  return yaml.load(config_file, Loader=Loader)
+  out = yaml.load(config_file, Loader=Loader)
+  if out is None:
+    return {}
+  return out
 
 
 def try_get_configdict(configfile_path):
@@ -345,6 +349,9 @@ def setup_argparser(arg_parser):
   """
   arg_parser.add_argument('-v', '--version', action='version',
                           version=cmake_format.VERSION)
+  arg_parser.add_argument(
+      '-l', '--log-level', default="info",
+      choices=["error", "warning", "info", "debug"])
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
@@ -383,6 +390,7 @@ def main():
 
   setup_argparser(arg_parser)
   args = arg_parser.parse_args()
+  logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
   if args.dump_config:
     config_dict = get_config(os.getcwd(), args.config_file)
@@ -423,9 +431,26 @@ def main():
         config_dict[key] = value
 
     cfg = configuration.Configuration(**config_dict)
+    if infile_path == '-':
+      infile = io.open(os.dup(sys.stdin.fileno()),
+                       mode='r', encoding=cfg.input_encoding, newline='')
+    else:
+      infile = io.open(
+          infile_path, 'r', encoding=cfg.input_encoding, newline='')
+    with infile:
+      intext = infile.read()
+
+    try:
+      outtext = process_file(cfg, intext, args.dump)
+    except:
+      sys.stderr.write('While processing {}\n'.format(infile_path))
+      raise
+
     if args.in_place:
-      ofd, tempfile_path = tempfile.mkstemp(suffix='.txt', prefix='CMakeLists-')
-      os.close(ofd)
+      if intext == outtext:
+        logger.debug("No delta for %s", infile_path)
+        continue
+      tempfile_path = infile_path + ".cmf-temp"
       outfile = io.open(tempfile_path, 'w', encoding=cfg.output_encoding,
                         newline='')
     else:
@@ -442,24 +467,11 @@ def main():
         outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
                           newline='')
 
-    parse_ok = True
-    if infile_path == '-':
-      infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding=cfg.input_encoding, newline='')
-    else:
-      infile = io.open(infile_path, 'r', encoding=cfg.input_encoding)
+    with outfile:
+      outfile.write(outtext)
 
-    try:
-      with infile:
-        process_file(cfg, infile, outfile, args.dump)
-    except:
-      parse_ok = False
-      sys.stderr.write('While processing {}\n'.format(infile_path))
-      raise
-    finally:
-      outfile.close()
-      if args.in_place and parse_ok:
-        shutil.move(tempfile_path, infile_path)
+    if args.in_place:
+      shutil.move(tempfile_path, infile_path)
 
   return 0
 

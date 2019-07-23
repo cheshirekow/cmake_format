@@ -5,15 +5,17 @@ add_custom_target(
   COMMAND python -B ${CMAKE_SOURCE_DIR}/doc/find_rst.py
           --manifest-path ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
           --touch ${CMAKE_SOURCE_DIR}/cmake_format
-  DEPENDS ${CMAKE_SOURCE_DIR}/doc/find_rst.py BYPRODUCTS
-          ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
+  DEPENDS ${CMAKE_SOURCE_DIR}/doc/find_rst.py
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Scanning RST for cmake_format")
 
-# NOTE(josh): might be needed for non-ninja builds (makefile?)
-# add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
-# DEPENDS scanrst-cmake_format_doc COMMENT "Stubbing RST scan for
-# cmake_format_doc")
+if(NOT CMAKE_GENERATOR STREQUAL "Ninja")
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
+    DEPENDS scanrst-cmake_format_docs
+    COMMENT "Stubbing RST scan for cmake_format_doc")
+endif()
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake_format_doc.stamp

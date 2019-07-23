@@ -152,3 +152,61 @@ sorting by annotating them with ``unsortable`` or ``unsort``. For example::
 Note that this is only needed if your configuration has enabled ``autosort``,
 and you can globally disable sorting by making setting this configuration to
 ``False``.
+
+
+---------------
+Custom Commands
+---------------
+
+Due to the fact that cmake is a macro language, `cmake-format` is, by necessity,
+a *semantic* source code formatter. In general it tries to make smart
+formatting decisions based on the meaning of arguments in an otherwise
+unstructured list of arguments in a cmake statement. `cmake-format` can
+intelligently format your custom commands, but you will need to tell it how
+to interpret your arguments.
+
+Currently, you can do this by adding your command specifications to the
+`additional_commands` configuration variables, e.g.:
+
+.. code::
+
+    # Additional FLAGS and KWARGS for custom commands
+    additional_commands = {
+      "foo": {
+        "pargs": 2,
+        "flags": ["BAR", "BAZ"],
+        "kwargs": {
+          "HEADERS": '*',
+          "SOURCES": '*',
+          "DEPENDS": '*',
+        }
+      }
+    }
+
+The format is a nested dictionary mapping statement names (dictionary keys)
+to argument specifications. The argument specification is composed of three
+fields:
+
+* ``pargs``: an integer indicating the number of positional arguments expected,
+  or one of the sentinel strings ``?`` (zero or one), ``*`` (zero or more),
+  ``+`` (one or more).
+* ``flags``: a list of flag arguments: sentinel strings which are parsed as
+  positional arguments but have special meaning. In particular, if one of these
+  strings is encountered after a ``kwarg`` it will not be associated with the
+  ``kwarg`` but with the statement.
+* ``kwargs``: a dictionary mapping keywords to sub-specifications. A
+  sub-specification may be a complete dictionary of ``pargs``, ``flags``, and
+  ``kwargs`` (nested, all the way down). Or, if the keyword argument accepts
+  only positionals, then it can be simply the ``pargs`` specification (as in the
+  example above).
+
+For the example specification above, the custom command would look somehing
+like this:
+
+.. code::
+
+   foo(hello world
+       HEADERS a.h b.h c.h d.h
+       SOURCES a.cc b.cc c.cc d.cc
+       DEPENDS flub buzz bizz
+       BAR BAZ)

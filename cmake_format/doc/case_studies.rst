@@ -383,6 +383,8 @@ Or bottom-up::
       COMPONENT foo-component
       OPTIONAL EXCLUDE_FROM_ALL NAMELINK_SKIP)
 
+.. _conditionals-case-study:
+
 ------------
 Conditionals
 ------------

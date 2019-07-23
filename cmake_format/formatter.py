@@ -28,6 +28,9 @@ PAREN_TYPES = (NodeType.LPAREN, NodeType.RPAREN)
 
 MATCH_TYPES = BLOCK_TYPES + GROUP_TYPES + SCALAR_TYPES + PAREN_TYPES
 
+LAYOUT_PASS_COUNT = 4
+USE_NEW_ALGORITHM = False
+
 
 def clamp(value, min_value, max_value):
   """Simple double-ended saturation function."""
@@ -161,6 +164,62 @@ class Cursor(object):
     return "Cursor({},{})".format(self.x, self.y)
 
 
+def default_accept_layout(
+    config, node_path, nested, vertical, start_extent, end_extent):
+  """
+  Return true if the given layout is acceptable.
+  """
+
+  # If the bounding box overflows the column limit then the layout is
+  # automatically voided
+  if end_extent[1] > config.linewidth:
+    return False
+
+  # Commands are never wrapped vertically
+  if node_path[-1] == "COMMAND":
+    if vertical:
+      return False
+
+  size = end_extent - start_extent
+  depth = len(node_path) - 1
+
+  prefix_width = len(node_path[-1])
+  if depth == 0:
+    # If depth is zero, then we are at statement-depth, and we need to account
+    # for extra characters when determining the width of the prefix
+    prefix_width += 1  # For the left-paren
+    if need_paren_space(node_path[-1], config):
+      prefix_width += 1  # For the space before the paren
+
+  if not vertical:
+    # Regardless of nesting, if the content is wrapped horizontally but it
+    # exceeds the configured maximum number of lines we must reject it
+    # TODO(josh): figure out how to subtract out any terminal comment
+    # contributions to the size, as noted in the algorithm doc.
+    if size[0] > config.max_lines_hwrap:
+      return False
+
+    # Or if this nodepath is marked to always be vertical layout
+    pathstr = "/".join(node_path)
+    if pathstr in config.always_wrap:
+      return False
+
+  if nested:
+    # If the statement or keyword spelling is too short, then nesting doesn't
+    # make sense because (nest + tab-width) will take us right back to the
+    # same column as without nesting.
+    if prefix_width <= config.tab_size:
+      return False
+  else:
+    # If the statement or keyword spelling is too long, then any wrapping also
+    # requires nesting.
+    if size[0] > 1:
+      if prefix_width - config.tab_size > config.max_prefix_chars:
+        return False
+
+  return True
+
+
 def get_nest_wrap(passno):
   """
   Return (nest, wrap) booleans depending on the integer passno
@@ -220,6 +279,11 @@ class LayoutNode(object):
     self._locked = False
 
     assert isinstance(pnode, parser.TreeNode)
+
+  @property
+  def name(self):
+    # pylint: disable=protected-access
+    return self.__class__.__name__
 
   @property
   def colextent(self):
@@ -301,6 +365,9 @@ class LayoutNode(object):
   def _reflow(self, config, cursor, passno):
     raise NotImplementedError()
 
+  def _reflow_new(self, config, cursor, passno):
+    return self._reflow(config, cursor, passno)
+
   def reflow(self, config, cursor, passno=0):
     """
     (re-)compute the layout of this node under the assumption that it should
@@ -316,7 +383,10 @@ class LayoutNode(object):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
       self._reflow_valid = True
-      outcursor = self._reflow(config, Cursor(*cursor), repass)
+      if USE_NEW_ALGORITHM:
+        outcursor = self._reflow_new(config, Cursor(*cursor), repass)
+      else:
+        outcursor = self._reflow(config, Cursor(*cursor), repass)
       # TODO(josh): this is too conservative. We don't need every row to
       # reserve a character for the final parenthesis, we just need the final
       # row to reserve a character.
@@ -370,6 +440,10 @@ class LayoutNode(object):
 
 class ParenNode(LayoutNode):
   """Holds parenthesis '(' or ')' for statements or boolean groups."""
+
+  @property
+  def name(self):
+    return self.type.name
 
   def _reflow(self, config, cursor, passno):
     """There is only one possible layout for this node."""
@@ -458,6 +532,57 @@ class ScalarNode(LayoutNode):
 
     return cursor
 
+  def _reflow_new(self, config, cursor, passno):
+    """
+    Reflow is pretty trivial for a scalar node. We don't have any choices to
+    make, there is only one possible rendering.
+    """
+
+    assert self.pnode.children
+    token = self.pnode.children[0]
+    assert isinstance(token, lexer.Token)
+
+    # This might be a multiline string or a multiline bracket argument. In
+    # that case we need to normalize line endings and flow each line
+    lines = normalize_line_endings(token.spelling).split('\n')
+    line = lines.pop(0)
+    cursor[1] += len(line)
+    self._colextent = cursor[1]
+
+    while lines:
+      cursor[0] += 1
+      cursor[1] = 0
+      line = lines.pop(0)
+      cursor[1] += len(line)
+      self._colextent = max(self._colextent, cursor[1])
+
+    # Scalar nodes might have terminal comments associated with them. They show
+    # up as children in the layout graph. This is the only possible child of
+    # a scalar node.
+    children = list(self.children)
+    if children:
+      child = children.pop(0)
+
+      # We should not have more than one terminal comment associated with a
+      # given scalar node
+      assert not children
+
+      # The only kind of children we store for a scalar node are argument
+      # comments.
+      assert child.type == NodeType.COMMENT
+
+      # Reflow the comment after the scalar
+      cursor = child.reflow(config, cursor + (0, 1), passno)
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+    # TODO(josh): should scalar nodes have a notion of acceptance?
+    # self._reflow_valid = \
+    #   default_accept_layout(
+    #       config, [], False, False, start_cursor,
+    #       Cursor(cursor[0], self._colextent))
+    return cursor
+
   def _write(self, config, ctx):
     if not ctx.is_active():
       return
@@ -496,6 +621,10 @@ class OnOffSwitchNode(LayoutNode):
   Holds a special-case line comment token such as ``# cmake-format: off`` or
   ``# cmake-format: on``
   """
+
+  @property
+  def name(self):
+    return self.pnode.children[0].type.name
 
   def has_terminal_comment(self):
     return True
@@ -569,7 +698,10 @@ class StatementNode(LayoutNode):
       self._passno = repass
       self._wrap = self._get_wrap(config, repass)
       self._reflow_valid = True
-      outcursor = self._reflow(config, Cursor(*cursor), repass)
+      if USE_NEW_ALGORITHM:
+        outcursor = self._reflow_new(config, Cursor(*cursor), repass)
+      else:
+        outcursor = self._reflow(config, Cursor(*cursor), repass)
       if self._reflow_valid and self.colextent <= config.linewidth:
         break
     assert outcursor is not None
@@ -721,6 +853,10 @@ class StatementNode(LayoutNode):
 
     return cursor
 
+  @property
+  def name(self):
+    return self.children[0].pnode.children[0].spelling.lower()
+
   def _reflow(self, config, cursor, passno):
     """
     Compute the size of a statement which is nominally allocated `linewidth`
@@ -756,6 +892,147 @@ class StatementNode(LayoutNode):
 
     return self._reflow_vertical(config, cursor, passno, children, start_cursor)
 
+  def _reflow_new(self, config, cursor, passno):
+    """
+    Compute the size of a statement which is nominally allocated `linewidth`
+    columns for packing. `linewidth` is only considered for hpacking of
+    consecutive scalar arguments
+    """
+    # pylint: disable=too-many-statements
+    funname = self.children[0]
+    assert funname.type == NodeType.FUNNAME
+    token = funname.pnode.children[0]
+    assert isinstance(token, lexer.Token)
+
+    start_cursor = Cursor(*cursor)
+    self._colextent = cursor[1]
+
+    # Layout of the statement name is always the same, we just write it out
+    # at the current cursor
+    children = list(self.children)
+    assert children
+    child = children.pop(0)
+    assert child.type == NodeType.FUNNAME
+    cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
+    self._colextent = max(self._colextent, child.colextent)
+
+    if need_paren_space(token.spelling, config):
+      cursor[1] += 1
+
+    assert children
+    child = children.pop(0)
+    assert child.type == NodeType.LPAREN
+    cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
+    self._colextent = max(self._colextent, child.colextent)
+
+    nest, vertical = get_nest_wrap(passno)
+    if nest:
+      column_cursor = start_cursor + (1, config.tab_size)
+      cursor = Cursor(*column_cursor)
+    else:
+      column_cursor = Cursor(*cursor)
+
+    # NOTE(josh): STATEMENTs should have at most one ARGGROUP child between
+    # parentheses. This logic is redundant, but it is left so that we can
+    # compare against other nodes and hopefully unify them.
+    while children and children[0].type != NodeType.RPAREN:
+      prev = child
+      child = children.pop(0)
+
+      if prev.type == NodeType.LPAREN:
+        # This is the first child of the statement the cursor is already in the
+        # right position, regardless of current nesting or wrapping
+        pass
+      elif (prev.type == NodeType.COMMENT
+            or prev.has_terminal_comment()
+            or vertical):
+        cursor[1] = column_cursor[1]
+        cursor[0] += 1
+      else:
+        cursor[1] += 1
+
+      if (children and children[0].type == NodeType.RPAREN):
+        child.statement_terminal = True
+
+      cursor = child.reflow(config, cursor, passno)
+      if not vertical:
+        # If we are in horizontal wrapping mode, then we need to check if the
+        # child has overflowed the column. If so, then we need to move to the
+        # next line and try again
+        realized_extent = child.colextent
+        if children[0].type == NodeType.RPAREN:
+          # If this is the last node before the parenthesis then we need to
+          # account for one extra character (the closing parenthesis)
+          realized_extent += 1
+        if realized_extent > config.linewidth:
+          # If the realized extent overflows the column limit then we need to
+          # insert a newline and try again
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+
+      self._reflow_valid &= child.reflow_valid
+      # We must keep updating the extent after each child because
+      # the child might be an argument with a multiline string or a bracket
+      # argument... in which case HPACK might actually wrap to a newline.
+      self._colextent = max(self._colextent, child.colextent)
+      column_cursor[0] = cursor[0]
+
+    assert children
+    prev = child
+    child = children.pop(0)
+    assert child.type == NodeType.RPAREN, \
+        "Expected RPAREN but got {}".format(child.type)
+
+    # NOTE(josh): dangle parens if it wont fit on the current line or
+    # if the user has requested us to always do so
+    if config.dangle_parens and cursor[0] > start_cursor[0]:
+      column_cursor[0] += 1
+      cursor = Cursor(column_cursor[0], start_cursor[1])
+    elif (cursor[1] >= config.linewidth
+          and self._wrap.value > WrapAlgo.VPACK.value):
+      column_cursor[0] += 1
+      cursor = Cursor(*column_cursor)
+    elif prev.type == NodeType.COMMENT:
+      column_cursor[0] += 1
+      cursor = Cursor(*column_cursor)
+    elif prev.has_terminal_comment():
+      column_cursor[0] += 1
+      cursor = Cursor(*column_cursor)
+
+    cursor = child.reflow(config, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
+    self._colextent = max(self._colextent, child.colextent)
+
+    # Trailing comment
+    if children:
+      cursor[1] += 1
+      child = children.pop(0)
+      assert child.type == NodeType.COMMENT, \
+          "Expected COMMENT after RPAREN but got {}".format(child.type)
+      assert not children
+      savecursor = Cursor(*cursor)
+      cursor = child.reflow(config, cursor, passno)
+
+      if child.colextent > config.linewidth:
+        # If the statement trailing comment does not fit in the current column
+        # just move it to the next line.
+        # TODO(josh): actually, if the RPAREN is not already dangling then
+        # we should dangle the paren and keep the comment trailing the statement
+        cursor = child.reflow(config, (savecursor[0] + 1, start_cursor[1]),
+                              passno)
+
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+    self._reflow_valid = \
+        default_accept_layout(
+            config, [token.spelling], nest, vertical,
+            start_cursor, Cursor(cursor[0], self._colextent))
+    return cursor
+
   def _write(self, config, ctx):
     if not ctx.is_active():
       return
@@ -768,6 +1045,10 @@ class KwargGroupNode(LayoutNode):
     if self.children[-1].type is NodeType.COMMENT:
       return True
     return self.children[-1].has_terminal_comment()
+
+  @property
+  def name(self):
+    self.children[0].pnode.chidren[0].spelling.upper()
 
   def _reflow(self, config, cursor, passno):
     """
@@ -1020,6 +1301,76 @@ class PargGroupNode(LayoutNode):
 
     return self._reflow_vpack(config, cursor, passno)
 
+  def _reflow_new(self, config, cursor, passno):
+    """
+    Compute the size of the group of all children
+    """
+    children = list(self.children)
+    self._colextent = cursor.y
+
+    prev = None
+    child = None
+    # PARG groups do not nest, they nest by their parents
+    _, vertical = get_nest_wrap(passno)
+    column_cursor = Cursor(*cursor)
+
+    numgroups = 0
+    while children:
+      prev = child
+      child = children.pop(0)
+
+      if prev is None:
+        # This is the first child of the arg group so the cursor is already
+        # at the right location and theres nothing for us to update
+        pass
+      elif (prev.type == NodeType.COMMENT
+            or prev.has_terminal_comment()
+            or vertical):
+        cursor[1] = column_cursor[1]
+        cursor[0] += 1
+      else:
+        cursor[1] += 1
+
+      if self.statement_terminal and not children:
+        child.statement_terminal = True
+
+      cursor = child.reflow(config, cursor, passno)
+      if not vertical:
+        # If we are in horizontal wrapping mode, then we need to check if the
+        # child has overflowed the available column width. If so, then we need
+        # to wrap to the next line and try again
+
+        needs_wrap = False
+        if self.statement_terminal:
+          # If this is the last node before the parenthesis then we need to
+          # account for one extra character (the closing parenthesis)
+          if cursor[1] + 1 > config.linewidth:
+            needs_wrap = True
+
+        if child.colextent > config.linewidth:
+          # If the realized extent overflows the column limit then we need to
+          # insert a newline and try again
+          needs_wrap = True
+
+        if needs_wrap:
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+
+      # NOTE(josh): we must keep updating the extent after each child because
+      # the child might be an argument with a multiline string or a bracket
+      # argument... in which case HPACK might actually wrap to a newline.
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+      if isinstance(child, (PargGroupNode, KwargGroupNode)):
+        numgroups += 1
+
+    # TODO(josh): Should this number 2 be a configuration parameter?
+    if numgroups > 2:
+      self._reflow_valid = False
+    return cursor
+
 
 class ArgGroupNode(LayoutNode):
 
@@ -1076,6 +1427,78 @@ class ArgGroupNode(LayoutNode):
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0] + 1
       prev = child
+    return cursor
+
+  def _reflow_new(self, config, cursor, passno):
+    """
+    Compute the size of the group of all children
+    """
+    children = list(self.children)
+    self._colextent = cursor.y
+
+    prev = None
+    child = None
+    # Argument groups cannot nest since they have no prefix, they are nested by
+    # their parent
+    _, vertical = get_nest_wrap(passno)
+
+    column_cursor = Cursor(*cursor)
+
+    numgroups = 0
+    while children:
+      prev = child
+      child = children.pop(0)
+
+      if prev is None:
+        # This is the first child of the arg group so the cursor is already
+        # at the right location and theres nothing for us to update
+        pass
+      elif (prev.type == NodeType.COMMENT
+            or prev.has_terminal_comment()
+            or vertical):
+        cursor[1] = column_cursor[1]
+        cursor[0] += 1
+      else:
+        cursor[1] += 1
+
+      if self.statement_terminal and not children:
+        child.statement_terminal = True
+
+      cursor = child.reflow(config, cursor, passno)
+      if not vertical:
+        # If we are in horizontal wrapping mode, then we need to check if the
+        # child has overflowed the available columnt width. If so, then we need
+        # to wrap to the next line and try again
+
+        needs_wrap = False
+        if child.statement_terminal:
+          # If this is the last node before the parenthesis then we need to
+          # account for one extra character (the closing parenthesis)
+          if cursor[1] + 1 > config.linewidth:
+            needs_wrap = True
+
+        if child.colextent > config.linewidth:
+          # If the realized extent overflows the column limit then we need to
+          # insert a newline and try again
+          needs_wrap = True
+
+        if needs_wrap:
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+
+      # NOTE(josh): we must keep updating the extent after each child because
+      # the child might be an argument with a multiline string or a bracket
+      # argument... in which case HPACK might actually wrap to a newline.
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+      if isinstance(child, (PargGroupNode, KwargGroupNode)):
+        numgroups += 1
+
+    # TODO(josh): Should this number 2 be a configuration parameter?
+    if numgroups > 2:
+      self._reflow_valid = False
     return cursor
 
   def _write(self, config, ctx):
@@ -1256,6 +1679,77 @@ class ParenGroupNode(LayoutNode):
       return self._reflow_hwrap(config, cursor, passno)
 
     return self._reflow_vertical(config, cursor, passno)
+
+  def _reflow_new(self, config, cursor, passno):
+    """
+    Compute the size of the group of all children
+    """
+    children = list(self.children)
+    self._colextent = cursor.y
+
+    prev = None
+    child = None
+    # Argument groups cannot nest since they have no prefix, they are nested by
+    # their parent
+    _, vertical = get_nest_wrap(passno)
+    column_cursor = Cursor(*cursor)
+
+    numgroups = 0
+    while children:
+      prev = child
+      child = children.pop(0)
+
+      if prev is None:
+        # This is the first child of the arg group so the cursor is already
+        # at the right location and theres nothing for us to update
+        pass
+      elif (prev.type == NodeType.COMMENT
+            or prev.has_terminal_comment()
+            or vertical):
+        cursor[1] = column_cursor[1]
+        cursor[0] += 1
+      else:
+        cursor[1] += 1
+
+      if self.statement_terminal and not children:
+        child.statement_terminal = True
+
+      cursor = child.reflow(config, cursor, passno)
+      if not vertical:
+        # If we are in horizontal wrapping mode, then we need to check if the
+        # child has overflowed the available columnt width. If so, then we need
+        # to wrap to the next line and try again
+
+        needs_wrap = False
+        if child.statement_terminal:
+          # If this is the last node before the parenthesis then we need to
+          # account for one extra character (the closing parenthesis)
+          if cursor[1] + 1 > config.linewidth:
+            needs_wrap = True
+
+        if child.colextent > config.linewidth:
+          # If the realized extent overflows the column limit then we need to
+          # insert a newline and try again
+          needs_wrap = True
+
+        if needs_wrap:
+          column_cursor[0] += 1
+          cursor = Cursor(*column_cursor)
+          cursor = child.reflow(config, cursor, passno)
+
+      # NOTE(josh): we must keep updating the extent after each child because
+      # the child might be an argument with a multiline string or a bracket
+      # argument... in which case HPACK might actually wrap to a newline.
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+      if isinstance(child, (PargGroupNode, KwargGroupNode)):
+        numgroups += 1
+
+    # TODO(josh): Should this number 2 be a configuration parameter?
+    if numgroups > 2:
+      self._reflow_valid = False
+    return cursor
 
   def _write(self, config, ctx):
     if not ctx.is_active():
