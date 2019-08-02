@@ -15,13 +15,19 @@ for customization. Run with `--dump-config [yaml|json|python]`.
 from __future__ import unicode_literals
 
 import argparse
-import collections
 import io
 import json
 import logging
 import os
 import shutil
 import sys
+
+import collections
+# Python 2.7 and Python 3.8+ support
+try:
+  from collections.abc import Mapping
+except ImportError:
+  from collections import Mapping
 
 import cmake_format
 from cmake_format import commands
@@ -173,6 +179,21 @@ def load_yaml(config_file):
   return out
 
 
+def treemerge(dictionary1, dictionary2):
+  """
+  Recursive merge of dictionary2 into dictionary1.
+  """
+  for key, values in dictionary2.items():
+    value = dictionary1.get(key, {})
+    if not isinstance(value, Mapping):
+      dictionary1[key] = values
+    elif isinstance(values, Mapping):
+      dictionary1[key] = treemerge(value, values)
+    else:
+      dictionary1[key] = values
+  return dictionary1
+
+
 def try_get_configdict(configfile_path):
   """
   Try to read the configuration as yaml first, then json, then python.
@@ -205,31 +226,34 @@ def try_get_configdict(configfile_path):
                      .format(configfile_path))
 
 
-def get_config(infile_path, configfile_path):
+def get_config(infile_path, configfile_paths):
   """
   If configfile_path is not none, then load the configuration. Otherwise search
   for a config file in the ancestry of the filesystem of infile_path and find
   a config file to load.
   """
-  if configfile_path is None:
+  if configfile_paths is None:
     configfile_path = find_config_file(infile_path)
-  if configfile_path is not None:
-    configfile_path = os.path.expanduser(configfile_path)
+    if configfile_path is None:
+      return {}
+    configfile_paths = [configfile_path]
 
   config_dict = {}
-  if configfile_path:
+  for configfile_path in configfile_paths:
+    configfile_path = os.path.expanduser(configfile_path)
+    config_dict_tmp = {}
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
       if configfile_path.endswith('.json'):
-        config_dict = json.load(config_file)
+        config_dict_tmp = json.load(config_file)
       elif configfile_path.endswith('.yaml'):
-        config_dict = load_yaml(config_file)
+        config_dict_tmp = load_yaml(config_file)
       elif configfile_path.endswith('.py'):
-        config_dict = {}
         with io.open(configfile_path, 'r', encoding='utf-8') as infile:
           # pylint: disable=exec-used
-          exec(infile.read(), config_dict)
+          exec(infile.read(), config_dict_tmp)
       else:
-        config_dict = try_get_configdict(configfile_path)
+        config_dict_tmp = try_get_configdict(configfile_path)
+    treemerge(config_dict, config_dict_tmp)
 
   return config_dict
 
@@ -277,7 +301,7 @@ def dump_config(args, config_dict, outfile):
 USAGE_STRING = """
 cmake-format [-h]
              [--dump-config {yaml,json,python} | -i | -o OUTFILE_PATH]
-             [-c CONFIG_FILE]
+             [-c CONFIG_FILE] [CONFIG_FILE ...]
              infilepath [infilepath ...]
 """
 
@@ -367,8 +391,8 @@ def setup_argparser(arg_parser):
                      help='Where to write the formatted file. '
                           'Default is stdout.')
 
-  arg_parser.add_argument('-c', '--config-file',
-                          help='path to configuration file')
+  arg_parser.add_argument('-c', '--config-file', '--config-files', nargs='+',
+                          help='path to configuration file(s)')
   arg_parser.add_argument('infilepaths', nargs='*')
   add_config_options(arg_parser)
 

@@ -223,6 +223,32 @@ class TestInvocations(unittest.TestCase):
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
 
+  def test_multiple_config_invocation(self):
+    """
+    Test invocation with multiple config files specified
+    """
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    configpath = os.path.join(thisdir, 'test')
+    infile_path = os.path.join(thisdir, 'test', 'test_in.cmake')
+    expectfile_path = os.path.join(thisdir, 'test', 'test_out.cmake')
+
+    subprocess.check_call([sys.executable, '-Bm', 'cmake_format', '-c',
+                           os.path.join(configpath, 'cmake-format-split1.py'),
+                           os.path.join(configpath, 'cmake-format-split2.py'),
+                           '-o', os.path.join(self.tempdir, 'test_out.cmake'),
+                           infile_path], cwd=self.tempdir, env=self.env)
+
+    with io.open(os.path.join(self.tempdir, 'test_out.cmake'), 'r',
+                 encoding='utf8') as infile:
+      actual_text = infile.read()
+    with io.open(expectfile_path, 'r', encoding='utf8') as infile:
+      expected_text = infile.read()
+
+    delta_lines = list(difflib.unified_diff(expected_text.split('\n'),
+                                            actual_text.split('\n')))
+    if delta_lines:
+      raise AssertionError('\n'.join(delta_lines[2:]))
+
   def test_auto_lineendings(self):
     """
     Verify that windows line-endings are detected and preserved on input.
