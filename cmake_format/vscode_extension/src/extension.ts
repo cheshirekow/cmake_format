@@ -27,16 +27,16 @@ export function activate(context: vscode.ExtensionContext) {
                 };
 
                 var cwd = config.get("cwd");
+                if (cwd == null && document.uri.fsPath != null) {
+                    cwd = path.dirname(document.uri.fsPath)
+                    console.log("No cwd configured, falling back to file location: " + cwd);
+                }
                 if (cwd == null) {
                     var folder = vscode.workspace.getWorkspaceFolder(document.uri);
                     if (folder != null) {
                         cwd = folder.uri.fsPath;
-                        console.log("No cwd configured, using workspace path: " + cwd);
+                        console.log("No cwd configured and no file path, falling back to workspace path: " + cwd);
                     }
-                }
-                if (cwd == null && document.uri.fsPath != null) {
-                    cwd = path.dirname(document.uri.fsPath)
-                    console.log("No cwd configured, no workspace path, using: " + cwd);
                 }
                 if (cwd != null && fs.statSync(cwd).isDirectory()) {
                     opts["cwd"] = cwd;
