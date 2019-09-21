@@ -61,7 +61,10 @@
                     "description": "Full path cmake-format entry point script or binary"
                 },
                 "cmakeFormat.args": {
-                    "type": "array[string]",
+                    "type": "array",
+                    "items": {
+                        "type" : "string"
+                    },
                     "default": [],
                     "description": "Additional arguments to pass to cmake-format. Specify, e.g. --config-file here."
                 }
