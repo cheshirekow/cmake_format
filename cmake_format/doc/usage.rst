@@ -20,7 +20,7 @@ An example configuration file is given here. Additional flags and additional
 kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
-.. tag: configuration-begin
+.. dynamic: configuration-begin
 
 .. code:: text
 
@@ -48,8 +48,13 @@ pleasant way.
     dangle_parens = False
 
     # If the statement spelling length (including space and parenthesis is larger
-    # than the tab width by more than this amoung, then force vertical nesting
-    nest_threshold = 2
+    # than the tab width by more than this amoung, then force reject un-nested
+    # layouts.
+    max_prefix_chars = 2
+
+    # If a candidate layout is wrapped horizontally but it exceeds this many lines,
+    # then reject the layout.
+    max_lines_hwrap = 2
 
     # What style line endings to use in the output.
     line_ending = 'unix'
@@ -77,6 +82,10 @@ pleasant way.
 
     # If true, the argument lists which are known to be sortable will be sorted
     # lexicographicall
+    enable_sort = True
+
+    # If true, the parsers may infer whether or not an argument list is sortable
+    # (without annotation).
     autosort = False
 
     # If a comment line starts with at least this many consecutive hash characters,
@@ -101,13 +110,13 @@ pleasant way.
     # enable comment markup parsing and reflow
     enable_markup = True
 
-    # If comment markup is enabled, don't reflow the first comment block in
-    # eachlistfile. Use this to preserve formatting of your
-    # copyright/licensestatements.
+    # If comment markup is enabled, don't reflow the first comment block in each
+    # listfile. Use this to preserve formatting of your copyright/license
+    # statements.
     first_comment_is_literal = False
 
-    # If comment markup is enabled, don't reflow any comment block which matchesthis
-    # (regex) pattern. Default is `None` (disabled).
+    # If comment markup is enabled, don't reflow any comment block which matches
+    # this (regex) pattern. Default is `None` (disabled).
     literal_comment_pattern = None
 
     # Regular expression to match preformat fences in comments
@@ -137,7 +146,7 @@ pleasant way.
     output_encoding = 'utf-8'
 
 
-.. tag: configuration-end
+.. dynamic: configuration-end
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry
@@ -158,7 +167,7 @@ Usage
 -----
 
 
-.. tag: usage-begin
+.. dynamic: usage-begin
 
 .. code:: text
 
@@ -186,6 +195,7 @@ Usage
     optional arguments:
       -h, --help            show this help message and exit
       -v, --version         show program's version number and exit
+      -l {error,warning,info,debug}, --log-level {error,warning,info,debug}
       --dump-config [{yaml,json,python}]
                             If specified, print the default configuration to
                             stdout and exit
@@ -193,8 +203,8 @@ Usage
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      -c CONFIG_FILE, --config-file CONFIG_FILE
-                            path to configuration file
+      -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...], --config-files CONFIG_FILE [CONFIG_FILE ...]
+                            path to configuration file(s)
 
     Formatter Configuration:
       Override configfile options affecting general formatting
@@ -213,10 +223,13 @@ Usage
       --dangle-parens [DANGLE_PARENS]
                             If a statement is wrapped to more than one line, than
                             dangle the closing parenthesis on it's own line
-      --nest-threshold NEST_THRESHOLD
+      --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
                             parenthesis is larger than the tab width by more than
-                            this amoung, then force vertical nesting
+                            this amoung, then force reject un-nested layouts.
+      --max-lines-hwrap MAX_LINES_HWRAP
+                            If a candidate layout is wrapped horizontally but it
+                            exceeds this many lines, then reject the layout.
       --line-ending {windows,unix,auto}
                             What style line endings to use in the output.
       --command-case {lower,upper,canonical,unchanged}
@@ -230,9 +243,12 @@ Usage
       --algorithm-order [ALGORITHM_ORDER [ALGORITHM_ORDER ...]]
                             Specify the order of wrapping algorithms during
                             successive reflow attempts
-      --autosort [AUTOSORT]
+      --enable-sort [ENABLE_SORT]
                             If true, the argument lists which are known to be
                             sortable will be sorted lexicographicall
+      --autosort [AUTOSORT]
+                            If true, the parsers may infer whether or not an
+                            argument list is sortable (without annotation).
       --hashruler-min-length HASHRULER_MIN_LENGTH
                             If a comment line starts with at least this many
                             consecutive hash characters, then don't lstrip() them
@@ -251,11 +267,11 @@ Usage
                             enable comment markup parsing and reflow
       --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
                             If comment markup is enabled, don't reflow the first
-                            comment block in eachlistfile. Use this to preserve
-                            formatting of your copyright/licensestatements.
+                            comment block in each listfile. Use this to preserve
+                            formatting of your copyright/license statements.
       --literal-comment-pattern LITERAL_COMMENT_PATTERN
                             If comment markup is enabled, don't reflow any comment
-                            block which matchesthis (regex) pattern. Default is
+                            block which matches this (regex) pattern. Default is
                             `None` (disabled).
       --fence-pattern FENCE_PATTERN
                             Regular expression to match preformat fences in
@@ -282,4 +298,4 @@ Usage
                             utf-8. Note that cmake only claims to support utf-8 so
                             be careful when using anything else
 
-.. tag: usage-end
+.. dynamic: usage-end

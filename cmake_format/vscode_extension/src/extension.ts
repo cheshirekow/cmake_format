@@ -27,6 +27,10 @@ export function activate(context: vscode.ExtensionContext) {
                 };
 
                 var cwd = config.get("cwd");
+                if (cwd == null && document.uri.fsPath != null) {
+                    cwd = path.dirname(document.uri.fsPath)
+                    console.log("No cwd configured, using: " + cwd);
+                }
                 if (cwd == null) {
                     var folder = vscode.workspace.getWorkspaceFolder(document.uri);
                     if (folder != null) {
@@ -34,10 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
                         console.log("No cwd configured, using workspace path: " + cwd);
                     }
                 }
-                if (cwd == null && document.uri.fsPath != null) {
-                    cwd = path.dirname(document.uri.fsPath)
-                    console.log("No cwd configured, no workspace path, using: " + cwd);
-                }
+
                 if (cwd != null && fs.statSync(cwd).isDirectory()) {
                     opts["cwd"] = cwd;
                 } else {

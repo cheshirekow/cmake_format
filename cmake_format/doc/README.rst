@@ -69,8 +69,8 @@ Usage
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      -c CONFIG_FILE, --config-file CONFIG_FILE
-                            path to configuration file
+      -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...], --config-files CONFIG_FILE [CONFIG_FILE ...]
+                            path to configuration file(s)
 
     Formatter Configuration:
       Override configfile options affecting general formatting

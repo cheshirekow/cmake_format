@@ -18,6 +18,7 @@ function(_pkg_query outvar arg)
   # Convert space-separated list to semicolon-separated cmake-list
   string(REGEX REPLACE " +" ";" _include_list "${_include_dirs}")
 
+
   set(pkg_${outvar}_includedirs ${_include_list} CACHE STRING
       "include directories for ${outvar}" FORCE)
 
@@ -30,7 +31,15 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
-  set(pkg_${outvar}_cflags ${_pkg_out} CACHE STRING
+  # Convert space-separated list to semicolon-separated cmake-list
+  string(REGEX REPLACE " +" ";" _cflags "${_pkg_out}")
+  # Convert some C++ specific flags into a generator expression that will
+  # nullify during C compiles. Specifically match replace strings like
+  # "-std=c++11" to "$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>".
+  string(REGEX REPLACE "(-std=[^;]+)" "$<$<COMPILE_LANGUAGE:CXX>:\\1>"
+         _cflags "${_cflags}")
+
+  set(pkg_${outvar}_cflags ${_cflags} CACHE STRING
       "cflags directories for ${outvar}" FORCE)
 
   execute_process(COMMAND pkg-config --libs-only-L ${arg}

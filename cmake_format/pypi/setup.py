@@ -31,7 +31,13 @@ setup(
     url=GITHUB_URL,
     download_url='{}/archive/{}.tar.gz'.format(GITHUB_URL, VERSION),
     keywords=['cmake', 'format'],
-    classifiers=[],
+    license="GPLv3",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+    ],
+    include_package_data=True,
     entry_points={
         'console_scripts': [
             'cmake-format=cmake_format.__main__:main',

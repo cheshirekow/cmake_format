@@ -1,0 +1,4 @@
+prune doc/
+prune cmake_format/pypi
+prune cmake_format/doc
+include LICENSE

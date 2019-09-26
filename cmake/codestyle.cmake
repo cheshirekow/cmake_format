@@ -47,7 +47,7 @@ function(format_and_lint module)
           list(APPEND cmake_files_ ${arg})
         elseif(arg MATCHES ".*\.py")
           list(APPEND py_files_ ${arg})
-        elseif(arg MATCHES ".*\.(cc|h)")
+        elseif(arg MATCHES ".*\.(c|cc|h)")
           list(APPEND cc_files_ ${arg})
         elseif(arg MATCHES ".*\.js(\.tpl)?")
           list(APPEND js_files_ ${arg})
@@ -84,8 +84,12 @@ function(format_and_lint module)
   endif()
   if(py_files_)
     list(APPEND fmtcmds_ COMMAND autopep8 -i ${py_files_})
-    list(APPEND lntcmds_ COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR}
-                                 pylint ${py_files_})
+    # NOTE(josh): --rcfile= is required because some of our python files are
+    # note entirely within the package tree from the root of the repository.
+    # As such pylint will not match the rcfile in the root of the repository.
+    list(APPEND lntcmds_
+         COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR}
+                 pylint --rcfile=${CMAKE_SOURCE_DIR}/pylintrc ${py_files_})
     # NOTE(josh): flake8 tries to use semaphores which fail in our containers
     # https://bugs.python.org/issue3770 (probably due to /proc/shmem or
     # something not being mounted)

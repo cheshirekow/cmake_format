@@ -9,10 +9,19 @@ v0.5 series
 ===========
 
 ------
-v0.5.3
+v0.5.5
 ------
 
-This is a maintanance release fixing a couple of bugs and adding some missing
+This is a maintenance release fixing a few minor bugs and enhancements. One
+new feature is that the ``--config`` command line option now accepts a list of
+config files, which should allow for including multiple databases of command
+specifications
+
+------
+v0.5.4
+------
+
+This is a maintenance release fixing a couple of bugs and adding some missing
 documentation. One notable feature added is that, during in-place formatting,
 if the file content is unchanged ``cmake-format`` will no-longer write the
 file.

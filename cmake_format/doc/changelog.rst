@@ -6,6 +6,30 @@ Changelog
 v0.5 series
 -----------
 
+v0.5.5
+------
+
+* Python config files now have ``__file__`` set in the global namespace
+* Add parse support for ``BYPRODUCTS`` in ``add_custom_command``
+* Modify vscode extension cwd  to better support subtree configuration files
+* Fix vscode extension args type configuration
+* Support multiple config files
+
+* Closes `#121`_: Support ``BYPRODUCTS``
+* Closes `#123`_: Allow multiple config files
+* Closes `#125`_: Swap ordering of cwd location in vscode extension
+* Closes `#128`_: Include LICENSE.txt in sdist and wheel
+* Closes `#129`_: cmakeFormat.args in settings.json yields Incorrect type
+* Closes `#131`_: cmakeFormat.args is an array of items of type string
+
+.. __#121: https://github.com/cheshirekow/cmake_format/issues/121
+.. __#123: https://github.com/cheshirekow/cmake_format/issues/123
+.. __#125: https://github.com/cheshirekow/cmake_format/issues/125
+.. __#128: https://github.com/cheshirekow/cmake_format/issues/128
+.. __#129: https://github.com/cheshirekow/cmake_format/issues/129
+.. __#131: https://github.com/cheshirekow/cmake_format/issues/131
+
+
 v0.5.4
 ------
 

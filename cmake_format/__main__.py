@@ -16,6 +16,10 @@ from __future__ import unicode_literals
 
 import argparse
 import collections
+try:
+  from collections.abc import Mapping
+except ImportError:
+  from collections import Mapping
 import io
 import json
 import logging
@@ -173,6 +177,17 @@ def load_yaml(config_file):
   return out
 
 
+def exec_pyconfig(configfile_path, config_dict=None):
+  if config_dict is None:
+    config_dict = {}
+  config_dict["__file__"] = os.path.realpath(configfile_path)
+  with io.open(configfile_path, 'r', encoding='utf-8') as infile:
+    # pylint: disable=exec-used
+    exec(infile.read(), config_dict)
+  config_dict.pop("__file__")
+  return config_dict
+
+
 def try_get_configdict(configfile_path):
   """
   Try to read the configuration as yaml first, then json, then python.
@@ -193,11 +208,7 @@ def try_get_configdict(configfile_path):
     pass
 
   try:
-    config_dict = {}
-    with io.open(configfile_path, 'r', encoding='utf-8') as infile:
-      # pylint: disable=exec-used
-      exec(infile.read(), config_dict)
-    return config_dict
+    return exec_pyconfig(configfile_path)
   except:  # pylint: disable=bare-except
     pass
 
@@ -205,40 +216,82 @@ def try_get_configdict(configfile_path):
                      .format(configfile_path))
 
 
-def get_config(infile_path, configfile_path):
+def get_config_dict(configfile_path):
+  """
+  Return a dictionary of configuration options read from the given file path.
+  If the filepath has a known extension then we parse it according to that
+  extension. Otherwise we try to parse is using each parser one by one.
+  """
+  if configfile_path.endswith('.json'):
+    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
+      return json.load(config_file)
+
+  if configfile_path.endswith('.yaml'):
+    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
+      return load_yaml(config_file)
+
+  if configfile_path.endswith('.py'):
+    return exec_pyconfig(configfile_path)
+
+  return try_get_configdict(configfile_path)
+
+
+def map_merge(output_map, increment_map):
+  """
+  Merge `increment_map` into `output_map` recursively.
+  """
+  for key, increment_value in increment_map.items():
+    if key not in output_map:
+      output_map[key] = increment_value
+      continue
+
+    existing_value = output_map[key]
+    if isinstance(existing_value, Mapping):
+      if isinstance(increment_value, Mapping):
+        map_merge(existing_value, increment_value)
+      else:
+        logger.warning(
+            "Cannot merge config %s of type %s into a dictionary",
+            key, type(increment_value))
+      continue
+
+    output_map[key] = increment_value
+
+  return output_map
+
+
+def get_config(infile_path, configfile_paths):
   """
   If configfile_path is not none, then load the configuration. Otherwise search
   for a config file in the ancestry of the filesystem of infile_path and find
   a config file to load.
   """
-  if configfile_path is None:
-    configfile_path = find_config_file(infile_path)
-  if configfile_path is not None:
-    configfile_path = os.path.expanduser(configfile_path)
+  if configfile_paths is None:
+    inferred_configpath = find_config_file(infile_path)
+    if inferred_configpath is None:
+      return {}
+    configfile_paths = [inferred_configpath]
 
   config_dict = {}
-  if configfile_path:
-    with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
-      if configfile_path.endswith('.json'):
-        config_dict = json.load(config_file)
-      elif configfile_path.endswith('.yaml'):
-        config_dict = load_yaml(config_file)
-      elif configfile_path.endswith('.py'):
-        config_dict = {}
-        with io.open(configfile_path, 'r', encoding='utf-8') as infile:
-          # pylint: disable=exec-used
-          exec(infile.read(), config_dict)
-      else:
-        config_dict = try_get_configdict(configfile_path)
+  for configfile_path in configfile_paths:
+    configfile_path = os.path.expanduser(configfile_path)
+    increment_dict = get_config_dict(configfile_path)
+    map_merge(config_dict, increment_dict)
 
   return config_dict
 
 
 def yaml_odict_handler(dumper, value):
+  """
+  Represent ordered dictionaries as yaml maps.
+  """
   return dumper.represent_mapping(u'tag:yaml.org,2002:map', value)
 
 
 def yaml_register_odict(dumper):
+  """
+  Register an order dictionary handler with the given yaml dumper
+  """
   dumper.add_representer(collections.OrderedDict, yaml_odict_handler)
 
 
@@ -367,8 +420,9 @@ def setup_argparser(arg_parser):
                      help='Where to write the formatted file. '
                           'Default is stdout.')
 
-  arg_parser.add_argument('-c', '--config-file',
-                          help='path to configuration file')
+  arg_parser.add_argument(
+      '-c', '--config-file', '--config-files', nargs='+',
+      help='path to configuration file(s)')
   arg_parser.add_argument('infilepaths', nargs='*')
   add_config_options(arg_parser)
 
@@ -455,7 +509,7 @@ def main():
                         newline='')
     else:
       if args.outfile_path == '-':
-        # NOTE(josh): The behavior or sys.stdout is different in python2 and
+        # NOTE(josh): The behavior of sys.stdout is different in python2 and
         # python3. sys.stdout is opened in 'w' mode which means that write()
         # takes strings in python2 and python3 and, in particular, in python3
         # it does not take byte arrays. io.StreamWriter will write to

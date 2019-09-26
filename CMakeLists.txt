@@ -13,12 +13,17 @@ pkg_find(PKG eigen3
          PKG fontconfig
          PKG freetype2
          PKG fuse
+         PKG glib-2.0
          PKG gnuradio-osmosdr
          PKG gnuradio-filter
+         PKG gtk+-3.0
+         PKG gtkmm-3.0
          PKG libcurl
          PKG libglog
+         PKG libpng NAMES libpng12 libpng16
          PKG librtlsdr
          PKG libudev
+         PKG tinyxml2
          PKG vulkan
          PKG x11-xcb)
 

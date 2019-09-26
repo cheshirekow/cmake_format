@@ -2,7 +2,7 @@
     "name": "cmake-format",
     "displayName": "cmake-format",
     "description": "Format listfiles so they don't look like crap",
-    "version": "0.4.2",
+    "version": "0.5.5",
     "publisher": "cheshirekow",
     "repository": "https://github.com/cheshirekow/cmake_format",
     "icon": "images/cmake-format-logo.png",
@@ -61,7 +61,10 @@
                     "description": "Full path cmake-format entry point script or binary"
                 },
                 "cmakeFormat.args": {
-                    "type": "array[string]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
                     "default": [],
                     "description": "Additional arguments to pass to cmake-format. Specify, e.g. --config-file here."
                 }

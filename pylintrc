@@ -54,6 +54,7 @@ disable=
     missing-docstring,
     no-name-in-module,
     no-self-use,
+    similarities,
     star-args,
     too-few-public-methods,
     too-many-ancestors,
