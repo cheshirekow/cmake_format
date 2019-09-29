@@ -26,8 +26,29 @@ Integrations
 * There is an official `vscode extension`__
 * Someone also created a `sublime plugin`__
 
+pre-commit tool
+~~~~~~~~~~~~~~~
+
+You can use `pre-commit`__ to easily add
+``cmake-format`` as a pre-commit hook in your git repository. Once
+you `have it installed`__, add this to the ``.pre-commit-config.yaml`` in your
+repository:
+
+.. code:: yaml
+
+    repos:
+    -   repo: https://github.com/cheshirekow/cmake_format.git
+        rev: master
+        hooks:
+        - id: cmake-format
+          args: [--in-place]
+
+Then run ``pre-commit install`` and the hooks will be set up.
+
 .. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
 .. __: https://packagecontrol.io/packages/CMakeFormat
+.. __: https://pre-commit.com/
+.. __: https://pre-commit.com/#install
 
 -----
 Usage
