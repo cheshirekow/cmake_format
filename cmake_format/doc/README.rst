@@ -38,7 +38,7 @@ repository:
 
     repos:
     -   repo: https://github.com/cheshirekow/cmake_format.git
-        rev: master
+        rev: v0.5.5
         hooks:
         - id: cmake-format
           args: [--in-place]
