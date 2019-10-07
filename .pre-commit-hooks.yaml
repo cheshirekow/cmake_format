@@ -3,6 +3,4 @@
   description: cmake-format can format your listfiles nicely so that they don't look like crap.
   entry: cmake-format
   language: python
-  types: [file, text]
-  files: '(CMakeLists\.txt|\.cmake|\.cmake\.in)$'
-
+  types: [cmake]
