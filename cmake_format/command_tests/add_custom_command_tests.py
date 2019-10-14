@@ -28,19 +28,23 @@ class TestAddCustomCommand(TestBase):
             ]),
             (NodeType.KWARGGROUP, [
               (NodeType.KEYWORD, []),
-              (NodeType.PARGGROUP, [
-                (NodeType.ARGUMENT, []),
-                (NodeType.ARGUMENT, []),
-                (NodeType.ARGUMENT, []),
-                (NodeType.ARGUMENT, []),
-                (NodeType.ARGUMENT, []),
+              (NodeType.ARGGROUP, [
+                (NodeType.PARGGROUP, [
+                  (NodeType.ARGUMENT, []),
+                  (NodeType.ARGUMENT, []),
+                  (NodeType.ARGUMENT, []),
+                  (NodeType.ARGUMENT, []),
+                  (NodeType.ARGUMENT, []),
+                ]),
               ]),
             ]),
             (NodeType.KWARGGROUP, [
               (NodeType.KEYWORD, []),
-              (NodeType.PARGGROUP, [
-                (NodeType.ARGUMENT, []),
-                (NodeType.ARGUMENT, []),
+              (NodeType.ARGGROUP, [
+                (NodeType.PARGGROUP, [
+                  (NodeType.ARGUMENT, []),
+                  (NodeType.ARGUMENT, []),
+                ]),
               ]),
             ]),
             (NodeType.KWARGGROUP, [
@@ -63,12 +67,13 @@ class TestAddCustomCommand(TestBase):
     ]
 
     self.expect_format = """\
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/foobar_doc.stamp
-                   COMMAND sphinx-build -M html ${CMAKE_CURRENT_SOURCE_DIR}
-                           ${CMAKE_CURRENT_BINARY_DIR}
-                   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/foobar_doc.stamp
-                   DEPENDS ${foobar_docs}
-                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/foobar_doc.stamp
+  COMMAND sphinx-build -M html ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/foobar_doc.stamp
+  DEPENDS ${foobar_docs}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 """
 
 

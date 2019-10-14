@@ -3,6 +3,27 @@ Changelog
 =========
 
 -----------
+v0.6 series
+-----------
+
+v0.6.0
+------
+
+Significant refactor of the formatting logic.
+
+* Move ``format_tests`` into ``command_tests.misc_tests``
+* Prototype sidecar tests for easier readability/maintainability
+* ArgGroupNodes gain representation in the layout tree
+* Get rid of ``WrapAlgo``
+* Eliminate vertical/nest as separate decisions. Nesting is just the wrap
+  decision for StatementNode and KwargNode wheras vertical is the wrap
+  decision for PargGroupnode and ArgGroupNode.
+* Replace ``algorithm_order`` with ``_layout_passes``
+* Get rid of ``default_accept_layout`` and move logic into a member function
+* Move configuration and ``node_path`` into new ``StackContext``
+* Stricter valid-child-set for most layout nodes
+
+-----------
 v0.5 series
 -----------
 
@@ -22,12 +43,12 @@ v0.5.5
 * Closes `#129`_: cmakeFormat.args in settings.json yields Incorrect type
 * Closes `#131`_: cmakeFormat.args is an array of items of type string
 
-.. __#121: https://github.com/cheshirekow/cmake_format/issues/121
-.. __#123: https://github.com/cheshirekow/cmake_format/issues/123
-.. __#125: https://github.com/cheshirekow/cmake_format/issues/125
-.. __#128: https://github.com/cheshirekow/cmake_format/issues/128
-.. __#129: https://github.com/cheshirekow/cmake_format/issues/129
-.. __#131: https://github.com/cheshirekow/cmake_format/issues/131
+.. _#121: https://github.com/cheshirekow/cmake_format/issues/121
+.. _#123: https://github.com/cheshirekow/cmake_format/issues/123
+.. _#125: https://github.com/cheshirekow/cmake_format/issues/125
+.. _#128: https://github.com/cheshirekow/cmake_format/issues/128
+.. _#129: https://github.com/cheshirekow/cmake_format/issues/129
+.. _#131: https://github.com/cheshirekow/cmake_format/issues/131
 
 
 v0.5.4
@@ -45,11 +66,11 @@ v0.5.4
 * Closes `#119`_: Fix missing newline argument
 * Closes `#120`_: auto-line ending option not working correctly under Windows
 
-.. __#114: https://github.com/cheshirekow/cmake_format/issues/114
-.. __#117: https://github.com/cheshirekow/cmake_format/issues/117
-.. __#118: https://github.com/cheshirekow/cmake_format/issues/118
-.. __#119: https://github.com/cheshirekow/cmake_format/issues/119
-.. __#120: https://github.com/cheshirekow/cmake_format/issues/120
+.. _#114: https://github.com/cheshirekow/cmake_format/issues/114
+.. _#117: https://github.com/cheshirekow/cmake_format/issues/117
+.. _#118: https://github.com/cheshirekow/cmake_format/issues/118
+.. _#119: https://github.com/cheshirekow/cmake_format/issues/119
+.. _#120: https://github.com/cheshirekow/cmake_format/issues/120
 
 v0.5.3
 ------

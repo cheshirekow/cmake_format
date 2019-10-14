@@ -20,7 +20,8 @@ Also doesn't look too bad when wrapped horizontally::
         foo bar baz foo2 bar2 baz2 foo3 bar3 baz3 foo4 bar4 baz4 foo5 bar5 baz5
         foo6 bar6 baz6 foo7 bar7 baz7 foo8 bar8 baz8 foo9 bar9 baz9)
 
-Though probably matches expectations better if it is wrapped vertically::
+Though probably matches expectations better if it is wrapped vertically,
+even if it does look like shit::
 
     add_subdirectories(
         foo
@@ -59,6 +60,34 @@ Just a couple of long args, looks bad wrapped horizontally::
 and looks better wrapped vertically, horizontally nested::
 
     set(HEADERS
+        very_long_header_name_a.h
+        very_long_header_name_b.h
+        very_long_header_name_c.h)
+
+also looks pretty good packed after the first argument::
+
+    set(HEADERS very_long_header_name_a.h
+                very_long_header_name_b.h
+                very_long_header_name_c.h)
+
+or possibly nested::
+
+    set(HEADERS
+          very_long_header_name_a.h
+          very_long_header_name_b.h
+          very_long_header_name_c.h)
+
+    set(
+      HEADERS
+        very_long_header_name_a.h
+        very_long_header_name_b.h
+        very_long_header_name_c.h)
+
+ but this starts to look a little inconsistent when other arguments are
+ used::
+
+    set(
+      HEADERS PARENT_SCOPE
         very_long_header_name_a.h
         very_long_header_name_b.h
         very_long_header_name_c.h)
@@ -295,6 +324,24 @@ for this purpose. This could be a sandard "microtag" format including the
 ability to set the list sortable. For example: ``#v,s`` would be
 "vertical, sortable"
 
+Another interesting case is if we have an argument comment on a keyword
+argument, or a prefix group. For example::
+
+    set(foobarbaz # comment about foobarbaz
+        value_one value_two value_three value_four value_five value_six
+        value_seven value_eight)
+
+Should that be formatted as above, or as::
+
+    set(foobarbaz # comment about foobarbaz
+                  value_one value_two value_three value_four value_five
+                  value_six value_seven value_eight)
+
+If we're already formatting set as::
+
+    set(foobarbaz value_one value_two value_three value_four value_five
+                  value_six value_seven value_eight)
+
 -------
 Nesting
 -------
@@ -409,3 +456,124 @@ I don't think there's any reason to add structure for the internal operators
 like ``MATCHES``. In particular children of a boolean operator can be simple
 positional argument groups (horizontally-wrapped). We can tag the internal
 operator as a keyword but we don't need to create a KWARGGROUP for it.
+
+------------------------------
+Internally Wrapped Positionals
+------------------------------
+
+The third kwarg (AND) in this statement looks bad because it is Internally
+wrapped. The second option looks better:
+
+.. code:: cmake
+
+    set(matchme "_DATA_\|_CMAKE_\|INTRA_PRED\|_COMPILED\|_HOSTING\|_PERF_\|CODER_")
+    if(("${var}" MATCHES "_TEST_" AND NOT "${var}" MATCHES "${matchme}")
+       OR (CONFIG_AV1_ENCODER AND CONFIG_ENCODE_PERF_TESTS AND "${var}" MATCHES
+                                                               "_ENCODE_PERF_TEST_"
+          ))
+      list(APPEND aom_test_source_vars ${var})
+    endif()
+
+    set(matchme "_DATA_\|_CMAKE_\|INTRA_PRED\|_COMPILED\|_HOSTING\|_PERF_\|CODER_")
+    if(("${var}" MATCHES "_TEST_" AND NOT "${var}" MATCHES "${matchme}")
+       OR (CONFIG_AV1_ENCODER
+           AND CONFIG_ENCODE_PERF_TESTS
+           AND "${var}" MATCHES "_ENCODE_PERF_TEST_"))
+      list(APPEND aom_test_source_vars ${var})
+    endif()
+
+However, this short :code:`set()` statement looks better if we don't push the
+internally wrapped argument to the next line:
+
+.. code:: cmake
+
+    set(sources # cmake-format: sortable
+                bar.cc baz.cc foo.cc)
+
+Perhaps the difference is that in the latter case it's going to consume two
+lines anyway... whereas in the former case it would only consume one
+line.
+
+--------------------
+Columnized arguments
+--------------------
+
+Some very long statements with a large number of keywords might look nice
+and organized if we columize the child argument groups. For example:
+
+.. code:: cmake
+
+    ExternalProject_Add(
+        FOO
+        PREFIX           ${FOO_PREFIX}
+        TMP_DIR          ${TMP_DIR}
+        STAMP_DIR        ${FOO_PREFIX}/stamp
+        # Download
+        DOWNLOAD_DIR     ${DOWNLOAD_DIR}
+        DOWNLOAD_NAME    ${FOO_ARCHIVE_FILE_NAME}
+        URL              ${STORAGE_URL}/${FOO_ARCHIVE_FILE_NAME}
+        URL_MD5          ${FOO_MD5}
+        # Patch
+        PATCH_COMMAND    ${PATCH_COMMAND} ${PROJECT_SOURCE_DIR}/patch.diff
+        # Configure
+        SOURCE_DIR       ${SRC_DIR}
+        CMAKE_ARGS       ${CMAKE_OPTS}
+        # Build
+        BUILD_IN_SOURCE  1
+        BUILD_BYPRODUCTS ${CUR_COMPONENT_ARTIFACTS}
+        # Logging
+        LOG_CONFIGURE    1
+        LOG_BUILD        1
+        LOG_INSTALL      1
+    )
+
+Note what :code:`clang-format` does for these cases. If two consecutive
+keywords are more than :code:`n` characters different in length, then break
+columns, which might come out something like this:
+
+.. code:: cmake
+
+    ExternalProject_Add(
+        FOO
+        PREFIX    ${FOO_PREFIX}
+        TMP_DIR   ${TMP_DIR}
+        STAMP_DIR ${FOO_PREFIX}/stamp
+        # Download
+        DOWNLOAD_DIR  ${DOWNLOAD_DIR}
+        DOWNLOAD_NAME ${FOO_ARCHIVE_FILE_NAME}
+        URL     ${STORAGE_URL}/${FOO_ARCHIVE_FILE_NAME}
+        URL_MD5 ${FOO_MD5}
+        # Patch
+        PATCH_COMMAND ${PATCH_COMMAND} ${PROJECT_SOURCE_DIR}/patch.diff
+        # Configure
+        SOURCE_DIR ${SRC_DIR}
+        CMAKE_ARGS ${CMAKE_OPTS}
+        # Build
+        BUILD_IN_SOURCE  1
+        BUILD_BYPRODUCTS ${CUR_COMPONENT_ARTIFACTS}
+        # Logging
+        LOG_CONFIGURE 1
+        LOG_BUILD     1
+        LOG_INSTALL   1
+    )
+
+As an experimental feature, we could require a tag :code:`# cmf: columnize`
+to enable this formatting.
+
+-------------------------
+Algorithm Ideas and Notes
+-------------------------
+
+Layout Passes
+=============
+
+Up through version 0.5.2 each node would lay itself out using pass numbers
+``[0, <parent-passno>]``. This worked pretty well, but actually I would like
+the nesting to be a little more depth dependant. For example I would like
+depth 0 (statement) to nest rather early, while I would like higher depths
+(i.e. KWARGS) to nest later, but go vertical earlier.
+
+One alternative is to have a global ``passno`` and apply different rules at
+each pass until things fit, but the probem with this option is that two
+subtrees might require fastly different passes. We don't want to
+vertically wrap one all kwargs just because one needs to.

@@ -46,7 +46,7 @@ def split_legacy_spec(cmdspec):
     elif kwarg == "COMMAND":
       subparser = parser.parse_shell_command
     elif isinstance(subspec, parser.IMPLICIT_PARG_TYPES):
-      subparser = parser.PositionalParser(subspec, [])
+      subparser = parser.StandardParser(subspec)
     elif isinstance(subspec, (commands.CommandSpec)):
       subparser = get_legacy_parse(subspec)
     else:

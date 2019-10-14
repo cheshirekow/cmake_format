@@ -160,11 +160,14 @@ class Configuration(object):
     return out
 
   def __init__(self, line_width=80, tab_size=2,
-               max_subargs_per_line=3,
+               max_subgroups_hwrap=2,
+               max_pargs_hwrap=6,
                separate_ctrl_name_with_space=False,
                separate_fn_name_with_space=False,
                dangle_parens=False,
-               max_prefix_chars=2,
+               dangle_align=None,
+               min_prefix_chars=4,
+               max_prefix_chars=10,
                max_lines_hwrap=2,
                bullet_char=None,
                enum_char=None,
@@ -173,8 +176,6 @@ class Configuration(object):
                keyword_case=None,
                additional_commands=None,
                always_wrap=None,
-               # TODO(josh): remove algorithm_order
-               algorithm_order=None,
                enable_sort=True,
                autosort=False,
                enable_markup=True,
@@ -188,21 +189,21 @@ class Configuration(object):
                input_encoding=None,
                output_encoding=None,
                per_command=None,
+               layout_passes=None,
                **_):  # pylint: disable=W0613
 
     # pylint: disable=too-many-locals
     self.line_width = line_width
     self.tab_size = tab_size
 
-    # TODO(josh): make this conditioned on certain commands / kwargs
-    # because things like execute_process(COMMAND...) are less readable
-    # formatted as a single list. In fact... special case COMMAND to break on
-    # flags the way we do kwargs.
-    self.max_subargs_per_line = max_subargs_per_line
+    self.max_subgroups_hwrap = max_subgroups_hwrap
+    self.max_pargs_hwrap = max_pargs_hwrap
 
     self.separate_ctrl_name_with_space = separate_ctrl_name_with_space
     self.separate_fn_name_with_space = separate_fn_name_with_space
     self.dangle_parens = dangle_parens
+    self.dangle_align = get_default(dangle_align, "prefix")
+    self.min_prefix_chars = min_prefix_chars
     self.max_prefix_chars = max_prefix_chars
     self.max_lines_hwrap = max_lines_hwrap
 
@@ -233,7 +234,6 @@ class Configuration(object):
     })
 
     self.always_wrap = get_default(always_wrap, [])
-    self.algorithm_order = get_default(algorithm_order, [0, 1, 2, 3, 4])
     self.enable_sort = enable_sort
     self.autosort = autosort
     self.enable_markup = enable_markup
@@ -244,6 +244,8 @@ class Configuration(object):
     self.emit_byteorder_mark = emit_byteorder_mark
     self.hashruler_min_length = hashruler_min_length
     self.canonicalize_hashrulers = canonicalize_hashrulers
+
+    self.layout_passes = get_default(layout_passes, {})
 
     self.input_encoding = get_default(input_encoding, "utf-8")
     self.output_encoding = get_default(output_encoding, "utf-8")
@@ -307,6 +309,7 @@ class Configuration(object):
 
 
 VARCHOICES = {
+    "dangle_align": ["prefix", "prefix-indent", "child", "off"],
     'line_ending': ['windows', 'unix', 'auto'],
     'command_case': ['lower', 'upper', 'canonical', 'unchanged'],
     'keyword_case': ['lower', 'upper', 'unchanged'],
@@ -315,8 +318,12 @@ VARCHOICES = {
 VARDOCS = {
     "line_width": "How wide to allow formatted cmake files",
     "tab_size": "How many spaces to tab for indent",
-    "max_subargs_per_line": (
-        "If arglists are longer than this, break them always"),
+    "max_subgroups_hwrap": (
+        "If an argument group contains more than this many sub-groups "
+        "(parg or kwarg groups), then force it to a vertical layout. "),
+    "max_pargs_hwrap": (
+        "If a positinal argument group contains more than this many arguments, "
+        "then force it to a vertical layout. "),
     "separate_ctrl_name_with_space": (
         "If true, separate flow control names from their parentheses with a"
         " space"),
@@ -324,7 +331,12 @@ VARDOCS = {
         "If true, separate function names from parentheses with a space"),
     "dangle_parens": (
         "If a statement is wrapped to more than one line, than dangle the"
-        " closing parenthesis on it's own line"),
+        " closing parenthesis on it's own line."),
+    "dangle_align": (
+        "If the trailing parenthesis must be 'dangled' on it's on line, then"
+        " align it to this reference: `prefix`: the start of the statement, "
+        " `prefix-indent`: the start of the statement, plus one indentation "
+        " level, `child`: align to the column of the arguments"),
     "max_prefix_chars": (
         "If the statement spelling length (including space and parenthesis"
         " is larger than the tab width by more than this amoung, then"
@@ -341,9 +353,6 @@ VARDOCS = {
         "Format command names consistently as 'lower' or 'upper' case"),
     "keyword_case": "Format keywords consistently as 'lower' or 'upper' case",
     "always_wrap": "A list of command names which should always be wrapped",
-    "algorithm_order": (
-        "Specify the order of wrapping algorithms during successive reflow "
-        "attempts"),
     "enable_sort": (
         "If true, the argument lists which are known to be sortable will be "
         "sorted lexicographicall"),
@@ -384,5 +393,9 @@ VARDOCS = {
         " anything else"),
     "per_command": (
         "A dictionary containing any per-command configuration overrides."
-        " Currently only `command_case` is supported.")
+        " Currently only `command_case` is supported."),
+    "layout_passes": (
+        "A dictionary mapping layout nodes to a list of wrap decisions. See"
+        " the documentation for more information."
+    )
 }

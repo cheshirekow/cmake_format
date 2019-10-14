@@ -41,19 +41,5 @@ This extension contributes the following settings:
 You can find known issues with `cmake-format` on [github][3].
 Feel free to file issues with the vscode extension there as well.
 
-## Release Notes
-
-### 0.4.2
-
-Fixed bug with using workspace path as `cwd` when calling `cmake-foramt`.
-
-### 0.4.1
-
-Initial release. Note that the vscode extension release version matches the
-cmake-format release version on [pypi][2].
-
-
-
 [1]: https://github.com/cheshirekow/cmake_format
-[2]: https://pypi.org/project/cmake_format/
 [3]: https://github.com/cheshirekow/cmake_format/issues

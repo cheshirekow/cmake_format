@@ -97,11 +97,12 @@ install(TARGETS ${PROJECT_NAME}
     ]
 
     self.expect_format = """\
-install(TARGETS ${PROJECT_NAME}
-        EXPORT ${CMAKE_PROJECT_NAME}Targets
-        ARCHIVE DESTINATION lib COMPONENT install-app
-        LIBRARY DESTINATION lib COMPONENT install-app
-        RUNTIME DESTINATION bin COMPONENT install-app)
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${CMAKE_PROJECT_NAME}Targets
+  ARCHIVE DESTINATION lib COMPONENT install-app
+  LIBRARY DESTINATION lib COMPONENT install-app
+  RUNTIME DESTINATION bin COMPONENT install-app)
 """
 
   def test_kwarg_match_consumes(self):
@@ -109,8 +110,8 @@ install(TARGETS ${PROJECT_NAME}
 install(TARGETS myprog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
 """
     self.expect_format = """\
-install(TARGETS myprog
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
+install(TARGETS myprog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+                               COMPONENT runtime)
 """
 
 

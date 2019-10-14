@@ -2,8 +2,12 @@
 # pylint: disable=R1708
 from __future__ import unicode_literals
 
+import contextlib
 import difflib
+import functools
+import inspect
 import io
+import os
 import sys
 import unittest
 
@@ -14,6 +18,86 @@ from cmake_format import lexer
 from cmake_format import parser
 from cmake_format import parse_funs
 from cmake_format.parser import NodeType
+
+# NOTE(josh): backport from functools.py in python 3.6 so that we can use it in
+# python 2.7
+if sys.version_info < (3, 5, 0):
+  # pylint: disable=all
+  class partialmethod(object):
+    """Method descriptor with partial application of the given arguments
+    and keywords.
+
+    Supports wrapping existing descriptors and handles non-descriptor
+    callables as instance methods.
+    """
+
+    def __init__(self, func, *args, **keywords):
+      if not callable(func) and not hasattr(func, "__get__"):
+        raise TypeError("{!r} is not callable or a descriptor"
+                        .format(func))
+
+      # func could be a descriptor like classmethod which isn't callable,
+      # so we can't inherit from partial (it verifies func is callable)
+      if isinstance(func, partialmethod):
+        # flattening is mandatory in order to place cls/self before all
+        # other arguments
+        # it's also more efficient since only one function will be called
+        self.func = func.func
+        self.args = func.args + args
+        self.keywords = func.keywords.copy()
+        self.keywords.update(keywords)
+      else:
+        self.func = func
+        self.args = args
+        self.keywords = keywords
+
+    def __repr__(self):
+      args = ", ".join(map(repr, self.args))
+      keywords = ", ".join("{}={!r}".format(k, v)
+                           for k, v in self.keywords.items())
+      format_string = "{module}.{cls}({func}, {args}, {keywords})"
+      return format_string.format(module=self.__class__.__module__,
+                                  cls=self.__class__.__qualname__,
+                                  func=self.func,
+                                  args=args,
+                                  keywords=keywords)
+
+    def _make_unbound_method(self):
+      def _method(*args, **keywords):
+        call_keywords = self.keywords.copy()
+        call_keywords.update(keywords)
+        cls_or_self = args[0]
+        rest = args[:]
+        call_args = (cls_or_self,) + self.args + tuple(rest)
+        return self.func(*call_args, **call_keywords)
+      _method.__isabstractmethod__ = self.__isabstractmethod__
+      _method._partialmethod = self
+      return _method
+
+    def __get__(self, obj, cls):
+      get = getattr(self.func, "__get__", None)
+      result = None
+      if get is not None:
+        new_func = get(obj, cls)
+        if new_func is not self.func:
+          # Assume __get__ returning something new indicates the
+          # creation of an appropriate callable
+          result = functools.partial(new_func, *self.args, **self.keywords)
+          try:
+            result.__self__ = new_func.__self__
+          except AttributeError:
+            pass
+      if result is None:
+        # If the underlying descriptor didn't do anything, treat this
+        # like an instance method
+        result = self._make_unbound_method().__get__(obj, cls)
+      return result
+
+    @property
+    def __isabstractmethod__(self):
+      return getattr(self.func, "__isabstractmethod__", False)
+else:
+  from functools import partialmethod
 
 
 def strip_indent(content, indent=6):
@@ -150,7 +234,7 @@ def assert_layout_tree(test, nodes, tups, tree=None, history=None):
     assert_layout_tree(test, node.children, expect_children, tree, subhistory)
 
 
-def assert_layout(test, input_str, expect_tree, strip_len=6):
+def assert_layout(test, input_str, expect_tree, strip_len=0):
   """
   Run the formatter on the input string and assert that the result matches
   the output string
@@ -163,11 +247,13 @@ def assert_layout(test, input_str, expect_tree, strip_len=6):
   assert_layout_tree(test, [box_tree], expect_tree)
 
 
-def assert_format(test, input_str, output_str, strip_len=0):
+def assert_format(test, input_str, output_str=None, strip_len=0):
   """
   Run the formatter on the input string and assert that the result matches
   the output string
   """
+  if output_str is None:
+    output_str = input_str
 
   input_str = strip_indent(input_str, strip_len)
   output_str = strip_indent(output_str, strip_len)
@@ -217,6 +303,37 @@ class TestBase(unittest.TestCase):
   Given a bunch of example usages of a particular command, ensure that they
   lex, parse, layout, and format the same as expected.
   """
+  kNumSidecarTests = 0
+
+  @classmethod
+  def load_sidecar_tests(cls):
+    cmake_sidecar = inspect.getfile(cls)[:-3] + ".cmake"
+    if not os.path.exists(cmake_sidecar):
+      return
+    with io.open(cmake_sidecar, "r", encoding="utf-8") as infile:
+      lines = infile.read().split("\n")
+
+    test_name = None
+    line_buffer = []
+    num_sidecar_tests = 0
+
+    for lineno, line in enumerate(lines):
+      if line.startswith("# cmftest-begin: "):
+        test_name = line[17:]
+        line_buffer = []
+      elif line.endswith("# cmftest-end"):
+        if test_name is None:
+          raise ValueError(
+              "Malformed sidecar {}:{}".format(cmake_sidecar, lineno))
+        test_content = "\n".join(line_buffer) + "\n"
+        closure = partialmethod(assert_format, test_content)
+        setattr(cls, test_name, closure)
+        num_sidecar_tests += 1
+        test_name = None
+        line_buffer = []
+      else:
+        line_buffer.append(line)
+    setattr(cls, "kNumSidecarTests", num_sidecar_tests)
 
   def __init__(self, *args, **kwargs):
     super(TestBase, self).__init__(*args, **kwargs)
@@ -250,34 +367,28 @@ class TestBase(unittest.TestCase):
     self.parse_db.update(
         parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
-    for name, value in vars(self).items():
-      if callable(value) and name.startswith("test_"):
-        setattr(self, name, WrapTestWithRunFun(self, value))
+  @contextlib.contextmanager
+  def subTest(self, msg=None, **params):
+    # pylint: disable=no-member
+    if sys.version_info < (3, 4, 0):
+      yield None
+    else:
+      yield super(TestBase, self).subTest(msg=msg, **params)
 
   def assertExpectations(self):
     # Empty source_str is shorthand for "assertInvariant"
     if self.source_str is None:
       self.source_str = self.expect_format
 
-    if sys.version_info < (3, 0, 0):
-      if self.expect_lex is not None:
+    if self.expect_lex is not None:
+      with self.subTest(phase="lex"):  # pylint: disable=no-member
         assert_lex(self, self.source_str, self.expect_lex)
-      if self.expect_parse is not None:
+    if self.expect_parse is not None:
+      with self.subTest(phase="parse"):  # pylint: disable=no-member
         assert_parse(self, self.source_str, self.expect_parse)
-      if self.expect_layout is not None:
+    if self.expect_layout is not None:
+      with self.subTest(phase="layout"):  # pylint: disable=no-member
         assert_layout(self, self.source_str, self.expect_layout)
-      if self.expect_format is not None:
+    if self.expect_format is not None:
+      with self.subTest(phase="format"):  # pylint: disable=no-member
         assert_format(self, self.source_str, self.expect_format)
-    else:
-      if self.expect_lex is not None:
-        with self.subTest(phase="lex"):  # pylint: disable=no-member
-          assert_lex(self, self.source_str, self.expect_lex)
-      if self.expect_parse is not None:
-        with self.subTest(phase="parse"):  # pylint: disable=no-member
-          assert_parse(self, self.source_str, self.expect_parse)
-      if self.expect_layout is not None:
-        with self.subTest(phase="layout"):  # pylint: disable=no-member
-          assert_layout(self, self.source_str, self.expect_layout)
-      if self.expect_format is not None:
-        with self.subTest(phase="format"):  # pylint: disable=no-member
-          assert_format(self, self.source_str, self.expect_format)

@@ -16,12 +16,11 @@ project(cmake_format_test)
 add_subdirectories(foo bar baz
   foo2 bar2 baz2)
 
-# This very long command should be split to multiple lines
+# This very long command should be wrapped
 set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
 
-# This command should be split into one line per entry because it has a long
-# argument list.
-set(SOURCES source_a.cc source_b.cc source_d.cc source_e.cc source_f.cc source_g.cc)
+# This command should be split into one line per entry because it has a long argument list.
+set(SOURCES source_a.cc source_b.cc source_d.cc source_e.cc source_f.cc source_g.cc source_h.cc)
 
 # The string in this command should not be split
 set_target_properties(foo bar baz PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
@@ -68,7 +67,7 @@ if(foo)
 if(sbar)
 # This comment is in-scope.
 add_library(foo_bar_baz foo.cc bar.cc # this is a comment for arg2
-               # this is more comment for arg2, it should be joined with the first.
+                                      # this is more comment for arg2, it should be joined with the first.
     baz.cc) # This comment is part of add_library
 
 other_command(some_long_argument some_long_argument) # this comment is very long and gets split across some lines

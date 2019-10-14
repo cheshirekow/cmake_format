@@ -46,28 +46,33 @@ file(APPEND foobar.baz
 """
 
   def test_file_generate_output(self):
+    # TODO(josh): "file content line three" should probably be on the next line
     self.expect_format = """\
-file(GENERATE
-     OUTPUT foobar.baz
-     CONTENT "file content line one" #
-             "file content line two"
-             "file content line three"
-     CONDITION (FOO AND BAR) OR BAZ)
+file(
+  GENERATE
+  OUTPUT foobar.baz
+  CONTENT "file content line one" #
+          "file content line two" "file content line three"
+  CONDITION (FOO AND BAR) OR BAZ)
 """
 
   def test_file_glob(self):
     self.expect_format = """\
-file(GLOB globout RELATIVE foo/bar/baz "*.py" "*.txt")
+file(
+  GLOB globout
+  RELATIVE foo/bar/baz
+  "*.py" "*.txt")
 """
 
   def test_file_copy(self):
     self.expect_format = r"""
-file(COPY foo bar baz
-     DESTINATION foobar
-     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-     FILES_MATCHING
-     PATTERN "*.h"
-     REGEX ".*\\.cc")
+file(
+  COPY foo bar baz
+  DESTINATION foobar
+  FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+  FILES_MATCHING
+  PATTERN "*.h"
+  REGEX ".*\\.cc")
 """[1:]
 
   def test_file_write_a(self):

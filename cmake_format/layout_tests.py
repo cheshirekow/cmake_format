@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import contextlib
 import logging
 import unittest
+import sys
 
 from cmake_format import __main__
 from cmake_format import configuration
@@ -11,7 +13,6 @@ from cmake_format import parser
 from cmake_format import parse_funs
 from cmake_format import formatter
 from cmake_format.parser import NodeType
-from cmake_format.formatter import WrapAlgo
 
 
 def strip_indent(content, indent=6):
@@ -65,7 +66,7 @@ def assert_tree(test, nodes, tups, tree=None, history=None):
     subhistory = history + [node]
     message = (" for node {} at\n {} \n\n\n"
                "If the actual result is expected, then update the test with"
-               " this:\n{}"
+               " this:\n# pylint: disable=bad-continuation\n# noqa: E122\n{}"
                .format(node,
                        formatter.tree_string(tree, subhistory),
                        formatter.test_string(tree)))
@@ -73,12 +74,12 @@ def assert_tree(test, nodes, tups, tree=None, history=None):
     test.assertIsNotNone(tup, msg="Extra node" + message)
     if len(tup) == 6:
       ntype, wrap, row, col, colextent, expect_children = tup
-      test.assertEqual(node.wrap, wrap,
+      test.assertEqual(node.passno, wrap,
                        msg="Expected wrap={}".format(wrap) + message)
     else:
       ntype, row, col, colextent, expect_children = tup
 
-    test.assertEqual(node.type, ntype,
+    test.assertEqual(node.node_type, ntype,
                      msg="Expected type={}".format(ntype) + message)
     test.assertEqual(node.position[0], row,
                      msg="Expected row={}".format(row) + message)
@@ -115,6 +116,14 @@ class TestCanonicalLayout(unittest.TestCase):
   def tearDown(self):
     pass
 
+  @contextlib.contextmanager
+  def subTest(self, msg=None, **params):
+    # pylint: disable=no-member
+    if sys.version_info < (3, 4, 0):
+      yield None
+    else:
+      yield super(TestCanonicalLayout, self).subTest(msg=msg, **params)
+
   def do_layout_test(self, input_str, expect_tree, strip_len=6):
     """
     Run the formatter on the input string and assert that the result matches
@@ -131,19 +140,25 @@ class TestCanonicalLayout(unittest.TestCase):
     self.do_layout_test("""\
       cmake_minimum_required(VERSION 2.8.11)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 38, [
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 38, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 22, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 22, 23, []),
-                  (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 23, 37, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 23, 30, []),
-                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 31, 37, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 31, 37, []),
-                      ]),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 0, 37, 38, []),
-              ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 38, [
+  (NodeType.STATEMENT, 0, 0, 0, 38, [
+    (NodeType.FUNNAME, 0, 0, 0, 22, []),
+    (NodeType.LPAREN, 0, 0, 22, 23, []),
+    (NodeType.ARGGROUP, 0, 0, 23, 37, [
+      (NodeType.KWARGGROUP, 0, 0, 23, 37, [
+        (NodeType.KEYWORD, 0, 0, 23, 30, []),
+        (NodeType.ARGGROUP, 0, 0, 31, 37, [
+          (NodeType.PARGGROUP, 0, 0, 31, 37, [
+            (NodeType.ARGUMENT, 0, 0, 31, 37, []),
           ]),
+        ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 0, 37, 38, []),
+  ]),
+]),
       ])
 
   def test_collapse_additional_newlines(self):
@@ -155,21 +170,27 @@ class TestCanonicalLayout(unittest.TestCase):
 
       cmake_minimum_required(VERSION 2.8.11)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 75, [
-              (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 75, []),
-              (NodeType.WHITESPACE, WrapAlgo.HPACK, 1, 0, 0, []),
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 0, 38, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 22, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 2, 22, 23, []),
-                  (NodeType.KWARGGROUP, WrapAlgo.HPACK, 2, 23, 37, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 23, 30, []),
-                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 31, 37, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 31, 37, []),
-                      ]),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 2, 37, 38, []),
-              ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 75, [
+  (NodeType.COMMENT, 0, 0, 0, 75, []),
+  (NodeType.WHITESPACE, 0, 1, 0, 0, []),
+  (NodeType.STATEMENT, 0, 2, 0, 38, [
+    (NodeType.FUNNAME, 0, 2, 0, 22, []),
+    (NodeType.LPAREN, 0, 2, 22, 23, []),
+    (NodeType.ARGGROUP, 0, 2, 23, 37, [
+      (NodeType.KWARGGROUP, 0, 2, 23, 37, [
+        (NodeType.KEYWORD, 0, 2, 23, 30, []),
+        (NodeType.ARGGROUP, 0, 2, 31, 37, [
+          (NodeType.PARGGROUP, 0, 2, 31, 37, [
+            (NodeType.ARGUMENT, 0, 2, 31, 37, []),
           ]),
+        ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 2, 37, 38, []),
+  ]),
+]),
       ])
 
   def test_multiline_reflow(self):
@@ -188,22 +209,27 @@ class TestCanonicalLayout(unittest.TestCase):
       # This very long command should be split to multiple lines
       set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 63, [
-              (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 58, []),
-              (NodeType.STATEMENT, WrapAlgo.HWRAP, 1, 0, 63, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 3, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 1, 3, 4, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 4, 11, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 11, []),
-                  ]),
-                  (NodeType.PARGGROUP, WrapAlgo.HWRAP, 1, 12, 63, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 12, 37, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 38, 63, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 12, 37, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 2, 37, 38, []),
-              ]),
-          ]),
+# pylint: disable=bad-continuation
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 63, [
+  (NodeType.COMMENT, 0, 0, 0, 58, []),
+  (NodeType.STATEMENT, 0, 1, 0, 63, [
+    (NodeType.FUNNAME, 0, 1, 0, 3, []),
+    (NodeType.LPAREN, 0, 1, 3, 4, []),
+    (NodeType.ARGGROUP, 0, 1, 4, 63, [
+      (NodeType.PARGGROUP, 0, 1, 4, 11, [
+        (NodeType.ARGUMENT, 0, 1, 4, 11, []),
+      ]),
+      (NodeType.PARGGROUP, 0, 1, 12, 63, [
+        (NodeType.ARGUMENT, 0, 1, 12, 37, []),
+        (NodeType.ARGUMENT, 0, 1, 38, 63, []),
+        (NodeType.ARGUMENT, 0, 2, 12, 37, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 2, 37, 38, []),
+  ]),
+]),
       ])
 
   def test_long_arg_on_newline(self):
@@ -212,17 +238,21 @@ class TestCanonicalLayout(unittest.TestCase):
       # end, so it should be moved to a new line with block indent + 1.
       some_long_command_name("Some very long argument that really needs to be on the next line.")
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 77, [
-              (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 77, []),
-              (NodeType.STATEMENT, WrapAlgo.KWNVPACK, 2, 0, 70, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 22, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 2, 22, 23, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 2, 69, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 2, 69, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 3, 69, 70, []),
-              ]),
-          ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 77, [
+  (NodeType.COMMENT, 0, 0, 0, 77, []),
+  (NodeType.STATEMENT, 1, 2, 0, 70, [
+    (NodeType.FUNNAME, 0, 2, 0, 22, []),
+    (NodeType.LPAREN, 0, 2, 22, 23, []),
+    (NodeType.ARGGROUP, 0, 3, 2, 69, [
+      (NodeType.PARGGROUP, 0, 3, 2, 69, [
+        (NodeType.ARGUMENT, 0, 3, 2, 69, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 3, 69, 70, []),
+  ]),
+]),
       ])
 
   def test_argcomment_preserved_and_reflowed(self):
@@ -232,24 +262,28 @@ class TestCanonicalLayout(unittest.TestCase):
                                         # across two lines.
           header_c.h header_d.h)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 78, [
-              (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 78, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 11, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
-                  ]),
-                  (NodeType.PARGGROUP, WrapAlgo.VPACK, 1, 4, 78, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
-                      (NodeType.ARGUMENT, WrapAlgo.VPACK, 2, 4, 78, [
-                          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 15, 78, []),
-                      ]),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 4, 14, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 4, 14, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 5, 14, 15, []),
-              ]),
-          ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 80, [
+  (NodeType.STATEMENT, 4, 0, 0, 80, [
+    (NodeType.FUNNAME, 0, 0, 0, 3, []),
+    (NodeType.LPAREN, 0, 0, 3, 4, []),
+    (NodeType.ARGGROUP, 4, 0, 4, 80, [
+      (NodeType.PARGGROUP, 0, 0, 4, 11, [
+        (NodeType.ARGUMENT, 0, 0, 4, 11, []),
+      ]),
+      (NodeType.PARGGROUP, 0, 1, 4, 80, [
+        (NodeType.ARGUMENT, 0, 1, 4, 14, []),
+        (NodeType.ARGUMENT, 0, 1, 15, 80, [
+          (NodeType.COMMENT, 0, 1, 26, 80, []),
+        ]),
+        (NodeType.ARGUMENT, 0, 3, 4, 14, []),
+        (NodeType.ARGUMENT, 0, 3, 15, 25, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 3, 25, 26, []),
+  ]),
+]),
       ])
 
   def test_complex_nested_stuff(self):
@@ -270,75 +304,92 @@ class TestCanonicalLayout(unittest.TestCase):
       """, [
 # pylint: disable=bad-continuation
 # noqa: E122
-(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 79, [
-  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 79, [
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 7, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 3, 6, []),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 6, 7, []),
+(NodeType.BODY, 0, 0, 0, 80, [
+  (NodeType.FLOW_CONTROL, 0, 0, 0, 80, [
+    (NodeType.STATEMENT, 0, 0, 0, 7, [
+      (NodeType.FUNNAME, 0, 0, 0, 2, []),
+      (NodeType.LPAREN, 0, 0, 2, 3, []),
+      (NodeType.ARGGROUP, 0, 0, 3, 6, [
+        (NodeType.PARGGROUP, 0, 0, 3, 6, [
+          (NodeType.ARGUMENT, 0, 0, 3, 6, []),
+        ]),
+      ]),
+      (NodeType.RPAREN, 0, 0, 6, 7, []),
     ]),
-    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 79, [
-      (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 1, 2, 79, [
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 10, [
-          (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 4, []),
-          (NodeType.LPAREN, WrapAlgo.HPACK, 1, 4, 5, []),
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 5, 9, []),
-          (NodeType.RPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-        ]),
-        (NodeType.BODY, WrapAlgo.HPACK, 2, 4, 79, [
-          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 4, 31, []),
-          (NodeType.STATEMENT, WrapAlgo.VPACK, 3, 4, 76, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 4, 15, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 3, 15, 16, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 3, 16, 27, [
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 16, 27, []),
+    (NodeType.BODY, 0, 1, 2, 80, [
+      (NodeType.FLOW_CONTROL, 0, 1, 2, 80, [
+        (NodeType.STATEMENT, 0, 1, 2, 10, [
+          (NodeType.FUNNAME, 0, 1, 2, 4, []),
+          (NodeType.LPAREN, 0, 1, 4, 5, []),
+          (NodeType.ARGGROUP, 0, 1, 5, 9, [
+            (NodeType.PARGGROUP, 0, 1, 5, 9, [
+              (NodeType.ARGUMENT, 0, 1, 5, 9, []),
             ]),
-            (NodeType.PARGGROUP, WrapAlgo.VPACK, 4, 16, 76, [
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 16, 22, []),
-              (NodeType.ARGUMENT, WrapAlgo.VPACK, 5, 16, 76, [
-                (NodeType.COMMENT, WrapAlgo.HPACK, 5, 23, 76, []),
+          ]),
+          (NodeType.RPAREN, 0, 1, 9, 10, []),
+        ]),
+        (NodeType.BODY, 0, 2, 4, 80, [
+          (NodeType.COMMENT, 0, 2, 4, 31, []),
+          (NodeType.STATEMENT, 4, 3, 4, 74, [
+            (NodeType.FUNNAME, 0, 3, 4, 15, []),
+            (NodeType.LPAREN, 0, 3, 15, 16, []),
+            (NodeType.ARGGROUP, 4, 4, 6, 74, [
+              (NodeType.PARGGROUP, 0, 4, 6, 17, [
+                (NodeType.ARGUMENT, 0, 4, 6, 17, []),
               ]),
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 16, 22, []),
+              (NodeType.PARGGROUP, 0, 5, 6, 74, [
+                (NodeType.ARGUMENT, 0, 5, 6, 12, []),
+                (NodeType.ARGUMENT, 0, 5, 13, 48, [
+                  (NodeType.COMMENT, 0, 5, 20, 48, []),
+                ]),
+                (NodeType.COMMENT, 0, 6, 6, 74, []),
+                (NodeType.ARGUMENT, 0, 7, 6, 12, []),
+              ]),
             ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 7, 22, 23, []),
-            (NodeType.COMMENT, WrapAlgo.HPACK, 7, 24, 61, []),
+            (NodeType.RPAREN, 0, 7, 12, 13, []),
+            (NodeType.COMMENT, 0, 7, 14, 51, []),
           ]),
-          (NodeType.WHITESPACE, WrapAlgo.HPACK, 8, 4, 0, []),
-          (NodeType.STATEMENT, WrapAlgo.HPACK, 9, 4, 79, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 9, 4, 17, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 9, 17, 18, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 18, 55, [
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 18, 36, []),
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 37, 55, []),
+          (NodeType.WHITESPACE, 0, 8, 4, 0, []),
+          (NodeType.STATEMENT, 1, 9, 4, 76, [
+            (NodeType.FUNNAME, 0, 9, 4, 17, []),
+            (NodeType.LPAREN, 0, 9, 17, 18, []),
+            (NodeType.ARGGROUP, 0, 10, 6, 43, [
+              (NodeType.PARGGROUP, 0, 10, 6, 43, [
+                (NodeType.ARGUMENT, 0, 10, 6, 24, []),
+                (NodeType.ARGUMENT, 0, 10, 25, 43, []),
+              ]),
             ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 9, 55, 56, []),
-            (NodeType.COMMENT, WrapAlgo.HPACK, 9, 57, 79, []),
+            (NodeType.RPAREN, 0, 10, 43, 44, []),
+            (NodeType.COMMENT, 0, 10, 45, 76, []),
           ]),
-          (NodeType.WHITESPACE, WrapAlgo.HPACK, 12, 4, 0, []),
-          (NodeType.STATEMENT, WrapAlgo.VPACK, 13, 4, 79, [
-            (NodeType.FUNNAME, WrapAlgo.HPACK, 13, 4, 17, []),
-            (NodeType.LPAREN, WrapAlgo.HPACK, 13, 17, 18, []),
-            (NodeType.PARGGROUP, WrapAlgo.HPACK, 13, 18, 74, [
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 18, 36, []),
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 37, 55, []),
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 13, 56, 74, []),
+          (NodeType.WHITESPACE, 0, 12, 4, 0, []),
+          (NodeType.STATEMENT, 5, 13, 4, 80, [
+            (NodeType.FUNNAME, 0, 13, 4, 17, []),
+            (NodeType.LPAREN, 0, 13, 17, 18, []),
+            (NodeType.ARGGROUP, 0, 14, 6, 62, [
+              (NodeType.PARGGROUP, 0, 14, 6, 62, [
+                (NodeType.ARGUMENT, 0, 14, 6, 24, []),
+                (NodeType.ARGUMENT, 0, 14, 25, 43, []),
+                (NodeType.ARGUMENT, 0, 14, 44, 62, []),
+              ]),
             ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 13, 74, 75, []),
-            (NodeType.COMMENT, WrapAlgo.HPACK, 14, 4, 79, []),
+            (NodeType.RPAREN, 0, 14, 62, 63, []),
+            (NodeType.COMMENT, 0, 14, 64, 80, []),
           ]),
         ]),
-        (NodeType.STATEMENT, WrapAlgo.HPACK, 16, 2, 9, [
-          (NodeType.FUNNAME, WrapAlgo.HPACK, 16, 2, 7, []),
-          (NodeType.LPAREN, WrapAlgo.HPACK, 16, 7, 8, []),
-          (NodeType.RPAREN, WrapAlgo.HPACK, 16, 8, 9, []),
+        (NodeType.STATEMENT, 0, 23, 2, 9, [
+          (NodeType.FUNNAME, 0, 23, 2, 7, []),
+          (NodeType.LPAREN, 0, 23, 7, 8, []),
+          (NodeType.ARGGROUP, 0, 23, 8, 8, []),
+          (NodeType.RPAREN, 0, 23, 8, 9, []),
         ]),
       ]),
     ]),
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 17, 0, 7, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 17, 0, 5, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 17, 5, 6, []),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 17, 6, 7, []),
+    (NodeType.STATEMENT, 0, 24, 0, 7, [
+      (NodeType.FUNNAME, 0, 24, 0, 5, []),
+      (NodeType.LPAREN, 0, 24, 5, 6, []),
+      (NodeType.ARGGROUP, 0, 24, 6, 6, []),
+      (NodeType.RPAREN, 0, 24, 6, 7, []),
     ]),
   ]),
 ]),
@@ -349,47 +400,57 @@ class TestCanonicalLayout(unittest.TestCase):
       # This very long command should be broken up along keyword arguments
       foo(nonkwarg_a nonkwarg_b HEADERS a.h b.h c.h d.h e.h f.h SOURCES a.cc b.cc d.cc DEPENDS foo bar baz)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 68, [
-              (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 68, []),
-              (NodeType.STATEMENT, WrapAlgo.VPACK, 1, 0, 26, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 3, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 1, 3, 4, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 4, 25, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 4, 14, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 15, 25, []),
-                  ]),
-                  (NodeType.KWARGGROUP, WrapAlgo.VPACK, 2, 4, 15, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 4, 11, []),
-                      (NodeType.PARGGROUP, WrapAlgo.VPACK, 2, 12, 15, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 12, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 3, 12, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 12, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 5, 12, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 6, 12, 15, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 7, 12, 15, []),
-                      ]),
-                  ]),
-                  (NodeType.KWARGGROUP, WrapAlgo.HPACK, 8, 4, 26, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 8, 4, 11, []),
-                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 8, 12, 26, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 12, 16, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 17, 21, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 8, 22, 26, []),
-                      ]),
-                  ]),
-                  (NodeType.KWARGGROUP, WrapAlgo.HPACK, 9, 4, 15, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 9, 4, 11, []),
-                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 9, 12, 15, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 9, 12, 15, []),
-                      ]),
-                  ]),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 10, 4, 11, [
-                      (NodeType.FLAG, WrapAlgo.HPACK, 10, 4, 7, []),
-                      (NodeType.FLAG, WrapAlgo.HPACK, 10, 8, 11, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 10, 11, 12, []),
-              ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 68, [
+  (NodeType.COMMENT, 0, 0, 0, 68, []),
+  (NodeType.STATEMENT, 4, 1, 0, 35, [
+    (NodeType.FUNNAME, 0, 1, 0, 3, []),
+    (NodeType.LPAREN, 0, 1, 3, 4, []),
+    (NodeType.ARGGROUP, 4, 1, 4, 35, [
+      (NodeType.PARGGROUP, 0, 1, 4, 25, [
+        (NodeType.ARGUMENT, 0, 1, 4, 14, []),
+        (NodeType.ARGUMENT, 0, 1, 15, 25, []),
+      ]),
+      (NodeType.KWARGGROUP, 0, 2, 4, 35, [
+        (NodeType.KEYWORD, 0, 2, 4, 11, []),
+        (NodeType.ARGGROUP, 0, 2, 12, 35, [
+          (NodeType.PARGGROUP, 0, 2, 12, 35, [
+            (NodeType.ARGUMENT, 0, 2, 12, 15, []),
+            (NodeType.ARGUMENT, 0, 2, 16, 19, []),
+            (NodeType.ARGUMENT, 0, 2, 20, 23, []),
+            (NodeType.ARGUMENT, 0, 2, 24, 27, []),
+            (NodeType.ARGUMENT, 0, 2, 28, 31, []),
+            (NodeType.ARGUMENT, 0, 2, 32, 35, []),
           ]),
+        ]),
+      ]),
+      (NodeType.KWARGGROUP, 0, 3, 4, 26, [
+        (NodeType.KEYWORD, 0, 3, 4, 11, []),
+        (NodeType.ARGGROUP, 0, 3, 12, 26, [
+          (NodeType.PARGGROUP, 0, 3, 12, 26, [
+            (NodeType.ARGUMENT, 0, 3, 12, 16, []),
+            (NodeType.ARGUMENT, 0, 3, 17, 21, []),
+            (NodeType.ARGUMENT, 0, 3, 22, 26, []),
+          ]),
+        ]),
+      ]),
+      (NodeType.KWARGGROUP, 0, 4, 4, 15, [
+        (NodeType.KEYWORD, 0, 4, 4, 11, []),
+        (NodeType.ARGGROUP, 0, 4, 12, 15, [
+          (NodeType.PARGGROUP, 0, 4, 12, 15, [
+            (NodeType.ARGUMENT, 0, 4, 12, 15, []),
+          ]),
+        ]),
+      ]),
+      (NodeType.PARGGROUP, 0, 5, 4, 11, [
+        (NodeType.FLAG, 0, 5, 4, 7, []),
+        (NodeType.FLAG, 0, 5, 8, 11, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 5, 11, 12, []),
+  ]),
+]),
       ])
 
   def test_multiline_string(self):
@@ -398,18 +459,22 @@ class TestCanonicalLayout(unittest.TestCase):
           This string is on multiple lines
       ")
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 36, [
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 36, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 36, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 12, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 13, 21, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 22, 36, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 2, 1, 2, []),
-              ]),
-          ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 36, [
+  (NodeType.STATEMENT, 0, 0, 0, 36, [
+    (NodeType.FUNNAME, 0, 0, 0, 3, []),
+    (NodeType.LPAREN, 0, 0, 3, 4, []),
+    (NodeType.ARGGROUP, 0, 0, 4, 36, [
+      (NodeType.PARGGROUP, 0, 0, 4, 36, [
+        (NodeType.ARGUMENT, 0, 0, 4, 12, []),
+        (NodeType.ARGUMENT, 0, 0, 13, 21, []),
+        (NodeType.ARGUMENT, 0, 0, 22, 36, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 2, 1, 2, []),
+  ]),
+]),
       ])
 
   def test_nested_parens(self):
@@ -421,157 +486,196 @@ class TestCanonicalLayout(unittest.TestCase):
       """, [
 # pylint: disable=bad-continuation
 # noqa: E122
-(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 40, [
-  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 40, [
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 40, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 2, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 2, 3, []),
-      (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 3, 14, [
-        (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 4, 13, [
-          (NodeType.FLAG, WrapAlgo.HPACK, 0, 4, 7, []),
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 8, 13, []),
-        ]),
-        (NodeType.RPAREN, WrapAlgo.HPACK, 0, 13, 14, []),
-      ]),
-      (NodeType.KWARGGROUP, WrapAlgo.HPACK, 0, 15, 39, [
-        (NodeType.KEYWORD, WrapAlgo.HPACK, 0, 15, 17, []),
-        (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 18, 39, [
-          (NodeType.PARENGROUP, WrapAlgo.HPACK, 0, 18, 39, [
-            (NodeType.LPAREN, WrapAlgo.HPACK, 0, 18, 19, []),
-            (NodeType.ARGGROUP, WrapAlgo.HPACK, 0, 19, 38, [
-              (NodeType.FLAG, WrapAlgo.HPACK, 0, 19, 22, []),
-              (NodeType.FLAG, WrapAlgo.HPACK, 0, 23, 29, []),
-              (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 38, []),
+(NodeType.BODY, 0, 0, 0, 40, [
+  (NodeType.FLOW_CONTROL, 0, 0, 0, 40, [
+    (NodeType.STATEMENT, 0, 0, 0, 40, [
+      (NodeType.FUNNAME, 0, 0, 0, 2, []),
+      (NodeType.LPAREN, 0, 0, 2, 3, []),
+      (NodeType.ARGGROUP, 0, 0, 3, 39, [
+        (NodeType.PARENGROUP, 0, 0, 3, 14, [
+          (NodeType.LPAREN, 0, 0, 3, 4, []),
+          (NodeType.ARGGROUP, 0, 0, 4, 13, [
+            (NodeType.PARGGROUP, 0, 0, 4, 13, [
+              (NodeType.FLAG, 0, 0, 4, 7, []),
+              (NodeType.ARGUMENT, 0, 0, 8, 13, []),
             ]),
-            (NodeType.RPAREN, WrapAlgo.HPACK, 0, 38, 39, []),
+          ]),
+          (NodeType.RPAREN, 0, 0, 13, 14, []),
+        ]),
+        (NodeType.KWARGGROUP, 0, 0, 15, 39, [
+          (NodeType.KEYWORD, 0, 0, 15, 17, []),
+          (NodeType.ARGGROUP, 0, 0, 18, 39, [
+            (NodeType.PARENGROUP, 0, 0, 18, 39, [
+              (NodeType.LPAREN, 0, 0, 18, 19, []),
+              (NodeType.ARGGROUP, 0, 0, 19, 38, [
+                (NodeType.PARGGROUP, 0, 0, 19, 38, [
+                  (NodeType.FLAG, 0, 0, 19, 22, []),
+                  (NodeType.FLAG, 0, 0, 23, 29, []),
+                  (NodeType.ARGUMENT, 0, 0, 30, 38, []),
+                ]),
+              ]),
+              (NodeType.RPAREN, 0, 0, 38, 39, []),
+            ]),
           ]),
         ]),
       ]),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 39, 40, []),
+      (NodeType.RPAREN, 0, 0, 39, 40, []),
     ]),
-    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 39, [
-      (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 39, [
-        (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
-        (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-        (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 10, 38, [
-          (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 10, 17, []),
-          (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 18, 38, [
-            (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 18, 38, []),
+    (NodeType.BODY, 0, 1, 2, 39, [
+      (NodeType.STATEMENT, 0, 1, 2, 39, [
+        (NodeType.FUNNAME, 0, 1, 2, 9, []),
+        (NodeType.LPAREN, 0, 1, 9, 10, []),
+        (NodeType.ARGGROUP, 0, 1, 10, 38, [
+          (NodeType.KWARGGROUP, 0, 1, 10, 38, [
+            (NodeType.KEYWORD, 0, 1, 10, 17, []),
+            (NodeType.ARGGROUP, 0, 1, 18, 38, [
+              (NodeType.PARGGROUP, 0, 1, 18, 38, [
+                (NodeType.ARGUMENT, 0, 1, 18, 38, []),
+              ]),
+            ]),
           ]),
         ]),
-        (NodeType.RPAREN, WrapAlgo.HPACK, 1, 38, 39, []),
+        (NodeType.RPAREN, 0, 1, 38, 39, []),
       ]),
-      (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 2, 19, [
-        (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 2, 5, []),
-        (NodeType.LPAREN, WrapAlgo.HPACK, 2, 5, 6, []),
-        (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 6, 12, [
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 6, 12, []),
+      (NodeType.STATEMENT, 0, 2, 2, 19, [
+        (NodeType.FUNNAME, 0, 2, 2, 5, []),
+        (NodeType.LPAREN, 0, 2, 5, 6, []),
+        (NodeType.ARGGROUP, 0, 2, 6, 18, [
+          (NodeType.PARGGROUP, 0, 2, 6, 12, [
+            (NodeType.ARGUMENT, 0, 2, 6, 12, []),
+          ]),
+          (NodeType.PARGGROUP, 0, 2, 13, 18, [
+            (NodeType.ARGUMENT, 0, 2, 13, 18, []),
+          ]),
         ]),
-        (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 13, 18, [
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 13, 18, []),
-        ]),
-        (NodeType.RPAREN, WrapAlgo.HPACK, 2, 18, 19, []),
+        (NodeType.RPAREN, 0, 2, 18, 19, []),
       ]),
     ]),
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 3, 0, 7, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 3, 0, 5, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 3, 5, 6, []),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 3, 6, 7, []),
+    (NodeType.STATEMENT, 0, 3, 0, 7, [
+      (NodeType.FUNNAME, 0, 3, 0, 5, []),
+      (NodeType.LPAREN, 0, 3, 5, 6, []),
+      (NodeType.ARGGROUP, 0, 3, 6, 6, []),
+      (NodeType.RPAREN, 0, 3, 6, 7, []),
     ]),
   ]),
 ]),
       ])
 
   def test_comment_after_command(self):
-    self.do_layout_test("""\
-      foo_command() # comment
-      """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 23, [
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 23, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 11, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 11, 12, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 12, []),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
-                  (NodeType.COMMENT, WrapAlgo.HPACK, 0, 14, 23, []),
-              ]),
-          ]),
-      ])
+    with self.subTest(sub=1):
+      self.do_layout_test("""\
+        foo_command() # comment
+        """, [
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 23, [
+  (NodeType.STATEMENT, 0, 0, 0, 23, [
+    (NodeType.FUNNAME, 0, 0, 0, 11, []),
+    (NodeType.LPAREN, 0, 0, 11, 12, []),
+    (NodeType.ARGGROUP, 0, 0, 12, 12, []),
+    (NodeType.RPAREN, 0, 0, 12, 13, []),
+    (NodeType.COMMENT, 0, 0, 14, 23, []),
+  ]),
+]),
+        ])
 
-    self.do_layout_test("""\
-      foo_command() # this is a long comment that exceeds the desired page width and will be wrapped to a newline
-      """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 78, [
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 78, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 11, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 11, 12, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 12, []),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
-                  (NodeType.COMMENT, WrapAlgo.HPACK, 0, 14, 78, []),
-              ]),
-          ]),
-      ])
+    with self.subTest(sub=2):
+      self.do_layout_test("""\
+        foo_command() # this is a long comment that exceeds the desired page width and will be wrapped to a newline
+        """, [
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 78, [
+  (NodeType.STATEMENT, 0, 0, 0, 78, [
+    (NodeType.FUNNAME, 0, 0, 0, 11, []),
+    (NodeType.LPAREN, 0, 0, 11, 12, []),
+    (NodeType.ARGGROUP, 0, 0, 12, 12, []),
+    (NodeType.RPAREN, 0, 0, 12, 13, []),
+    (NodeType.COMMENT, 0, 0, 14, 78, []),
+  ]),
+]),
+
+        ])
 
   def test_arg_just_fits(self):
     """
     Ensure that if an argument *just* fits that it isn't superfluously wrapped
     """
 
-    self.do_layout_test("""\
+    with self.subTest(chars=81):
+      self.do_layout_test("""\
       message(FATAL_ERROR "81 character line ----------------------------------------")
     """, [
-        (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 75, [
-            (NodeType.STATEMENT, WrapAlgo.KWNVPACK, 0, 0, 75, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 7, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
-                (NodeType.KWARGGROUP, WrapAlgo.HPACK, 1, 2, 74, [
-                    (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 2, 13, []),
-                    (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 14, 74, [
-                        (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 14, 74, []),
-                    ]),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 1, 74, 75, []),
-            ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 75, [
+  (NodeType.STATEMENT, 1, 0, 0, 75, [
+    (NodeType.FUNNAME, 0, 0, 0, 7, []),
+    (NodeType.LPAREN, 0, 0, 7, 8, []),
+    (NodeType.ARGGROUP, 0, 1, 2, 74, [
+      (NodeType.KWARGGROUP, 0, 1, 2, 74, [
+        (NodeType.KEYWORD, 0, 1, 2, 13, []),
+        (NodeType.ARGGROUP, 0, 1, 14, 74, [
+          (NodeType.PARGGROUP, 0, 1, 14, 74, [
+            (NodeType.ARGUMENT, 0, 1, 14, 74, []),
+          ]),
         ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 1, 74, 75, []),
+  ]),
+]),
     ])
 
-    self.do_layout_test("""\
+    with self.subTest(chars=100, with_prefix=True):
+      self.do_layout_test("""\
       message(FATAL_ERROR
               "100 character line ----------------------------------------------------------"
       ) # Closing parenthesis is indented one space!
     """, [
-        (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 83, [
-            (NodeType.STATEMENT, WrapAlgo.PNVPACK, 0, 0, 83, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 7, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
-                (NodeType.KWARGGROUP, WrapAlgo.PNVPACK, 1, 2, 83, [
-                    (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 2, 13, []),
-                    (NodeType.PARGGROUP, WrapAlgo.PNVPACK, 2, 4, 83, [
-                        (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 2, 4, 83, []),
-                    ]),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 3, 2, 3, []),
-                (NodeType.COMMENT, WrapAlgo.HPACK, 3, 4, 48, []),
-            ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 83, [
+  (NodeType.STATEMENT, 5, 0, 0, 83, [
+    (NodeType.FUNNAME, 0, 0, 0, 7, []),
+    (NodeType.LPAREN, 0, 0, 7, 8, []),
+    (NodeType.ARGGROUP, 5, 1, 2, 83, [
+      (NodeType.KWARGGROUP, 5, 1, 2, 83, [
+        (NodeType.KEYWORD, 0, 1, 2, 13, []),
+        (NodeType.ARGGROUP, 5, 2, 4, 83, [
+          (NodeType.PARGGROUP, 4, 2, 4, 83, [
+            (NodeType.ARGUMENT, 0, 2, 4, 83, []),
+          ]),
         ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 3, 0, 1, []),
+    (NodeType.COMMENT, 0, 3, 2, 46, []),
+  ]),
+]),
     ])
 
-    self.do_layout_test("""\
+    with self.subTest(chars=100):
+      self.do_layout_test("""\
       message(
         "100 character line ----------------------------------------------------------------------"
         ) # Closing parenthesis is indented one space!
     """, [
-        (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 93, [
-            (NodeType.STATEMENT, WrapAlgo.PNVPACK, 0, 0, 93, [
-                (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 7, []),
-                (NodeType.LPAREN, WrapAlgo.HPACK, 0, 7, 8, []),
-                (NodeType.PARGGROUP, WrapAlgo.PNVPACK, 1, 2, 93, [
-                    (NodeType.ARGUMENT, WrapAlgo.PNVPACK, 1, 2, 93, []),
-                ]),
-                (NodeType.RPAREN, WrapAlgo.HPACK, 2, 2, 3, []),
-                (NodeType.COMMENT, WrapAlgo.HPACK, 2, 4, 48, []),
-            ]),
-        ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 93, [
+  (NodeType.STATEMENT, 5, 0, 0, 93, [
+    (NodeType.FUNNAME, 0, 0, 0, 7, []),
+    (NodeType.LPAREN, 0, 0, 7, 8, []),
+    (NodeType.ARGGROUP, 5, 1, 2, 93, [
+      (NodeType.PARGGROUP, 4, 1, 2, 93, [
+        (NodeType.ARGUMENT, 0, 1, 2, 93, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 2, 0, 1, []),
+    (NodeType.COMMENT, 0, 2, 2, 46, []),
+  ]),
+]),
     ])
 
   def test_string_preserved_during_split(self):
@@ -579,26 +683,32 @@ class TestCanonicalLayout(unittest.TestCase):
       # The string in this command should not be split
       set_target_properties(foo bar baz PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 74, [
-              (NodeType.COMMENT, WrapAlgo.HPACK, 0, 0, 48, []),
-              (NodeType.STATEMENT, WrapAlgo.VPACK, 1, 0, 74, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 0, 21, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 1, 21, 22, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 22, 33, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 22, 25, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 26, 29, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 30, 33, []),
-                  ]),
-                  (NodeType.KWARGGROUP, WrapAlgo.HPACK, 2, 22, 73, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 2, 22, 32, []),
-                      (NodeType.PARGGROUP, WrapAlgo.HPACK, 2, 33, 73, [
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 33, 46, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 2, 47, 73, []),
-                      ]),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 2, 73, 74, []),
-              ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 72, [
+  (NodeType.COMMENT, 0, 0, 0, 48, []),
+  (NodeType.STATEMENT, 0, 1, 0, 72, [
+    (NodeType.FUNNAME, 0, 1, 0, 21, []),
+    (NodeType.LPAREN, 0, 1, 21, 22, []),
+    (NodeType.ARGGROUP, 0, 1, 22, 71, [
+      (NodeType.PARGGROUP, 0, 1, 22, 33, [
+        (NodeType.ARGUMENT, 0, 1, 22, 25, []),
+        (NodeType.ARGUMENT, 0, 1, 26, 29, []),
+        (NodeType.ARGUMENT, 0, 1, 30, 33, []),
+      ]),
+      (NodeType.KWARGGROUP, 0, 1, 34, 71, [
+        (NodeType.KEYWORD, 0, 1, 34, 44, []),
+        (NodeType.ARGGROUP, 0, 1, 45, 71, [
+          (NodeType.PARGGROUP, 0, 1, 45, 71, [
+            (NodeType.ARGUMENT, 0, 1, 45, 58, []),
+            (NodeType.ARGUMENT, 0, 2, 45, 71, []),
           ]),
+        ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 2, 71, 72, []),
+  ]),
+]),
       ])
 
   def test_while(self):
@@ -609,32 +719,39 @@ class TestCanonicalLayout(unittest.TestCase):
       """, [
 # pylint: disable=bad-continuation
 # noqa: E122
-(NodeType.BODY, WrapAlgo.HPACK, 0, 0, 32, [
-  (NodeType.FLOW_CONTROL, WrapAlgo.HPACK, 0, 0, 32, [
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 32, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 5, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 0, 5, 6, []),
-      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 6, 15, []),
-      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 16, 20, []),
-      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 21, 26, []),
-      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 27, 31, []),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 0, 31, 32, []),
-    ]),
-    (NodeType.BODY, WrapAlgo.HPACK, 1, 2, 29, [
-      (NodeType.STATEMENT, WrapAlgo.HPACK, 1, 2, 29, [
-        (NodeType.FUNNAME, WrapAlgo.HPACK, 1, 2, 9, []),
-        (NodeType.LPAREN, WrapAlgo.HPACK, 1, 9, 10, []),
-        (NodeType.PARGGROUP, WrapAlgo.HPACK, 1, 10, 28, [
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 10, 15, []),
-          (NodeType.ARGUMENT, WrapAlgo.HPACK, 1, 16, 28, []),
+(NodeType.BODY, 0, 0, 0, 32, [
+  (NodeType.FLOW_CONTROL, 0, 0, 0, 32, [
+    (NodeType.STATEMENT, 0, 0, 0, 32, [
+      (NodeType.FUNNAME, 0, 0, 0, 5, []),
+      (NodeType.LPAREN, 0, 0, 5, 6, []),
+      (NodeType.ARGGROUP, 0, 0, 6, 31, [
+        (NodeType.PARGGROUP, 0, 0, 6, 31, [
+          (NodeType.ARGUMENT, 0, 0, 6, 15, []),
+          (NodeType.ARGUMENT, 0, 0, 16, 20, []),
+          (NodeType.ARGUMENT, 0, 0, 21, 26, []),
+          (NodeType.ARGUMENT, 0, 0, 27, 31, []),
         ]),
-        (NodeType.RPAREN, WrapAlgo.HPACK, 1, 28, 29, []),
+      ]),
+      (NodeType.RPAREN, 0, 0, 31, 32, []),
+    ]),
+    (NodeType.BODY, 0, 1, 2, 29, [
+      (NodeType.STATEMENT, 0, 1, 2, 29, [
+        (NodeType.FUNNAME, 0, 1, 2, 9, []),
+        (NodeType.LPAREN, 0, 1, 9, 10, []),
+        (NodeType.ARGGROUP, 0, 1, 10, 28, [
+          (NodeType.PARGGROUP, 0, 1, 10, 28, [
+            (NodeType.ARGUMENT, 0, 1, 10, 15, []),
+            (NodeType.ARGUMENT, 0, 1, 16, 28, []),
+          ]),
+        ]),
+        (NodeType.RPAREN, 0, 1, 28, 29, []),
       ]),
     ]),
-    (NodeType.STATEMENT, WrapAlgo.HPACK, 2, 0, 10, [
-      (NodeType.FUNNAME, WrapAlgo.HPACK, 2, 0, 8, []),
-      (NodeType.LPAREN, WrapAlgo.HPACK, 2, 8, 9, []),
-      (NodeType.RPAREN, WrapAlgo.HPACK, 2, 9, 10, []),
+    (NodeType.STATEMENT, 0, 2, 0, 10, [
+      (NodeType.FUNNAME, 0, 2, 0, 8, []),
+      (NodeType.LPAREN, 0, 2, 8, 9, []),
+      (NodeType.ARGGROUP, 0, 2, 9, 9, []),
+      (NodeType.RPAREN, 0, 2, 9, 10, []),
     ]),
   ]),
 ]),
@@ -648,26 +765,32 @@ class TestCanonicalLayout(unittest.TestCase):
                               # --------------------------------------
                               this_is_a_really_long_word_foo)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 64, [
-              (NodeType.STATEMENT, WrapAlgo.VPACK, 0, 0, 64, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 12, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 12, 13, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 13, 29, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 13, 20, []),
-                      (NodeType.FLAG, WrapAlgo.HPACK, 0, 21, 29, []),
-                  ]),
-                  (NodeType.KWARGGROUP, WrapAlgo.VPACK, 1, 13, 64, [
-                      (NodeType.KEYWORD, WrapAlgo.HPACK, 1, 13, 23, []),
-                      (NodeType.PARGGROUP, WrapAlgo.VPACK, 1, 24, 64, [
-                          (NodeType.COMMENT, WrapAlgo.HPACK, 1, 24, 64, []),
-                          (NodeType.COMMENT, WrapAlgo.HPACK, 2, 24, 63, []),
-                          (NodeType.COMMENT, WrapAlgo.HPACK, 3, 24, 64, []),
-                          (NodeType.ARGUMENT, WrapAlgo.HPACK, 4, 24, 54, []),
-                      ]),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 4, 54, 55, []),
-              ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 53, [
+  (NodeType.STATEMENT, 4, 0, 0, 53, [
+    (NodeType.FUNNAME, 0, 0, 0, 12, []),
+    (NodeType.LPAREN, 0, 0, 12, 13, []),
+    (NodeType.ARGGROUP, 4, 1, 2, 53, [
+      (NodeType.PARGGROUP, 0, 1, 2, 18, [
+        (NodeType.ARGUMENT, 0, 1, 2, 9, []),
+        (NodeType.FLAG, 0, 1, 10, 18, []),
+      ]),
+      (NodeType.KWARGGROUP, 4, 2, 2, 53, [
+        (NodeType.KEYWORD, 0, 2, 2, 12, []),
+        (NodeType.ARGGROUP, 4, 2, 13, 53, [
+          (NodeType.COMMENT, 0, 2, 13, 53, []),
+          (NodeType.COMMENT, 0, 3, 13, 52, []),
+          (NodeType.COMMENT, 0, 4, 13, 53, []),
+          (NodeType.PARGGROUP, 0, 5, 13, 43, [
+            (NodeType.ARGUMENT, 0, 5, 13, 43, []),
           ]),
+        ]),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 5, 43, 44, []),
+  ]),
+]),
       ])
 
   def test_sortable_set(self):
@@ -675,22 +798,26 @@ class TestCanonicalLayout(unittest.TestCase):
     self.do_layout_test("""\
       set(SOURCES #[[cmf:sortable]] foo.cc bar.cc baz.cc)
       """, [
-          (NodeType.BODY, WrapAlgo.HPACK, 0, 0, 51, [
-              (NodeType.STATEMENT, WrapAlgo.HPACK, 0, 0, 51, [
-                  (NodeType.FUNNAME, WrapAlgo.HPACK, 0, 0, 3, []),
-                  (NodeType.LPAREN, WrapAlgo.HPACK, 0, 3, 4, []),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 4, 11, [
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 4, 11, []),
-                  ]),
-                  (NodeType.PARGGROUP, WrapAlgo.HPACK, 0, 12, 50, [
-                      (NodeType.COMMENT, WrapAlgo.HPACK, 0, 12, 29, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 30, 36, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 37, 43, []),
-                      (NodeType.ARGUMENT, WrapAlgo.HPACK, 0, 44, 50, []),
-                  ]),
-                  (NodeType.RPAREN, WrapAlgo.HPACK, 0, 50, 51, []),
-              ]),
-          ]),
+# pylint: disable=bad-continuation
+# noqa: E122
+(NodeType.BODY, 0, 0, 0, 51, [
+  (NodeType.STATEMENT, 0, 0, 0, 51, [
+    (NodeType.FUNNAME, 0, 0, 0, 3, []),
+    (NodeType.LPAREN, 0, 0, 3, 4, []),
+    (NodeType.ARGGROUP, 0, 0, 4, 50, [
+      (NodeType.PARGGROUP, 0, 0, 4, 11, [
+        (NodeType.ARGUMENT, 0, 0, 4, 11, []),
+      ]),
+      (NodeType.PARGGROUP, 0, 0, 12, 50, [
+        (NodeType.COMMENT, 0, 0, 12, 29, []),
+        (NodeType.ARGUMENT, 0, 0, 30, 36, []),
+        (NodeType.ARGUMENT, 0, 0, 37, 43, []),
+        (NodeType.ARGUMENT, 0, 0, 44, 50, []),
+      ]),
+    ]),
+    (NodeType.RPAREN, 0, 0, 50, 51, []),
+  ]),
+]),
       ])
 
 

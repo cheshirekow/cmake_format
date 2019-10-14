@@ -421,7 +421,7 @@ def setup_argparser(arg_parser):
                           'Default is stdout.')
 
   arg_parser.add_argument(
-      '-c', '--config-file', '--config-files', nargs='+',
+      '-c', '--config-file', '--config-files', '--config', nargs='+',
       help='path to configuration file(s)')
   arg_parser.add_argument('infilepaths', nargs='*')
   add_config_options(arg_parser)

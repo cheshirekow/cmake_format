@@ -32,7 +32,7 @@ class TestInvocations(unittest.TestCase):
   @contextlib.contextmanager
   def subTest(self, msg=None, **params):
     # pylint: disable=no-member
-    if sys.version_info < (3, 0, 0):
+    if sys.version_info < (3, 4, 0):
       yield None
     else:
       yield super(TestInvocations, self).subTest(msg=msg, **params)

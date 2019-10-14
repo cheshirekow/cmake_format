@@ -5,6 +5,55 @@ Release Notes
 Details of changes can be found in the changelog, but this file will contain
 some high level notes and highlights from each release.
 
+v0.6 series
+===========
+
+------
+v0.6.0
+------
+
+This release includes a significant refactor of the formatting logic. Details
+of the new algorithm are described in the documentation__. As a result of the
+algorithm changes, some config options have changed too. The following
+config options are removed:
+
+* ``max_subargs_per_line`` (see ``max_pargs_hwrap``)
+* ``nest_threshold`` (see ``min_prefix_chars``)
+* ``algorithm_order`` (see ``layout_passes``)
+
+.. __: https://cmake-format.readthedocs.io/en/latest/format_algorithm.html
+
+And the following config options have been added:
+
+* ``max_subgroups_hwrap``
+* ``max_pargs_hwrap``
+* ``dangle_align``
+* ``min_prefix_chars``
+* ``max_prefix_chars``
+* ``max_lines_hwrap``
+* ``layout_passes``
+* ``enable_sort``
+
+Also as a result of the algorithm changes, the default layout has changed. By
+default, ``cmake-format`` will now prefer to nest long lists rather than
+aligning them to the opening parenthesis of a statement. Also, due to the new
+configuration options, the output of ``cmake-format`` is likely to be different
+with your current configs.
+
+Additionally, ``cmake-format`` will now tend to prefer a normal "horizontal"
+wrap for relatively long lists of positional arguments (e.g. source files in
+``add_library``) whereas it would previously prefer a vertical layout (one-entry
+per line). This is a consequence of an ambiguity between which positional
+arguments should be vertical versus which should be wrapped. Two planned
+features (layout tags and positional semantics) should help to provide enough
+control to get the layout you want in these lists.
+
+I acknowledge that it is not ideal for formatting to change between releases
+but this is an unfortunate inevitability at this stage of development. The
+changes in this release elminate a number of inconsistencies and also adds the
+groundwork for future planned features and options. Hopefully we are getting
+close to a stable state and a 1.0 release.
+
 v0.5 series
 ===========
 
@@ -16,7 +65,6 @@ This is a maintenance release fixing a few minor bugs and enhancements. One
 new feature is that the ``--config`` command line option now accepts a list of
 config files, which should allow for including multiple databases of command
 specifications
-
 ------
 v0.5.4
 ------
@@ -25,6 +73,15 @@ This is a maintenance release fixing a couple of bugs and adding some missing
 documentation. One notable feature added is that, during in-place formatting,
 if the file content is unchanged ``cmake-format`` will no-longer write the
 file.
+
+------
+v0.5.3
+------
+
+This hotfix release fixes a bug that would crash cmake-format if no
+configuration file was present. It also includes some small under-the-hood
+changes in preparation for an overhaul of the formatting logic.
+
 
 ------
 v0.5.2

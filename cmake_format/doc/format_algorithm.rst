@@ -1,18 +1,23 @@
+.. _formatting-algorithm:
+
 ====================
 Formatting Algorithm
 ====================
 
-The formatter works by attempting to select an
-appropriate ``position`` and ``wrap`` (collectively referred to as a
-"layout") for each node in the layout tree. Positions are represented by
-``(row, col)`` pairs and the wrap dictates how childen of that node
-are positioned.
+The formatter works by attempting to select an appropriate ``position`` and
+``wrap`` (collectively referred to as a "layout") for each node in the layout
+tree. Positions are represented by ``(row, col)`` pairs and the wrap dictates
+how childen of that node are positioned.
 
 --------
 Wrapping
 --------
 
-``cmake-format`` implements two styles of wrapping:
+``cmake-format`` implements three styles of wrapping.
+The default wrapping for all nodes is horizontal wrapping. If horizontal
+wrapping fails to emit an admissible layout, then a node will advance to
+either vertical wrapping or nested wrapping (which one depends on the type of
+node).
 
 Horizontal Wrapping
 ===================
@@ -82,7 +87,7 @@ Vertical wrapping assigns each child to the next row::
     ████
 
 Again, note that this happens at the depth of the layout tree. In particular
-children may be wrapped horizontally internally::
+children may be wrapped horizontally within the subtrees::
 
     | ▒▒▒▒▒▒ ███ ██████       |<- col-limit
     | ▒▒▒ ██████ ██           |
@@ -91,37 +96,11 @@ children may be wrapped horizontally internally::
     |      ████ ██████████    |
     | ▒▒ ███ ████             |
 
--------
+
 Nesting
--------
+=======
 
-In addition to wrapping, ``cmake-format`` also must decide how to nest children
-of a layout node.
-
-Horizontal Nesting
-==================
-
-Horizontal nesting places children in a column immediately following the
-terminal cursor of the parent. For example::
-
-    |                       |<- col-limit
-    | ▒▒▒ ██ ███ ██ █████   |
-    |     ████████████████  |
-    |     █████████ ████    |
-
-In a more deeply nested layout tree, we might see the following::
-
-    |                           |<- col-limit
-    | ▓▓▓ ▒▒▒ ██ ███ ██ █████   |
-    |         ████████████████  |
-    |         █████████ ████    |
-    |     ▒▒▒ ████ ███ █        |
-    |     ▒▒▒▒▒▒ ████ ███ █     |
-
-Vertical nesting
-================
-
-Vertical nesting places children in a column which is one tabwidth to the
+Nesting places children in a column which is one ``tab_width`` to the
 right of the parent node's position, and one line below. For example::
 
     |                       |<- col-limit
@@ -154,6 +133,9 @@ may be nested differently. For example::
     |   ▒▒▒ ████ ███ █          |
     |   ▒▒▒▒▒▒ ████ ███ █       |
 
+Note that the only nodes that can nest are ``STATEMENT`` and ``KWARGGROUP``
+nodes. These nodes necessarily only have one child, an ``ARGGROUP`` node.
+Therefore there really isn't a notion of "wrapping" for these nodes.
 
 --------------------
 Formatting algorithm
@@ -166,115 +148,64 @@ first line after the output cursor of it's predecessor, and at a column
 ``config.tab_size`` to the right of it's parent.
 
 ``STATEMENTS`` however, are laid out over several passes until the
-text for that subtree lies is accepted. Each pass is governed by a
-specification mapping node depth to a layout algorithm (i.e. a
-``(nesting,wrapping)`` pair, as well as a condition of acceptance.
+text for that subtree is accepted. Each pass is governed by a
+specification mapping pass number to a wrap decision (i.e. a
+boolean indicating whether or not to wrap vertical or nest children)
 
+Layout Passes
+=============
 
-Ideas
-=====
+The current algorithm works in a kind of top-down refinement. When a node is
+laid out by calling it's ``reflow()`` method, it is informed of its parent's
+current pass number (``passno``). It then iterates through its own ``passno``
+from zero up to it's parent's ``passno`` and terminates at the first admissible
+layout. Note that within the layout of the node itself, it's current
+``passno`` can only affect its ``wrap`` decision. However, because each of its
+children will advance through their own passes, the overall layout of a subtree
+between two different passes may change, even if the node at the subtree root
+didn't change it's ``wrap`` decision between those passes.
 
-* If the name of the command (plus parenthesis) is less than or equal to
-  tab-width then vertical nesting is off the table.
-* If the name of the command (plus parenthesis) is "very long" then horizontal
-  nesting is off the table.
-* If a PARGGROUP is a "list" then we should probably have some options for
-  deciding whether or not it is wrapped horizontally or vertically:
+This approach seems to work well even for
+:ref:`deeply nested <install-case-study>` or
+:ref:`complex <conditionals-case-study>` statements.
 
-  * vertical wrap if number of arguments > some threshold
-  * wrap always
-  * wrap always for specific statments/kwargs/paths
+Newline decision
+================
 
-* Multiple KWARGGROUPS should always be nested vertically (optionally)
-* Can implement that guys idea about column-aligning kwarg arguments,
-  perhaps if kwargs are within some threshold of the same size
-* If a statement interior ends with a comment we must dangle the parenthesis
-* configuration to decide whether or not to dangle a parenthesis always
-* Algorithm order for PARGGROUP (currently)::
+When a node is in horizontal layout mode (``wrap=False``), there are a couple
+of reasons why the algorithm might choose to insert a newline between two
+of it's children.
 
-    (nest:H, wrap:H), valid if numlines == 1
-    (nest:H, wrap:V), valid if columns are not exceeded
-    (nest:V, wrap:V)
+1. If a token would overflow the column limit, insert a newline (e.g. the
+   usual notion of wrapping)
+2. If the token is the last token before a closing parenthesis, and the
+   token plus the parenthesis would overflow the column limit, then insert a
+   newline.
+3. If a token is preceeded by a line comment, then the token cannot be placed
+   on the same line as the comment (or it will become part of the comment) so
+   a newline is inserted between them.
+4. If a token is a line comment which is not associated with an argument (e.g.
+   it is  a "free" comment at the current scope) then it will not be placed
+   on the same line as a preceeding argument token. If it was, then subsequent
+   parses would associate this comment with that argument. In such a case, a
+   newline is inserted between the preceeding argument and the line comment.
+5. If the node is an interior node, and one of it's children is internally
+   wrapped (i.e. consumes more than two lines) then it will not be placed
+   on the same line as another node. In such a case a newlines is inserted.
+6. If the node is an interior node and a child fails to find an admissible
+   layout at the current cursor, a newline is inserted and a new layout attempt
+   is made for the child.
 
-* I think that I might prefer::
+Admissible layouts
+==================
 
-    (nest:H, wrap:H), valid if numlines <= [config-option=1]
-    (nest:V, wrap:H), valid if numlines <= [config-option=1]
-    (nest:V, wrap:V)
+There are a couple of reasons why a layout may be deemed inadmissible:
 
-* Algorithm order for ARGGROUP with at least [n=2] KWARGGROUPS:
-
-    (nest:H, wrap:H), valid if numlines < [config-option=0] (i.e. never)
-    (nest:V, wrap:V),
-
-* So should we use some kind of overridable function to get
-* If we do limit HWRAP to at most 2 lines, are there any cases where this
-  would do something we don't want? Generally we don't have lots of
-  unstructured positional arguments that aren't lists. Also, if we had
-  such a thing, could we not tag it that way?
-
-
-Positional Arguments
-====================
-
-Candidate algorithm:
-
-First, wrap horizontally. If they all fit on [n=2] lines, and if the
-statement spelling does not exceed [k=2] characters above the tab-width, choose
-that layout. Note that the previous rule can be enforced by this rule with
-[n=1], so perhaps we can exclude a special case for the previous attempt::
-
-    foobarbaz_hello(argument_one argument_two argument_three argument_four
-                    argument_five argument_six)
-
-If not, nest vertically, and if they fit on [n=2] lines, choose that layout::
-
-    foobarbaz_hello(
-        argument_one argument_two argument_three argument_four argument_five
-        argument_six)
-
-Note that, if the statement spelling (plus optional space and paren) are less
-than the tab width, then vertical nesting is disabled. In which case we proceed
-directly to the next attempt: vertical wrap::
-
-    foobarbaz_hello(
-        argument_one
-        argument_two
-        argument_three
-        argument_four
-        argument_five
-        argument_six)
-
-In order to match expectation and current behavior, I think by default we can
-use values of (2, 2) but I think that personally I will want values of (1,1).
-We can describe this sequence by the following escallation of attempts. If
-each attempt fails we move onto the nest.
-
-1. initially horizontal nesting, horizontal wrapping
-2. switch to vertical nesting, if allowed
-3. switch to vertical wrapping if allowed
-
-This differs a little from the current algorithm and I'm not sure what the best
-way to unify them is, perhaps it's to continue
-specifying an "algorithm order" kind of thing. We could change it to
-something like:
-
-0. ``(vertical-nest, vertical-wrap)``
-1. ``(False, False)``
-2. ``(False, True)``
-3. ``(True, False)``
-4. ``(True, True)``
-
-And then pair each with a configurable approval function. For instance I would
-always reject #2. The problem here is that for short statement names like
-``set()`` or for large tab-widths, vertical nesting is not allowed. Perhaps
-that is just something we need to specify in the approval function though. For
-what I want personally, The approval function for #2 would be to reject always
-unless the statement spelling too small to vertically wrap.
-
-Note also, though, that my desired algorithm order is not consistent at depth.
-I generally want to avoid #2 for statement groups, but I generally want to
-avoid #3 for keyword groups. And how about deeply nested kwarg groups?
+1. If the bounding box of a node overflows the column limit
+2. If a node is horizontally wrapped at the current ``passno`` but consumes
+   more than ``max_lines_hwrap`` lines
+3. If the node is horizontally wrapped at the current ``passno`` but the node
+   path is marked as ``always_wrap``
 
 Comments
 ========
@@ -322,49 +253,3 @@ minimum width of the comment block is given by::
 
 Which would preclude it from being crammed into the right-most slot.
 
-Special-case Positional Arguments
-=================================
-
-There are some situations in which we might want to apply a different threshold
-set than the default. ``COMMAND`` kwargs in particular we probably never want
-to wrap vertically.
-
-Interior groups
-===============
-
-Keyword subtrees (``KWARGGROUP``) themselves are laid out the same as
-statements, but interior nodes (``ARGGROUP``) in the parse/layout tree follow
-a slightly different set of rules. The reasoning for this separate rule set is
-that the syntatic boundary between children in an ``ARGGROUP`` are also
-significant semantic boundaries and so breaking a line on these boundaries is
-cheaper than breaking a line within a positional argument group.
-
-Candidate Algorithm:
-
-Wrap horizonally, if they all fit on [n=1] lines and if there are at most [n=2]
-non-empty groups. For example::
-
-    foobarbaz_hello(argument_one argument_two KEYWORD_ONE kwarg_one)
-
-Otherwise, nest vertically, if they all fit on [n=1] lines and if there are
-at most [n=2] non-empty groups::
-
-    foobarbaz_hello(
-      argument_one argument_two argument_three KEYWORD_ONE kwarg_one kwarg_two)
-
-Otherwise, wrap vertically::
-
-    foobarbaz_hello(
-      argument_one argument_two argument_three
-      KEYWORD_ONE kwarg_one kwarg_two
-      KEYWORD_TWO kwarg_three kwarg_four)
-
-------------
-Search Order
-------------
-
-The current algorithm does a kind of top-down implementation. Each node is
-allowed to try layouts in "algorithm order" from start up to their parent's
-current algorithm. This seems to work well even for
-:ref:`deeply nested <install-case-study>` or
-:ref:`complex <conditionals-case-study>` statements.

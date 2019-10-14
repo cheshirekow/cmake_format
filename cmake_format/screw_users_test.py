@@ -147,6 +147,17 @@ class DontScrewUsers(unittest.TestCase):
 
     self.assertFalse(failed_files)
 
+  def test_thisrepo(self):
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    head, _ = os.path.split(thisdir)
+    head, _ = os.path.split(thisdir)
+    self.repository = head
+    self.configpath = ".cmake-format.py"
+    self.last_known_good = "efb0d6256fcbc4a3cfad9f5ebdaa34172d230ea2"
+    self.exclude_patterns += [
+        r"test_latin.*\.cmake"
+    ]
+
   def test_elektra(self):
     self.repository = "https://github.com/sanssecours/elektra"
     self.configpath = ".cmake-format.yaml"
@@ -161,7 +172,8 @@ class DontScrewUsers(unittest.TestCase):
     self.configpath = "cmake-format.py"
     self.last_known_good = "e32c0b3279df76d68c93724f476dfcf0c1c44fa5"
     self.exclude_patterns += [
-        r".*\.h\.cmake"
+        r".*\.h\.cmake",
+        r".*Dockerfile\.cmake",
     ]
 
   def test_aom(self):
@@ -176,8 +188,8 @@ class DontScrewUsers(unittest.TestCase):
 
   def test_vulkan_validation_layers(self):
     self.repository = "https://github.com/KhronosGroup/Vulkan-ValidationLayers"
-    self.configpath = ".cmake-format.py"
-    self.last_known_good = "7212065b5a78afb13e7527379175a3b2ee939a14"
+    self.configpath = "scripts/cmake-format.py"
+    self.last_known_good = "adbfa85caafb5f240474dd2ae2414f0b78026a3f"
     self.exclude_patterns += [
         ".*build-android/cmake/layerlib/CMakeLists.txt"
     ]

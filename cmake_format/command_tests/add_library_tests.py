@@ -74,14 +74,15 @@ add_library(foobar STATIC EXCLUDE_FROM_ALL sourcefile_01.cc
     ]
 
     self.expect_format = """\
-add_library(foobar STATIC EXCLUDE_FROM_ALL
-            sourcefile_01.cc
-            sourcefile_02.cc
-            sourcefile_03.cc
-            sourcefile_04.cc
-            sourcefile_05.cc
-            sourcefile_06.cc
-            sourcefile_07.cc)
+add_library(
+  foobar STATIC EXCLUDE_FROM_ALL
+  sourcefile_01.cc
+  sourcefile_02.cc
+  sourcefile_03.cc
+  sourcefile_04.cc
+  sourcefile_05.cc
+  sourcefile_06.cc
+  sourcefile_07.cc)
 """
 
   def test_parse_with_concluding_comments(self):
@@ -121,11 +122,8 @@ add_library(foobar STATIC sourcefile_04.cc
 """
 
     self.expect_format = """\
-add_library(foobar STATIC
-            sourcefile_01.cc
-            sourcefile_02.cc
-            sourcefile_03.cc
-            sourcefile_04.cc)
+add_library(foobar STATIC sourcefile_01.cc sourcefile_02.cc sourcefile_03.cc
+                          sourcefile_04.cc)
 """
 
   def test_disable_autosort_with_tag(self):
@@ -136,12 +134,8 @@ add_library(foobar STATIC # cmake-format: unsort
 """
 
     self.expect_format = """\
-add_library(foobar STATIC
-            # cmake-format: unsort
-            sourcefile_04.cc
-            sourcefile_03.cc
-            sourcefile_01.cc
-            sourcefile_02.cc)
+add_library(foobar STATIC # cmake-format: unsort
+            sourcefile_04.cc sourcefile_03.cc sourcefile_01.cc sourcefile_02.cc)
 """
 
   def test_imported_form(self):

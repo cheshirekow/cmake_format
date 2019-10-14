@@ -23,6 +23,7 @@ like crap.
    format_algorithm
    case_studies
    render_html
+   configopts
 
    release_notes
    changelog

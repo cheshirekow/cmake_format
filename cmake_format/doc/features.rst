@@ -158,9 +158,9 @@ and you can globally disable sorting by making setting this configuration to
 Custom Commands
 ---------------
 
-Due to the fact that cmake is a macro language, `cmake-format` is, by necessity,
-a *semantic* source code formatter. In general it tries to make smart
-formatting decisions based on the meaning of arguments in an otherwise
+Due to the fact that cmake is a macro language, `cmake-format` is, by
+necessity, a *semantic* source code formatter. In general it tries to make
+smart formatting decisions based on the meaning of arguments in an otherwise
 unstructured list of arguments in a cmake statement. `cmake-format` can
 intelligently format your custom commands, but you will need to tell it how
 to interpret your arguments.
@@ -197,8 +197,8 @@ fields:
 * ``kwargs``: a dictionary mapping keywords to sub-specifications. A
   sub-specification may be a complete dictionary of ``pargs``, ``flags``, and
   ``kwargs`` (nested, all the way down). Or, if the keyword argument accepts
-  only positionals, then it can be simply the ``pargs`` specification (as in the
-  example above).
+  only positionals, then it can be simply the ``pargs`` specification (as in
+  the example above).
 
 For the example specification above, the custom command would look somehing
 like this:

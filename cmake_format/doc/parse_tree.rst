@@ -228,9 +228,10 @@ You can inspect the parse tree of a listfile by ``cmake-format`` with
         │   │       ├─ KEYWORD: 2:23
         │   │       │   └─ Token(type=WORD, content='VERSION', line=2, col=23)
         │   │       ├─ Token(type=WHITESPACE, content=' ', line=2, col=30)
-        │   │       └─ PARGGROUP: 2:31
-        │   │           └─ ARGUMENT: 2:31
-        │   │               └─ Token(type=UNQUOTED_LITERAL, content='3.5', line=2, col=31)
+        │   │       └─ ARGGROUP: 2:31
+        │   │           └─ PARGGROUP: 2:31
+        │   │               └─ ARGUMENT: 2:31
+        │   │                   └─ Token(type=UNQUOTED_LITERAL, content='3.5', line=2, col=31)
         │   └─ RPAREN: 2:34
         │       └─ Token(type=RIGHT_PAREN, content=')', line=2, col=34)
         ├─ WHITESPACE: 2:35
@@ -255,9 +256,10 @@ You can inspect the parse tree of a listfile by ``cmake-format`` with
         │   │   ├─ LPAREN: 4:2
         │   │   │   └─ Token(type=LEFT_PAREN, content='(', line=4, col=2)
         │   │   ├─ ARGGROUP: 4:3
-        │   │   │   ├─ ARGUMENT: 4:3
-        │   │   │   │   └─ Token(type=WORD, content='FOO', line=4, col=3)
-        │   │   │   ├─ Token(type=WHITESPACE, content=' ', line=4, col=6)
+        │   │   │   ├─ PARGGROUP: 4:3
+        │   │   │   │   ├─ ARGUMENT: 4:3
+        │   │   │   │   │   └─ Token(type=WORD, content='FOO', line=4, col=3)
+        │   │   │   │   └─ Token(type=WHITESPACE, content=' ', line=4, col=6)
         │   │   │   └─ KWARGGROUP: 4:7
         │   │   │       ├─ KEYWORD: 4:7
         │   │   │       │   └─ Token(type=WORD, content='AND', line=4, col=7)
@@ -267,16 +269,18 @@ You can inspect the parse tree of a listfile by ``cmake-format`` with
         │   │   │               ├─ LPAREN: 4:11
         │   │   │               │   └─ Token(type=LEFT_PAREN, content='(', line=4, col=11)
         │   │   │               ├─ ARGGROUP: 4:12
-        │   │   │               │   ├─ ARGUMENT: 4:12
-        │   │   │               │   │   └─ Token(type=WORD, content='BAR', line=4, col=12)
-        │   │   │               │   ├─ Token(type=WHITESPACE, content=' ', line=4, col=15)
+        │   │   │               │   ├─ PARGGROUP: 4:12
+        │   │   │               │   │   ├─ ARGUMENT: 4:12
+        │   │   │               │   │   │   └─ Token(type=WORD, content='BAR', line=4, col=12)
+        │   │   │               │   │   └─ Token(type=WHITESPACE, content=' ', line=4, col=15)
         │   │   │               │   └─ KWARGGROUP: 4:16
         │   │   │               │       ├─ KEYWORD: 4:16
         │   │   │               │       │   └─ Token(type=WORD, content='OR', line=4, col=16)
         │   │   │               │       ├─ Token(type=WHITESPACE, content=' ', line=4, col=18)
         │   │   │               │       └─ ARGGROUP: 4:19
-        │   │   │               │           └─ ARGUMENT: 4:19
-        │   │   │               │               └─ Token(type=WORD, content='BAZ', line=4, col=19)
+        │   │   │               │           └─ PARGGROUP: 4:19
+        │   │   │               │               └─ ARGUMENT: 4:19
+        │   │   │               │                   └─ Token(type=WORD, content='BAZ', line=4, col=19)
         │   │   │               └─ RPAREN: 4:22
         │   │   │                   └─ Token(type=RIGHT_PAREN, content=')', line=4, col=22)
         │   │   └─ RPAREN: 4:23
@@ -337,52 +341,61 @@ You can inspect the layout tree of a listfile by ``cmake-format`` with
 
 .. code:: text
 
-    └─ BODY,HPACK(0) p(0,0) ce:35
-        ├─ STATEMENT,HPACK(0) p(0,0) ce:35
-        │   ├─ FUNNAME,HPACK(0) p(0,0) ce:22
-        │   ├─ LPAREN,HPACK(0) p(0,22) ce:23
-        │   ├─ KWARGGROUP,HPACK(0) p(0,23) ce:34
-        │   │   ├─ KEYWORD,HPACK(0) p(0,23) ce:30
-        │   │   └─ PARGGROUP,HPACK(0) p(0,31) ce:34
-        │   │       └─ ARGUMENT,HPACK(0) p(0,31) ce:34
-        │   └─ RPAREN,HPACK(0) p(0,34) ce:35
-        ├─ STATEMENT,HPACK(0) p(1,0) ce:13
-        │   ├─ FUNNAME,HPACK(0) p(1,0) ce:7
-        │   ├─ LPAREN,HPACK(0) p(1,7) ce:8
-        │   ├─ PARGGROUP,HPACK(0) p(1,8) ce:12
-        │   │   └─ ARGUMENT,HPACK(0) p(1,8) ce:12
-        │   └─ RPAREN,HPACK(0) p(1,12) ce:13
-        └─ FLOW_CONTROL,HPACK(0) p(2,0) ce:29
-            ├─ STATEMENT,HPACK(0) p(2,0) ce:24
-            │   ├─ FUNNAME,HPACK(0) p(2,0) ce:2
-            │   ├─ LPAREN,HPACK(0) p(2,2) ce:3
-            │   ├─ ARGUMENT,HPACK(0) p(2,3) ce:6
-            │   ├─ KWARGGROUP,HPACK(0) p(2,7) ce:23
-            │   │   ├─ KEYWORD,HPACK(0) p(2,7) ce:10
-            │   │   └─ ARGGROUP,HPACK(0) p(2,11) ce:23
-            │   │       └─ PARENGROUP,HPACK(0) p(2,11) ce:23
-            │   │           ├─ LPAREN,HPACK(0) p(2,11) ce:12
-            │   │           ├─ ARGGROUP,HPACK(0) p(2,12) ce:22
-            │   │           │   ├─ ARGUMENT,HPACK(0) p(2,12) ce:15
-            │   │           │   └─ KWARGGROUP,HPACK(0) p(2,16) ce:22
-            │   │           │       ├─ KEYWORD,HPACK(0) p(2,16) ce:18
-            │   │           │       └─ ARGGROUP,HPACK(0) p(2,19) ce:22
-            │   │           │           └─ ARGUMENT,HPACK(0) p(2,19) ce:22
-            │   │           └─ RPAREN,HPACK(0) p(2,22) ce:23
-            │   └─ RPAREN,HPACK(0) p(2,23) ce:24
-            ├─ BODY,HPACK(0) p(3,2) ce:29
-            │   └─ STATEMENT,HPACK(0) p(3,2) ce:29
-            │       ├─ FUNNAME,HPACK(0) p(3,2) ce:13
-            │       ├─ LPAREN,HPACK(0) p(3,13) ce:14
-            │       ├─ PARGGROUP,HPACK(0) p(3,14) ce:19
-            │       │   └─ ARGUMENT,HPACK(0) p(3,14) ce:19
-            │       ├─ PARGGROUP,HPACK(0) p(3,20) ce:28
-            │       │   └─ ARGUMENT,HPACK(0) p(3,20) ce:28
-            │       └─ RPAREN,HPACK(0) p(3,28) ce:29
-            └─ STATEMENT,HPACK(0) p(4,0) ce:7
-                ├─ FUNNAME,HPACK(0) p(4,0) ce:5
-                ├─ LPAREN,HPACK(0) p(4,5) ce:6
-                └─ RPAREN,HPACK(0) p(4,6) ce:7
+    └─ BODY,(passno=0,wrap=F) pos:(0,0) colextent:35
+        ├─ STATEMENT,(passno=0,wrap=F) pos:(0,0) colextent:35
+        │   ├─ FUNNAME,(passno=0,wrap=F) pos:(0,0) colextent:22
+        │   ├─ LPAREN,(passno=0,wrap=F) pos:(0,22) colextent:23
+        │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(0,23) colextent:34
+        │   │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(0,23) colextent:34
+        │   │       ├─ KEYWORD,(passno=0,wrap=F) pos:(0,23) colextent:30
+        │   │       └─ ARGGROUP,(passno=0,wrap=F) pos:(0,31) colextent:34
+        │   │           └─ PARGGROUP,(passno=0,wrap=F) pos:(0,31) colextent:34
+        │   │               └─ ARGUMENT,(passno=0,wrap=F) pos:(0,31) colextent:34
+        │   └─ RPAREN,(passno=0,wrap=F) pos:(0,34) colextent:35
+        ├─ STATEMENT,(passno=0,wrap=F) pos:(1,0) colextent:13
+        │   ├─ FUNNAME,(passno=0,wrap=F) pos:(1,0) colextent:7
+        │   ├─ LPAREN,(passno=0,wrap=F) pos:(1,7) colextent:8
+        │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(1,8) colextent:12
+        │   │   └─ PARGGROUP,(passno=0,wrap=F) pos:(1,8) colextent:12
+        │   │       └─ ARGUMENT,(passno=0,wrap=F) pos:(1,8) colextent:12
+        │   └─ RPAREN,(passno=0,wrap=F) pos:(1,12) colextent:13
+        └─ FLOW_CONTROL,(passno=0,wrap=F) pos:(2,0) colextent:29
+            ├─ STATEMENT,(passno=0,wrap=F) pos:(2,0) colextent:24
+            │   ├─ FUNNAME,(passno=0,wrap=F) pos:(2,0) colextent:2
+            │   ├─ LPAREN,(passno=0,wrap=F) pos:(2,2) colextent:3
+            │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(2,3) colextent:23
+            │   │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(2,3) colextent:6
+            │   │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(2,3) colextent:6
+            │   │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(2,7) colextent:23
+            │   │       ├─ KEYWORD,(passno=0,wrap=F) pos:(2,7) colextent:10
+            │   │       └─ ARGGROUP,(passno=0,wrap=F) pos:(2,11) colextent:23
+            │   │           └─ PARENGROUP,(passno=0,wrap=F) pos:(2,11) colextent:23
+            │   │               ├─ LPAREN,(passno=0,wrap=F) pos:(2,11) colextent:12
+            │   │               ├─ ARGGROUP,(passno=0,wrap=F) pos:(2,12) colextent:22
+            │   │               │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(2,12) colextent:15
+            │   │               │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(2,12) colextent:15
+            │   │               │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(2,16) colextent:22
+            │   │               │       ├─ KEYWORD,(passno=0,wrap=F) pos:(2,16) colextent:18
+            │   │               │       └─ ARGGROUP,(passno=0,wrap=F) pos:(2,19) colextent:22
+            │   │               │           └─ PARGGROUP,(passno=0,wrap=F) pos:(2,19) colextent:22
+            │   │               │               └─ ARGUMENT,(passno=0,wrap=F) pos:(2,19) colextent:22
+            │   │               └─ RPAREN,(passno=0,wrap=F) pos:(2,22) colextent:23
+            │   └─ RPAREN,(passno=0,wrap=F) pos:(2,23) colextent:24
+            ├─ BODY,(passno=0,wrap=F) pos:(3,2) colextent:29
+            │   └─ STATEMENT,(passno=0,wrap=F) pos:(3,2) colextent:29
+            │       ├─ FUNNAME,(passno=0,wrap=F) pos:(3,2) colextent:13
+            │       ├─ LPAREN,(passno=0,wrap=F) pos:(3,13) colextent:14
+            │       ├─ ARGGROUP,(passno=0,wrap=F) pos:(3,14) colextent:28
+            │       │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(3,14) colextent:19
+            │       │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(3,14) colextent:19
+            │       │   └─ PARGGROUP,(passno=0,wrap=F) pos:(3,20) colextent:28
+            │       │       └─ ARGUMENT,(passno=0,wrap=F) pos:(3,20) colextent:28
+            │       └─ RPAREN,(passno=0,wrap=F) pos:(3,28) colextent:29
+            └─ STATEMENT,(passno=0,wrap=F) pos:(4,0) colextent:7
+                ├─ FUNNAME,(passno=0,wrap=F) pos:(4,0) colextent:5
+                ├─ LPAREN,(passno=0,wrap=F) pos:(4,5) colextent:6
+                ├─ ARGGROUP,(passno=0,wrap=F) pos:(4,6) colextent:6
+                └─ RPAREN,(passno=0,wrap=F) pos:(4,6) colextent:7
 
 .. dynamic: dump-example-layout-end
 

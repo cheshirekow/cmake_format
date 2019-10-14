@@ -69,7 +69,7 @@ Usage
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...], --config-files CONFIG_FILE [CONFIG_FILE ...]
+      -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...], --config-files CONFIG_FILE [CONFIG_FILE ...], --config CONFIG_FILE [CONFIG_FILE ...]
                             path to configuration file(s)
 
     Formatter Configuration:
@@ -78,8 +78,13 @@ Usage
       --line-width LINE_WIDTH
                             How wide to allow formatted cmake files
       --tab-size TAB_SIZE   How many spaces to tab for indent
-      --max-subargs-per-line MAX_SUBARGS_PER_LINE
-                            If arglists are longer than this, break them always
+      --max-subgroups-hwrap MAX_SUBGROUPS_HWRAP
+                            If an argument group contains more than this many sub-
+                            groups (parg or kwarg groups), then force it to a
+                            vertical layout.
+      --max-pargs-hwrap MAX_PARGS_HWRAP
+                            If a positinal argument group contains more than this
+                            many arguments, then force it to a vertical layout.
       --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
                             If true, separate flow control names from their
                             parentheses with a space
@@ -88,7 +93,14 @@ Usage
                             a space
       --dangle-parens [DANGLE_PARENS]
                             If a statement is wrapped to more than one line, than
-                            dangle the closing parenthesis on it's own line
+                            dangle the closing parenthesis on it's own line.
+      --dangle-align {prefix,prefix-indent,child,off}
+                            If the trailing parenthesis must be 'dangled' on it's
+                            on line, then align it to this reference: `prefix`:
+                            the start of the statement, `prefix-indent`: the start
+                            of the statement, plus one indentation level, `child`:
+                            align to the column of the arguments
+      --min-prefix-chars MIN_PREFIX_CHARS
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
                             parenthesis is larger than the tab width by more than
@@ -106,9 +118,6 @@ Usage
                             case
       --always-wrap [ALWAYS_WRAP [ALWAYS_WRAP ...]]
                             A list of command names which should always be wrapped
-      --algorithm-order [ALGORITHM_ORDER [ALGORITHM_ORDER ...]]
-                            Specify the order of wrapping algorithms during
-                            successive reflow attempts
       --enable-sort [ENABLE_SORT]
                             If true, the argument lists which are known to be
                             sortable will be sorted lexicographicall
@@ -189,8 +198,13 @@ pleasant way.
     # How many spaces to tab for indent
     tab_size = 2
 
-    # If arglists are longer than this, break them always
-    max_subargs_per_line = 3
+    # If an argument group contains more than this many sub-groups (parg or kwarg
+    # groups), then force it to a vertical layout.
+    max_subgroups_hwrap = 2
+
+    # If a positinal argument group contains more than this many arguments, then
+    # force it to a vertical layout.
+    max_pargs_hwrap = 6
 
     # If true, separate flow control names from their parentheses with a space
     separate_ctrl_name_with_space = False
@@ -199,13 +213,21 @@ pleasant way.
     separate_fn_name_with_space = False
 
     # If a statement is wrapped to more than one line, than dangle the closing
-    # parenthesis on it's own line
+    # parenthesis on it's own line.
     dangle_parens = False
+
+    # If the trailing parenthesis must be 'dangled' on it's on line, then align it
+    # to this reference: `prefix`: the start of the statement,  `prefix-indent`: the
+    # start of the statement, plus one indentation  level, `child`: align to the
+    # column of the arguments
+    dangle_align = 'prefix'
+
+    min_prefix_chars = 4
 
     # If the statement spelling length (including space and parenthesis is larger
     # than the tab width by more than this amoung, then force reject un-nested
     # layouts.
-    max_prefix_chars = 2
+    max_prefix_chars = 10
 
     # If a candidate layout is wrapped horizontally but it exceeds this many lines,
     # then reject the layout.
@@ -232,9 +254,6 @@ pleasant way.
     # A list of command names which should always be wrapped
     always_wrap = []
 
-    # Specify the order of wrapping algorithms during successive reflow attempts
-    algorithm_order = [0, 1, 2, 3, 4]
-
     # If true, the argument lists which are known to be sortable will be sorted
     # lexicographicall
     enable_sort = True
@@ -251,6 +270,10 @@ pleasant way.
     # A dictionary containing any per-command configuration overrides. Currently
     # only `command_case` is supported.
     per_command = {}
+
+    # A dictionary mapping layout nodes to a list of wrap decisions. See the
+    # documentation for more information.
+    layout_passes = {}
 
 
     # --------------------------
@@ -474,9 +497,9 @@ and you can globally disable sorting by making setting this configuration to
 Custom Commands
 ---------------
 
-Due to the fact that cmake is a macro language, `cmake-format` is, by necessity,
-a *semantic* source code formatter. In general it tries to make smart
-formatting decisions based on the meaning of arguments in an otherwise
+Due to the fact that cmake is a macro language, `cmake-format` is, by
+necessity, a *semantic* source code formatter. In general it tries to make
+smart formatting decisions based on the meaning of arguments in an otherwise
 unstructured list of arguments in a cmake statement. `cmake-format` can
 intelligently format your custom commands, but you will need to tell it how
 to interpret your arguments.
@@ -513,8 +536,8 @@ fields:
 * ``kwargs``: a dictionary mapping keywords to sub-specifications. A
   sub-specification may be a complete dictionary of ``pargs``, ``flags``, and
   ``kwargs`` (nested, all the way down). Or, if the keyword argument accepts
-  only positionals, then it can be simply the ``pargs`` specification (as in the
-  example above).
+  only positionals, then it can be simply the ``pargs`` specification (as in
+  the example above).
 
 For the example specification above, the custom command would look somehing
 like this:
@@ -592,12 +615,11 @@ Will turn this:
     add_subdirectories(foo bar baz
       foo2 bar2 baz2)
 
-    # This very long command should be split to multiple lines
+    # This very long command should be wrapped
     set(HEADERS very_long_header_name_a.h very_long_header_name_b.h very_long_header_name_c.h)
 
-    # This command should be split into one line per entry because it has a long
-    # argument list.
-    set(SOURCES source_a.cc source_b.cc source_d.cc source_e.cc source_f.cc source_g.cc)
+    # This command should be split into one line per entry because it has a long argument list.
+    set(SOURCES source_a.cc source_b.cc source_d.cc source_e.cc source_f.cc source_g.cc source_h.cc)
 
     # The string in this command should not be split
     set_target_properties(foo bar baz PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
@@ -644,7 +666,7 @@ Will turn this:
     if(sbar)
     # This comment is in-scope.
     add_library(foo_bar_baz foo.cc bar.cc # this is a comment for arg2
-                   # this is more comment for arg2, it should be joined with the first.
+                                          # this is more comment for arg2, it should be joined with the first.
         baz.cc) # This comment is part of add_library
 
     other_command(some_long_argument some_long_argument) # this comment is very long and gets split across some lines
@@ -692,14 +714,9 @@ into this:
 
     # This comment should remain right before the command call. Furthermore, the
     # command call should be formatted to a single line.
-    add_subdirectories(foo
-                       bar
-                       baz
-                       foo2
-                       bar2
-                       baz2)
+    add_subdirectories(foo bar baz foo2 bar2 baz2)
 
-    # This very long command should be split to multiple lines
+    # This very long command should be wrapped
     set(HEADERS very_long_header_name_a.h very_long_header_name_b.h
                 very_long_header_name_c.h)
 
@@ -711,11 +728,12 @@ into this:
         source_d.cc
         source_e.cc
         source_f.cc
-        source_g.cc)
+        source_g.cc
+        source_h.cc)
 
     # The string in this command should not be split
-    set_target_properties(foo bar baz
-                          PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Wextra")
+    set_target_properties(foo bar baz PROPERTIES COMPILE_FLAGS
+                                                 "-std=c++11 -Wall -Wextra")
 
     # This command has a very long argument and can't be aligned with the command
     # end, so it should be moved to a new line with block indent + 1.
@@ -728,11 +746,9 @@ into this:
         "-std=c++11 -Wall -Wno-sign-compare -Wno-unused-parameter -xx")
 
     set(HEADERS
-        header_a.h
-        header_b.h # This comment should be preserved, moreover it should be split
-                   # across two lines.
-        header_c.h
-        header_d.h)
+        header_a.h header_b.h # This comment should be preserved, moreover it should
+                              # be split across two lines.
+        header_c.h header_d.h)
 
     # This part of the comment should be formatted but...
     # cmake-format: off
@@ -757,30 +773,32 @@ into this:
     if(foo)
       if(sbar)
         # This comment is in-scope.
-        add_library(foo_bar_baz
-                    foo.cc
-                    bar.cc # this is a comment for arg2 this is more comment for
-                           # arg2, it should be joined with the first.
-                    baz.cc) # This comment is part of add_library
+        add_library(
+          foo_bar_baz
+          foo.cc bar.cc # this is a comment for arg2 this is more comment for arg2,
+                        # it should be joined with the first.
+          baz.cc) # This comment is part of add_library
 
-        other_command(some_long_argument some_long_argument) # this comment is very
-                                                             # long and gets split
-                                                             # across some lines
+        other_command(
+          some_long_argument some_long_argument) # this comment is very long and
+                                                 # gets split across some lines
 
-        other_command(some_long_argument some_long_argument some_long_argument)
-        # this comment is even longer and wouldn't make sense to pack at the end of
-        # the command so it gets it's own lines
+        other_command(
+          some_long_argument some_long_argument some_long_argument) # this comment
+                                                                    # is even longer
+                                                                    # and wouldn't
+                                                                    # make sense to
+                                                                    # pack at the
+                                                                    # end of the
+                                                                    # command so it
+                                                                    # gets it's own
+                                                                    # lines
       endif()
     endif()
 
     # This very long command should be broken up along keyword arguments
     foo(nonkwarg_a nonkwarg_b
-        HEADERS a.h
-                b.h
-                c.h
-                d.h
-                e.h
-                f.h
+        HEADERS a.h b.h c.h d.h e.h f.h
         SOURCES a.cc b.cc d.cc
         DEPENDS foo
         bar baz)
