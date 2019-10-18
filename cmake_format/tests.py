@@ -28,6 +28,14 @@ from cmake_format.command_tests.misc_tests \
     import TestMiscFormatting
 from cmake_format.command_tests.set_tests \
     import TestSetCommand
+from cmake_format.contrib.validate_database \
+    import TestContributorAgreements
+from cmake_format.contrib.validate_pullrequest \
+    import TestContribution
+from cmake_format.doc.docsources_test \
+    import TestDocSources
+from cmake_format.test.version_number_test \
+    import TestVersionNumber
 
 if __name__ == '__main__':
   unittest.main()

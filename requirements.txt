@@ -7,3 +7,5 @@ jinja2==2.10.1
 pylint==1.9.1; python_version < '3.0'
 pylint==2.2.2; python_version >= '3.0'
 pyyaml==4.2b1
+PGPy==0.5.2; python_version >= '3.0'
+

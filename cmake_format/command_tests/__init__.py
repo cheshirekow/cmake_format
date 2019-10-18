@@ -8,6 +8,7 @@ import functools
 import inspect
 import io
 import os
+import six
 import sys
 import unittest
 
@@ -280,6 +281,39 @@ def assert_format(test, input_str, output_str=None, strip_len=0):
     raise AssertionError(message)
 
 
+def exec_sidecar(test, body, meta):
+  """
+  Assert a formatting and, optionally, a lex, parse, or layout tree.
+  """
+  expect_lex = meta.pop("expect_lex", None)
+  if expect_lex is not None:
+    with test.subTest(phase="lex"):
+      assert_lex(test, body, expect_lex)
+  expect_parse = meta.pop("expect_parse", None)
+  if expect_parse is not None:
+    with test.subTest(phase="parse"):
+      assert_parse(test, body, expect_parse)
+  expect_layout = meta.pop("expect_layout", None)
+  if expect_layout is not None:
+    with test.subTest(phase="layout"):
+      assert_layout(test, body, expect_layout)
+
+  test.config = configuration.Configuration(**meta)
+  # TODO(josh): just move this into the configuration for the one test where
+  # it's needed.
+  test.config.fn_spec.add(
+    'foo',
+    flags=['BAR', 'BAZ'],
+    kwargs={
+        "HEADERS": '*',
+        "SOURCES": '*',
+        "DEPENDS": '*'
+    })
+
+  with test.subTest(phase="format"):
+    assert_format(test, body, body)
+
+
 class WrapTestWithRunFun(object):
   """
   Given a instance of a bound test-method from a TestCase, wrap that with
@@ -298,16 +332,72 @@ class WrapTestWithRunFun(object):
     self.test_object.assertExpectations()
 
 
-class TestBase(unittest.TestCase):
+def consume_bracket_contents(lineiter):
+  """
+  Consume the content of a multiline bracket comment
+  """
+  linebuf = []
+  for _, line in lineiter:
+    if line == "]=]":
+      break
+    linebuf.append(line)
+  return "\n".join(linebuf)
+
+
+class SidecarMeta(type):
+  """
+  Since the unittest framework inspects class members prior to calling
+  ``setUpClass`` there does not appear to be any additional hooks that we
+  can use to automatically load sidecars. We use a metaclass so that when the
+  test fixture class object is instanciated (class is defined) we can load the
+  sidecars. This way test methods are loaded before ``unittest`` inspects the
+  class.
+  """
+  def __new__(cls, name, bases, dct):
+    subcls = type.__new__(cls, name, bases, dct)
+    if name not in ("MetaBase", "TestBase"):
+      subcls.load_sidecar_tests()
+    return subcls
+
+
+class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
   """
   Given a bunch of example usages of a particular command, ensure that they
   lex, parse, layout, and format the same as expected.
   """
   kNumSidecarTests = 0
+  kExpectNumSidecarTests = 0
 
   @classmethod
-  def load_sidecar_tests(cls):
-    cmake_sidecar = inspect.getfile(cls)[:-3] + ".cmake"
+  def append_sidecar_test(cls, test_name, line_buffer, meta_str):
+    """
+    Add a new test loaded from the cmake sidecar file
+    """
+
+    # strip extra newlines
+    while line_buffer and not line_buffer[-1].strip():
+      line_buffer.pop(-1)
+
+    meta = {}
+    if meta_str is not None:
+      meta["NodeType"] = NodeType
+      exec(meta_str, meta)
+      meta.pop("__builtins__")
+      meta.pop("NodeType")
+
+    body = "\n".join(line_buffer) + "\n"
+    closure = partialmethod(exec_sidecar, body, meta)
+    # TODO(josh): figure out how to set the docstring correctly, this doesn't
+    # seem to work
+    closure.__doc__ = ""
+    setattr(cls, "test_" + test_name, closure)
+    cls.kNumSidecarTests += 1
+
+  @classmethod
+  def load_sidecar_tests(cls, filepath=None):
+    if filepath is None:
+      filepath = inspect.getfile(cls)
+    cmake_sidecar = filepath[:-3] + ".cmake"
     if not os.path.exists(cmake_sidecar):
       return
     with io.open(cmake_sidecar, "r", encoding="utf-8") as infile:
@@ -315,25 +405,36 @@ class TestBase(unittest.TestCase):
 
     test_name = None
     line_buffer = []
-    num_sidecar_tests = 0
-
-    for lineno, line in enumerate(lines):
-      if line.startswith("# cmftest-begin: "):
-        test_name = line[17:]
+    meta_str = None
+    lineiter = enumerate(lines)
+    for lineno, line in lineiter:
+      if line.startswith("# test: "):
+        if line_buffer:
+          cls.append_sidecar_test(test_name, line_buffer, meta_str)
+        test_name = line[8:]
         line_buffer = []
-      elif line.endswith("# cmftest-end"):
+        meta_str = None
+      elif line == "#[=[" and test_name and not line_buffer:
+        meta_str = consume_bracket_contents(lineiter)
+      elif line.endswith("# end-test"):
         if test_name is None:
           raise ValueError(
               "Malformed sidecar {}:{}".format(cmake_sidecar, lineno))
-        test_content = "\n".join(line_buffer) + "\n"
-        closure = partialmethod(assert_format, test_content)
-        setattr(cls, test_name, closure)
-        num_sidecar_tests += 1
+        cls.append_sidecar_test(test_name, line_buffer, meta_str)
         test_name = None
         line_buffer = []
+        meta_str = None
       else:
         line_buffer.append(line)
-    setattr(cls, "kNumSidecarTests", num_sidecar_tests)
+
+    if line_buffer:
+      cls.append_sidecar_test(test_name, line_buffer, meta_str)
+
+  def test_numsidecar(self):
+    """
+    Sanity check to makesure all sidecar tests are run.
+    """
+    self.assertEqual(self.kExpectNumSidecarTests, self.kNumSidecarTests)
 
   def __init__(self, *args, **kwargs):
     super(TestBase, self).__init__(*args, **kwargs)

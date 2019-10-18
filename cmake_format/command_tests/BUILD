@@ -14,8 +14,15 @@ py_library(
         "misc_tests.py",
         "set_tests.py"],
     data=[
+        "add_custom_command_tests.cmake",
+        "add_executable_tests.cmake",
+        "add_library_tests.cmake",
         "conditional_tests.cmake",
-        "misc_tests.cmake"])
+        "export_tests.cmake",
+        "file_tests.cmake",
+        "install_tests.cmake",
+        "misc_tests.cmake",
+        "set_tests.cmake"])
 
 # -- Python 2 --
 
@@ -73,7 +80,7 @@ py_test(
     srcs=["misc_tests.py"],
     deps=[
         "//cmake_format:cmake_format",
-        "//cmake_format:testdata",
+        "//cmake_format/test:data",
         ":command_tests"],
     python_version="PY2",
     )
@@ -149,7 +156,7 @@ py_test(
     main="misc_tests.py",
     deps=[
         "//cmake_format:cmake_format",
-        "//cmake_format:testdata",
+        "//cmake_format/test:data",
         ":command_tests"],
     python_version="PY3",
     )

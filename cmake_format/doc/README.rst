@@ -25,9 +25,11 @@ Integrations
 
 * There is an official `vscode extension`__
 * Someone also created a `sublime plugin`__
+* You can add ``cmake-format`` to your ``pre-commit`` configuration__
 
 .. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
 .. __: https://packagecontrol.io/packages/CMakeFormat
+.. __: https://cmake-format.readthedocs.io/en/latest/installation.html#pre-commit
 
 -----
 Usage
@@ -69,7 +71,7 @@ Usage
       -i, --in-place
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
-      -c CONFIG_FILE [CONFIG_FILE ...], --config-file CONFIG_FILE [CONFIG_FILE ...], --config-files CONFIG_FILE [CONFIG_FILE ...], --config CONFIG_FILE [CONFIG_FILE ...]
+      -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 
     Formatter Configuration:
@@ -563,7 +565,7 @@ listfile snippets that demonstrate any issues you encounter.
 
 .. _`github issue tracker`: https://github.com/cheshirekow/cmake_format/issues
 
-You can also join the ``#cmake-format`` channel on our discord server.
+You can also join the ``#cmake-format`` channel on our `discord server`_.
 
 .. _`discord server`: https://discord.gg/NgjwyPy
 
@@ -572,20 +574,10 @@ You can also join the ``#cmake-format`` channel on our discord server.
 Developers
 ----------
 
-Some notes for anyone who wants hack on ``cmake-format``:
+If you want to hack on ``cmake-format``, please see the `documenation`__ for
+contribution rules and guidelines.
 
-1. Please use ``pylint`` to check your code. There is a pylint config file in
-   the repo.
-2. There is a test suite in ``tests.py``. Run with
-   ``python -Bm cmake_format.tests`` (ensure modified code is on the python
-   path).
-3. There's an ``autopep8`` config file in the repo as well. Feel free to use
-   that to format the code. Note that ``autopep8`` and ``pylint`` disagree
-   in a few places so using ``autopep8`` may require some manual edits
-   afterward.
-4. There's a cmake configuration for the project. Since this is a python
-   project there isn't much that it really does but it provides targets for
-   ``format``, ``lint`` and ``test`` if you'd like to use them.
+.. __: https://cmake-format.rtfd.io/contributing.html
 
 -------
 Example

@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 # How wide to allow formatted cmake files
 line_width = 80
 
@@ -15,12 +16,12 @@ separate_fn_name_with_space = False
 
 # Additional FLAGS and KWARGS for custom commands
 additional_commands = {
-  "foo": {
-    "flags": ["BAR", "BAZ"],
-    "kwargs": {
-      "HEADERS": '*',
-      "SOURCES": '*',
-      "DEPENDS": '*',
+    "foo": {
+        "flags": ["BAR", "BAZ"],
+        "kwargs": {
+            "HEADERS": '*',
+            "SOURCES": '*',
+            "DEPENDS": '*',
+        }
     }
-  }
 }

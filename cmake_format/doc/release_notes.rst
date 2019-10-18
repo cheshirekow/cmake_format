@@ -9,6 +9,13 @@ v0.6 series
 ===========
 
 ------
+v0.6.1
+------
+
+This is primarily a documentation update. Some of the testing infrastructure
+has change but no user-facing code has been modified.
+
+------
 v0.6.0
 ------
 

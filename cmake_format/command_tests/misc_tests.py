@@ -15,12 +15,7 @@ class TestMiscFormatting(TestBase):
   """
   Ensure that various inputs format the way we want them to
   """
-
-  def test_numsidecar(self):
-    """
-    Sanity check to makesure all sidecar tests are run.
-    """
-    self.assertEqual(2, self.kNumSidecarTests)
+  kExpectNumSidecarTests = 33
 
   def test_collapse_additional_newlines(self):
     self.source_str = """\
@@ -48,13 +43,6 @@ project(cmake_format_test)
 """
     self.expect_format = """\
 # This multiline-comment should be reflowed into a single comment on one line
-"""
-
-  def test_comment_before_command(self):
-    self.expect_format = """\
-# This comment should remain right before the command call. Furthermore, the
-# command call should be formatted to a single line.
-add_subdirectories(foo bar baz foo2 bar2 baz2)
 """
 
   def test_long_args_command_split(self):
@@ -118,14 +106,6 @@ set(CMAKE_CXX_FLAGS
     "-std=c++11 -Wall -Wno-sign-compare -Wno-unused-parameter -xx")
 """
 
-  def test_argcomment_preserved_and_reflowed(self):
-    self.expect_format = """\
-set(HEADERS
-    header_a.h header_b.h # This comment should be preserved, moreover it should
-                          # be split across two lines.
-    header_c.h header_d.h)
-"""
-
   def test_argcomments_force_reflow(self):
     self.config.line_width = 140
     self.source_str = """\
@@ -171,22 +151,6 @@ cmake_parse_arguments(
 # while this part should be formatted again
 """
 
-  def test_paragraphs_preserved(self):
-    self.source_str = """\
-# This is a paragraph
-#
-# This is a second paragraph
-#
-# This is a third paragraph
-"""
-    self.expect_format = """\
-# This is a paragraph
-#
-# This is a second paragraph
-#
-# This is a third paragraph
-"""
-
   def test_todo_preserved(self):
     self.source_str = """\
 # This is a comment
@@ -198,46 +162,6 @@ cmake_parse_arguments(
 # This is a comment that should be joined but
 # TODO(josh): This todo should not be joined with the previous line.
 # NOTE(josh): Also this should not be joined with the todo.
-"""
-
-  def test_complex_nested_stuff(self):
-    self.config.autosort = False
-    self.expect_format = """\
-if(foo)
-  if(sbar)
-    # This comment is in-scope.
-    add_library(
-      foo_bar_baz
-      foo.cc bar.cc # this is a comment for arg2 this is more comment for arg2,
-                    # it should be joined with the first.
-      baz.cc) # This comment is part of add_library
-
-    other_command(
-      some_long_argument some_long_argument) # this comment is very long and
-                                             # gets split across some lines
-
-    other_command(
-      some_long_argument some_long_argument some_long_argument) # this comment
-                                                                # is even longer
-                                                                # and wouldn't
-                                                                # make sense to
-                                                                # pack at the
-                                                                # end of the
-                                                                # command so it
-                                                                # gets it's own
-                                                                # lines
-  endif()
-endif()
-"""
-
-  def test_custom_command(self):
-    self.expect_format = """\
-# This very long command should be broken up along keyword arguments
-foo(nonkwarg_a nonkwarg_b
-    HEADERS a.h b.h c.h d.h e.h f.h
-    SOURCES a.cc b.cc d.cc
-    DEPENDS foo
-    bar baz)
 """
 
   def test_always_wrap(self):
@@ -258,140 +182,6 @@ foo(nonkwarg_a
     DEPENDS foo)
 """)
 
-  def test_multiline_string(self):
-    self.expect_format = """\
-foo(some_arg some_arg "
-    This string is on multiple lines
-")
-"""
-
-  def test_some_string_stuff(self):
-    self.source_str = """\
-# This command uses a string with escaped quote chars
-foo(some_arg some_arg "This is a \\"string\\" within a string")
-
-# This command uses an empty string
-foo(some_arg some_arg "")
-
-# This command uses a multiline string
-foo(some_arg some_arg "
-    This string is on multiple lines
-")
-"""
-    self.expect_format = """\
-# This command uses a string with escaped quote chars
-foo(some_arg some_arg "This is a \\"string\\" within a string")
-
-# This command uses an empty string
-foo(some_arg some_arg "")
-
-# This command uses a multiline string
-foo(some_arg some_arg "
-    This string is on multiple lines
-")
-"""
-
-  def test_format_off_code(self):
-    self.source_str = """\
-# No, I really want this to look ugly
-# cmake-format: off
-add_library(a b.cc
-  c.cc         d.cc
-          e.cc)
-# cmake-format: on
-"""
-    self.expect_format = """\
-# No, I really want this to look ugly
-# cmake-format: off
-add_library(a b.cc
-  c.cc         d.cc
-          e.cc)
-# cmake-format: on
-"""
-
-  def test_multiline_statement_comment_idempotent(self):
-    self.source_str = """\
-set(HELLO hello world!) # TODO(josh): fix this bad code with some change that
-                        # takes mutiple lines to explain
-"""
-    self.expect_format = """\
-set(HELLO hello world!) # TODO(josh): fix this bad code with some change that
-                        # takes mutiple lines to explain
-"""
-
-  def test_function_def(self):
-    self.source_str = """\
-function(forbarbaz arg1)
-  do_something(arg1 ${ARGN})
-endfunction()
-"""
-    self.expect_format = """\
-function(forbarbaz arg1)
-  do_something(arg1 ${ARGN})
-endfunction()
-"""
-
-  def test_macro_def(self):
-    self.source_str = """\
-macro(forbarbaz arg1)
-  do_something(arg1 ${ARGN})
-endmacro()
-"""
-    self.expect_format = """\
-macro(forbarbaz arg1)
-  do_something(arg1 ${ARGN})
-endmacro()
-"""
-
-  def test_foreach(self):
-    self.config.max_subargs_per_line = 6
-    self.source_str = """\
-foreach(forbarbaz arg1 arg2 arg3)
-  message(hello ${foobarbaz})
-endforeach()
-"""
-    self.expect_format = """\
-foreach(forbarbaz arg1 arg2 arg3)
-  message(hello ${foobarbaz})
-endforeach()
-"""
-
-  def test_while(self):
-    self.config.max_subargs_per_line = 6
-    self.source_str = """\
-
-while(forbarbaz arg1 arg2 arg3)
-  message(hello ${foobarbaz})
-endwhile()
-"""
-    self.expect_format = """\
-while(forbarbaz arg1 arg2 arg3)
-  message(hello ${foobarbaz})
-endwhile()
-"""
-
-  def test_ctrl_space(self):
-    self.config.separate_ctrl_name_with_space = True
-    self.source_str = """\
-if(foo)
-  myfun(foo bar baz)
-endif()
-"""
-    self.expect_format = """\
-if (foo)
-  myfun(foo bar baz)
-endif ()
-"""
-
-  def test_fn_space(self):
-    self.config.separate_fn_name_with_space = True
-    self.source_str = """\
-myfun(foo bar baz)
-"""
-    self.expect_format = """\
-myfun (foo bar baz)
-"""
-
   def test_preserve_separator(self):
     self.source_str = """\
 # --------------------
@@ -405,6 +195,8 @@ myfun (foo bar baz)
 # This is some text that I expect to reflow
 # --------------------
 """
+    with self.subTest(sub="a"):
+      assert_format(self, self.source_str, self.expect_format)
 
     self.source_str = """\
 # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
@@ -419,6 +211,9 @@ myfun (foo bar baz)
 # !@#$^&*!@#$%^&*!@#$%^&*!@#$%^&*
 """
 
+    with self.subTest(sub="b"):
+      assert_format(self, self.source_str, self.expect_format)
+
     self.source_str = """\
 # ----Not Supported----
 # This is some
@@ -431,6 +226,9 @@ myfun (foo bar baz)
 # This is some text that I expect to reflow
 # ----Not Supported----
 """
+
+    with self.subTest(sub="c"):
+      assert_format(self, self.source_str, self.expect_format)
 
   def test_bullets(self):
     self.source_str = """\
@@ -509,100 +307,7 @@ myfun (foo bar baz)
 #
 """
 
-  def test_nested_bullets(self):
-    self.source_str = """\
-# This is a bulleted list:
-#
-#   * item 1
-#   * item 2
-#
-#     * item 3
-#     * item 4
-#
-#       * item 5
-#       * item 6
-#
-# * item 7
-# * item 8
-"""
-    self.expect_format = """\
-# This is a bulleted list:
-#
-# * item 1
-# * item 2
-#
-#   * item 3
-#   * item 4
-#
-#     * item 5
-#     * item 6
-#
-# * item 7
-# * item 8
-"""
-
-  def test_comment_fence(self):
-    self.source_str = """\
-# ~~~~~~
-#   This is some
-#  verbatim text
-#      that should not be
-# formatted
-# ```````
-"""
-    self.expect_format = """\
-# ~~~
-#   This is some
-#  verbatim text
-#      that should not be
-# formatted
-# ~~~
-"""
-
-  def test_bracket_comments(self):
-
-    self.source_str = """\
-# [[This is a bracket comment.
-It is preserved verbatim, but trailing whitespace is removed.
-So things like --this-- Are fine:]]
-"""
-    self.expect_format = """\
-# [[This is a bracket comment.
-It is preserved verbatim, but trailing whitespace is removed.
-So things like --this-- Are fine:]]
-"""
-
-    self.source_str = """\
-if(foo)
-  # [==[This is a bracket comment at some nested level
-  #    it is preserved verbatim, but trailing
-  #    whitespace is removed.]==]
-endif()
-"""
-    self.expect_format = """\
-if(foo)
-  # [==[This is a bracket comment at some nested level
-  #    it is preserved verbatim, but trailing
-  #    whitespace is removed.]==]
-endif()
-"""
-
-    # Make sure bracket comments are kept inline in their function call
-    self.source_str = """\
-message("First Argument" #[[Bracket Comment]] "Second Argument")
-"""
-    self.expect_format = """\
-message("First Argument" #[[Bracket Comment]] "Second Argument")
-"""
-
-  def test_comment_after_command(self):
-    self.source_str = """\
-foo_command() # comment
-"""
-    self.expect_format = """\
-foo_command() # comment
-"""
-
+  def test_long_comment_after_command(self):
     self.source_str = """\
 foo_command() # this is a long comment that exceeds the desired page width and will be wrapped to a newline
 """
@@ -828,43 +533,6 @@ FoO(bar baz)
 FoO(bar baz)
 """)
 
-  def test_comment_in_statement(self):
-    self.expect_format = """\
-add_library(foo # This comment is not attached to an argument
-            bar.cc foo.cc)
-"""
-
-  def test_comment_at_end_of_statement(self):
-    with self.subTest():
-      assert_format(self, """\
-add_library(foo bar.cc foo.cc # This comment is not attached to an argument
-)
-""")
-
-    with self.subTest():
-      assert_format(self, """\
-target_link_libraries(
-  libraryname PUBLIC ${COMMON_LIBRARIES} # add more library dependencies here
-)
-""")
-
-    with self.subTest():
-      assert_format(self, """\
-find_package(
-  foobar REQUIRED
-  COMPONENTS some_component # some_other_component
-             # This is a very long comment, and actually the second comment in
-             # this row.
-)
-""", """\
-find_package(
-  foobar REQUIRED
-  COMPONENTS some_component # some_other_component
-             # This is a very long comment, and actually the second comment in
-             # this row.
-)
-""")
-
   def test_comment_in_kwarg(self):
     self.source_str = """\
 install(TARGETS foob
@@ -877,29 +545,6 @@ install(
   TARGETS foob
   ARCHIVE DESTINATION foobar # this is a line comment, not a comment on foobar
           COMPONENT baz)
-"""
-
-  def test_algoorder_preference(self):
-    self.config.max_subargs_per_line = 10
-    self.source_str = """\
-some_long_command_name(longargument longargument longargument longargument
-  longargument longargument)
-"""
-    self.expect_format = """\
-some_long_command_name(longargument longargument longargument longargument
-                       longargument longargument)
-"""
-
-  def test_elseif(self):
-    self.expect_format = """\
-if(MSVC)
-
-elseif(
-  (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  OR CMAKE_COMPILER_IS_GNUCC
-  OR CMAKE_COMPILER_IS_GNUCXX)
-
-endif()
 """
 
   def test_elseif_else_control_space(self):
@@ -918,19 +563,6 @@ elseif (bar)
 else ()
 
 endif ()
-"""
-
-  def test_disable_markup(self):
-    self.config.enable_markup = False
-    self.source_str = """\
-# don't reflow
-# or parse markup
-# for these lines
-"""
-    self.expect_format = """\
-# don't reflow
-# or parse markup
-# for these lines
 """
 
   def test_literal_first_comment(self):
@@ -962,14 +594,6 @@ endif ()
 # This comment is reflowed
 """
 
-  def test_shebang_preserved(self):
-    self.source_str = """\
-#!/usr/bin/cmake -P
-"""
-    self.expect_format = """\
-#!/usr/bin/cmake -P
-"""
-
   def test_preserve_copyright(self):
     self.source_str = """\
 # Copyright 2018: Josh Bialkowski
@@ -991,14 +615,6 @@ endif ()
 # Copyright 2018: Josh Bialkowski
 # This text should not be reflowed
 # because it's a copyright
-"""
-
-  def test_kwarg_match_consumes(self):
-    self.source_str = """\
-add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
-"""
-    self.expect_format = """\
-add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
 """
 
   def test_byte_order_mark(self):
@@ -1037,15 +653,6 @@ FoO(bar baz)
 """
     self.expect_format = """\
 FoO(bar baz)
-"""
-
-  def test_quoted_assignment_literal(self):
-    self.source_str = """\
-target_compile_definitions(foo PUBLIC BAR="Quoted String" BAZ_______________________Z)
-"""
-    self.expect_format = """\
-target_compile_definitions(foo PUBLIC BAR="Quoted String"
-                           BAZ_______________________Z)
 """
 
   def test_keyword_comment(self):
@@ -1122,17 +729,6 @@ add_library(
 #########################################################################
 # Custom targets
 #########################################################################
-"""
-
-  def test_canonical_spelling(self):
-    self.expect_format = """\
-ExternalProject_Add(
-  foobar
-  URL https://foobar.baz/latest.tar.gz
-  TLS_VERIFY TRUE
-  CONFIGURE_COMMAND configure
-  BUILD_COMMAND make
-  INSTALL_COMMAND make install)
 """
 
   def test_comment_hashrulers(self):
@@ -1238,8 +834,6 @@ ExternalProject_Add(
 # {full_line}
 """.format(min_width=min_width, full_line=full_line))
 
-
-TestMiscFormatting.load_sidecar_tests()
 
 if __name__ == '__main__':
   unittest.main()

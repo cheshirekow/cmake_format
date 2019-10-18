@@ -9,8 +9,6 @@ py_library(
         "commands.py",
         "common.py",
         "configuration.py",
-        "doc/conf.py",
-        "doc/gendoc_sources.py",
         "formatter.py",
         "invocation_tests.py",
         "layout_tests.py",
@@ -30,18 +28,9 @@ py_library(
         "parser_tests.py",
         "pypi/setup.py",
         "render.py",
-        "screw_users_test.py",
-        "test/cmake-format.py",
-        "test/cmake-format-split-1.py",
-        "test/cmake-format-split-2.py",
         "tests.py"],
     data=["templates/layout.html.tpl",
           "templates/style.css"])
-
-py_library(
-    name="testdata",
-    data=glob(["test/*"]),
-)
 
 # -- Python 2 --
 
@@ -55,7 +44,8 @@ py_binary(
 py_test(
     name="invocation_tests",
     srcs=["invocation_tests.py"],
-    deps=[":cmake_format", ":testdata"],
+    deps=[":cmake_format",
+          "//cmake_format/test:data"],
     python_version="PY2",
     )
 
@@ -93,7 +83,8 @@ py_test(
     name="invocation_tests_py3",
     srcs=["invocation_tests.py"],
     main="invocation_tests.py",
-    deps=[":cmake_format", ":testdata"],
+    deps=[":cmake_format",
+          "//cmake_format/test:data"],
     python_version="PY3",
     )
 

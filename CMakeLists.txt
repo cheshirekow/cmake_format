@@ -9,23 +9,24 @@ include(${CMAKE_SOURCE_DIR}/cmake/doctools.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/pkgconfig.cmake)
 
 find_package(Threads REQUIRED)
-pkg_find(PKG eigen3
-         PKG fontconfig
-         PKG freetype2
-         PKG fuse
-         PKG glib-2.0
-         PKG gnuradio-osmosdr
-         PKG gnuradio-filter
-         PKG gtk+-3.0
-         PKG gtkmm-3.0
-         PKG libcurl
-         PKG libglog
-         PKG libpng NAMES libpng12 libpng16
-         PKG librtlsdr
-         PKG libudev
-         PKG tinyxml2
-         PKG vulkan
-         PKG x11-xcb)
+pkg_find(
+  PKG eigen3
+  PKG fontconfig
+  PKG freetype2
+  PKG fuse
+  PKG glib-2.0
+  PKG gnuradio-osmosdr
+  PKG gnuradio-filter
+  PKG gtk+-3.0
+  PKG gtkmm-3.0
+  PKG libcurl
+  PKG libglog
+  PKG libpng NAMES libpng12 libpng16
+  PKG librtlsdr
+  PKG libudev
+  PKG tinyxml2
+  PKG vulkan
+  PKG x11-xcb)
 
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/googletest/include)
@@ -33,7 +34,9 @@ include_directories(${CMAKE_SOURCE_DIR}/third_party/re2)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/fmt/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/glm)
 
-set(CXX_STANDARD "c++11" CACHE STRING "argument to '-std=' for C++ compiler")
+set(CXX_STANDARD
+    "c++11"
+    CACHE STRING "argument to '-std=' for C++ compiler")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STANDARD}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
@@ -51,7 +54,10 @@ set_property(GLOBAL PROPERTY gloal_doc_files "")
 # actually contain a listfile. While globs are evil, this is necessary for
 # sparse checkouts. We can and should correctly add dependencies for this glob
 # in order to retrigger cmake.
-file(GLOB children RELATIVE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/*)
+file(
+  GLOB children
+  RELATIVE ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/*)
 foreach(child ${children})
   if(EXISTS ${CMAKE_SOURCE_DIR}/${child}/CMakeLists.txt)
     message("Enabling subdirectory '${child}' for this checkout")
@@ -68,14 +74,21 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/doxy.config.in)
   # set(DOXY_WARN_FORMAT "\"$file:$line: $text \"")
   # ~~~
   configure_file("${PROJECT_SOURCE_DIR}/doxy.config.in"
-                "${PROJECT_BINARY_DIR}/doxy.config")
+                 "${PROJECT_BINARY_DIR}/doxy.config")
 
-  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doxy.stamp
-                    COMMAND doxygen ${PROJECT_BINARY_DIR}/doxy.config
-                    COMMAND touch ${PROJECT_BINARY_DIR}/doxy.stamp
-                    DEPENDS ${PROJECT_BINARY_DIR}/doxy.config
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  add_custom_command(
+    OUTPUT ${PROJECT_BINARY_DIR}/doxy.stamp
+    COMMAND doxygen ${PROJECT_BINARY_DIR}/doxy.config
+    COMMAND touch ${PROJECT_BINARY_DIR}/doxy.stamp
+    DEPENDS ${PROJECT_BINARY_DIR}/doxy.config
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_custom_target(doxygen DEPENDS ${PROJECT_BINARY_DIR}/doxy.stamp)
   add_dependencies(doc doxygen)
 endif()
+
+add_custom_target(
+  better-test
+  COMMAND ctest --force-new-ctest-process --output-on-failure
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMENT "Execute ctest")

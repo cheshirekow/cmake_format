@@ -119,6 +119,7 @@ class DontScrewUsers(unittest.TestCase):
 
     env = os.environ.copy()
     thisdir = os.path.dirname(__file__)
+    thisdir = os.path.dirname(thisdir)
     repodir = os.path.dirname(thisdir)
     env["PYTHONPATH"] = os.path.realpath(repodir)
 

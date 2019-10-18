@@ -41,7 +41,7 @@ Install from source
 You can also install from source with pip. You can download a release_ package
 from github and then install it directly with pip. For example::
 
-  pip install v0.5.0.tar.gz
+  pip install v0.6.1.tar.gz
 
 .. _release: https://github.com/cheshirekow/cmake_format/releases
 
@@ -70,3 +70,20 @@ IDE Integrations
 
 Note that for both plugins ``cmake-format`` itself must be installed
 separately.
+
+Pre-commit
+==========
+
+If you are a user of the `pre-commit`__ project you can easily add
+``cmake-format`` to your hooks with the following addition to your
+``.pre-commit-hooks.yaml`` file.
+
+.. __: https://pre-commit.com/
+
+.. code:: yaml
+
+   repos:
+     - repo: https://github.com/cheshirekow/cmake-format-precommit
+       rev: v0.6.1
+       hooks:
+       - id: cmake-format

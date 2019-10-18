@@ -6,6 +6,20 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.1
+------
+
+* consolidate ``--config-file`` command line flag variants
+* add documentation on integration with ``pre-commit``
+* add documentation on sidecar tests
+* simplify the tag format for sidecar tests
+* add support of config options and lex/parse/layout assertions in sidecar
+  tests
+* add documentation on debugging with tests
+* add tests to validate pull requests
+* move most tests into sidecar files
+
+
 v0.6.0
 ------
 

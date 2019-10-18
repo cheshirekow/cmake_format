@@ -421,7 +421,7 @@ def setup_argparser(arg_parser):
                           'Default is stdout.')
 
   arg_parser.add_argument(
-      '-c', '--config-file', '--config-files', '--config', nargs='+',
+      '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
   arg_parser.add_argument('infilepaths', nargs='*')
   add_config_options(arg_parser)
@@ -447,7 +447,7 @@ def main():
   logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
   if args.dump_config:
-    config_dict = get_config(os.getcwd(), args.config_file)
+    config_dict = get_config(os.getcwd(), args.config_files)
     dump_config(args, config_dict, sys.stdout)
     sys.exit(0)
 
@@ -475,9 +475,9 @@ def main():
     # NOTE(josh): have to load config once for every file, because we may pick
     # up a new config file location for each path
     if infile_path == '-':
-      config_dict = get_config(os.getcwd(), args.config_file)
+      config_dict = get_config(os.getcwd(), args.config_files)
     else:
-      config_dict = get_config(infile_path, args.config_file)
+      config_dict = get_config(infile_path, args.config_files)
 
     for key, value in vars(args).items():
       if (key in configuration.Configuration.get_field_names()

@@ -18,7 +18,13 @@ format_and_lint(
   command_tests/set_tests.py
   common.py
   configuration.py
+  contrib/__init__.py
+  contrib/sign_ca.py
+  contrib/validate_database.py
+  contrib/validate_pullrequest.py
+  doc/__init__.py
   doc/conf.py
+  doc/docsources_test.py
   doc/gendoc_sources.py
   formatter.py
   invocation_tests.py
@@ -39,19 +45,16 @@ format_and_lint(
   parser_tests.py
   pypi/setup.py
   render.py
-  screw_users_test.py
+  test/__init__.py
   test/cmake-format.py
   test/cmake-format-split-1.py
   test/cmake-format-split-2.py
+  test/screw_users_test.py
+  test/version_number_test.py
   tests.py)
 
-set(
-  _testnames
-  invocation_tests
-  layout_tests
-  lexer_tests
-  markup_tests
-  parser_tests)
+set(_testnames invocation_tests layout_tests lexer_tests markup_tests
+               parser_tests)
 
 foreach(_testname ${_testnames})
   add_test(
@@ -69,5 +72,7 @@ if(NOT IS_TRAVIS_CI)
   endforeach()
 endif()
 
-add_subdirectory(doc)
 add_subdirectory(command_tests)
+add_subdirectory(contrib)
+add_subdirectory(doc)
+add_subdirectory(test)
