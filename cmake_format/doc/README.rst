@@ -105,7 +105,7 @@ Usage
       --min-prefix-chars MIN_PREFIX_CHARS
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
-                            parenthesis is larger than the tab width by more than
+                            parenthesis) is larger than the tab width by more than
                             this amoung, then force reject un-nested layouts.
       --max-lines-hwrap MAX_LINES_HWRAP
                             If a candidate layout is wrapped horizontally but it
