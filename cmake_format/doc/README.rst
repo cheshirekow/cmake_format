@@ -105,7 +105,7 @@ Usage
       --min-prefix-chars MIN_PREFIX_CHARS
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
-                            parenthesis is larger than the tab width by more than
+                            parenthesis) is larger than the tab width by more than
                             this amount, then force reject un-nested layouts.
       --max-lines-hwrap MAX_LINES_HWRAP
                             If a candidate layout is wrapped horizontally but it
@@ -574,7 +574,7 @@ You can also join the ``#cmake-format`` channel on our `discord server`_.
 Developers
 ----------
 
-If you want to hack on ``cmake-format``, please see the `documenation`__ for
+If you want to hack on ``cmake-format``, please see the `documentation`__ for
 contribution rules and guidelines.
 
 .. __: https://cmake-format.rtfd.io/contributing.html
