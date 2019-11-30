@@ -200,7 +200,7 @@ fields:
   only positionals, then it can be simply the ``pargs`` specification (as in
   the example above).
 
-For the example specification above, the custom command would look somehing
+For the example specification above, the custom command would look something
 like this:
 
 .. code::

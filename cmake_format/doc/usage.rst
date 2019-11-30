@@ -61,7 +61,7 @@ pleasant way.
     min_prefix_chars = 4
 
     # If the statement spelling length (including space and parenthesis is larger
-    # than the tab width by more than this amoung, then force reject un-nested
+    # than the tab width by more than this amount, then force reject un-nested
     # layouts.
     max_prefix_chars = 10
 
@@ -252,7 +252,7 @@ Usage
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
                             parenthesis is larger than the tab width by more than
-                            this amoung, then force reject un-nested layouts.
+                            this amount, then force reject un-nested layouts.
       --max-lines-hwrap MAX_LINES_HWRAP
                             If a candidate layout is wrapped horizontally but it
                             exceeds this many lines, then reject the layout.

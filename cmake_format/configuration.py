@@ -339,7 +339,7 @@ VARDOCS = {
         " level, `child`: align to the column of the arguments"),
     "max_prefix_chars": (
         "If the statement spelling length (including space and parenthesis"
-        " is larger than the tab width by more than this amoung, then"
+        " is larger than the tab width by more than this amount, then"
         " force reject un-nested layouts."),
     "max_lines_hwrap": (
         "If a candidate layout is wrapped horizontally but it exceeds this"
