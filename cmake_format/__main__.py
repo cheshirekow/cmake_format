@@ -96,7 +96,7 @@ def dump_markup(nodes, config, outfile=None, indent=None):
       dump_markup(node.children, config, outfile, indent + '│   ')
 
 
-def process_file(config, infile_content, dump=None):
+def process_file(config, infile_content, dump=None, extra=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
   """
@@ -126,6 +126,9 @@ def process_file(config, infile_content, dump=None):
   if dump == "layout":
     formatter.dump_tree([box_tree], outfile)
     return outfile.getvalue()
+
+  if extra is not None:
+    extra["reflow_valid"] = box_tree.reflow_valid
 
   outstr = formatter.write_tree(box_tree, config, infile_content)
   if config.emit_byteorder_mark:
@@ -416,6 +419,10 @@ def setup_argparser(arg_parser):
 
   mutex = arg_parser.add_mutually_exclusive_group()
   mutex.add_argument('-i', '--in-place', action='store_true')
+  mutex.add_argument(
+      '--check', action='store_true',
+      help="Exit with status code 0 if formatting would not change file "
+           "contents, or status code 1 if it would")
   mutex.add_argument('-o', '--outfile-path', default=None,
                      help='Where to write the formatted file. '
                           'Default is stdout.')
@@ -471,6 +478,7 @@ def main():
     assert args.outfile_path == '-', \
         "If stdin is the input file, then stdout must be the output file"
 
+  returncode = 0
   for infile_path in args.infilepaths:
     # NOTE(josh): have to load config once for every file, because we may pick
     # up a new config file location for each path
@@ -495,10 +503,21 @@ def main():
       intext = infile.read()
 
     try:
-      outtext = process_file(cfg, intext, args.dump)
+      # TODO(josh)[06918d6]: get rid of "extra" dictionary in process_files
+      extra = {"reflow_valid": True}
+      outtext = process_file(cfg, intext, args.dump, extra)
+      if cfg.require_valid_layout and not extra.get("reflow_valid", False):
+        logger.error("Failed to format %s", infile_path)
+        returncode = 1
+        continue
     except:
-      sys.stderr.write('While processing {}\n'.format(infile_path))
+      logger.warning('While processing %s', infile_path)
       raise
+
+    if args.check:
+      if intext != outtext:
+        returncode = 1
+      continue
 
     if args.in_place:
       if intext == outtext:
@@ -525,9 +544,10 @@ def main():
       outfile.write(outtext)
 
     if args.in_place:
+      shutil.copymode(infile_path, tempfile_path)
       shutil.move(tempfile_path, infile_path)
 
-  return 0
+  return returncode
 
 
 if __name__ == '__main__':

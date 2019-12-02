@@ -5,17 +5,14 @@ format_and_lint(
   __main__.py
   annotate.py
   commands.py
-  command_tests/add_custom_command_tests.py
+  command_tests/__init__.py
+  command_tests/__main__.py
+  command_tests/add_custom_command_tests.cmake
   command_tests/add_executable_tests.py
   command_tests/add_library_tests.py
-  command_tests/conditional_tests.py
-  command_tests/export_tests.py
-  command_tests/file_tests.py
-  command_tests/__init__.py
-  command_tests/install_tests.py
-  command_tests/__main__.py
+  command_tests/CMakeLists.txt
   command_tests/misc_tests.py
-  command_tests/set_tests.py
+  command_tests/partialmethod.py
   common.py
   configuration.py
   contrib/__init__.py
@@ -33,14 +30,16 @@ format_and_lint(
   lexer_tests.py
   markup.py
   markup_tests.py
+  parse_funs/__init__.py
   parse_funs/add_executable.py
   parse_funs/add_library.py
   parse_funs/add_xxx.py
   parse_funs/external_project.py
   parse_funs/fetch_content.py
   parse_funs/file.py
-  parse_funs/__init__.py
+  parse_funs/foreach.py
   parse_funs/install.py
+  parse_funs/set_target_properties.py
   parser.py
   parser_tests.py
   pypi/setup.py
@@ -51,7 +50,10 @@ format_and_lint(
   test/cmake-format-split-2.py
   test/screw_users_test.py
   test/version_number_test.py
-  tests.py)
+  tests.py
+  tools/parse_cmake_help.py
+  tools/usage_lexer.py
+  tools/usage_parser.py)
 
 set(_testnames invocation_tests layout_tests lexer_tests markup_tests
                parser_tests)

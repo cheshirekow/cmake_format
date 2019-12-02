@@ -13,7 +13,7 @@ from cmake_format.parser import (
     WHITESPACE_TOKENS,
 )
 
-logger = logging.getLogger("cmake-format")
+logger = logging.getLogger(__name__)
 
 
 def parse_add_executable_imported(tokens, breakstack):

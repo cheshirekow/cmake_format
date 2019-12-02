@@ -242,7 +242,7 @@ init-import=no
 
 # List of additional names supposed to be defined in builtins. Remember that
 # you should avoid to define new builtins when possible.
-additional-builtins=unicode
+additional-builtins=unicode,ResourceWarning
 
 
 [IMPORTS]

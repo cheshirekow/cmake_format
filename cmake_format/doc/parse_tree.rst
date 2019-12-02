@@ -341,61 +341,61 @@ You can inspect the layout tree of a listfile by ``cmake-format`` with
 
 .. code:: text
 
-    └─ BODY,(passno=0,wrap=F) pos:(0,0) colextent:35
-        ├─ STATEMENT,(passno=0,wrap=F) pos:(0,0) colextent:35
-        │   ├─ FUNNAME,(passno=0,wrap=F) pos:(0,0) colextent:22
-        │   ├─ LPAREN,(passno=0,wrap=F) pos:(0,22) colextent:23
-        │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(0,23) colextent:34
-        │   │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(0,23) colextent:34
-        │   │       ├─ KEYWORD,(passno=0,wrap=F) pos:(0,23) colextent:30
-        │   │       └─ ARGGROUP,(passno=0,wrap=F) pos:(0,31) colextent:34
-        │   │           └─ PARGGROUP,(passno=0,wrap=F) pos:(0,31) colextent:34
-        │   │               └─ ARGUMENT,(passno=0,wrap=F) pos:(0,31) colextent:34
-        │   └─ RPAREN,(passno=0,wrap=F) pos:(0,34) colextent:35
-        ├─ STATEMENT,(passno=0,wrap=F) pos:(1,0) colextent:13
-        │   ├─ FUNNAME,(passno=0,wrap=F) pos:(1,0) colextent:7
-        │   ├─ LPAREN,(passno=0,wrap=F) pos:(1,7) colextent:8
-        │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(1,8) colextent:12
-        │   │   └─ PARGGROUP,(passno=0,wrap=F) pos:(1,8) colextent:12
-        │   │       └─ ARGUMENT,(passno=0,wrap=F) pos:(1,8) colextent:12
-        │   └─ RPAREN,(passno=0,wrap=F) pos:(1,12) colextent:13
-        └─ FLOW_CONTROL,(passno=0,wrap=F) pos:(2,0) colextent:29
-            ├─ STATEMENT,(passno=0,wrap=F) pos:(2,0) colextent:24
-            │   ├─ FUNNAME,(passno=0,wrap=F) pos:(2,0) colextent:2
-            │   ├─ LPAREN,(passno=0,wrap=F) pos:(2,2) colextent:3
-            │   ├─ ARGGROUP,(passno=0,wrap=F) pos:(2,3) colextent:23
-            │   │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(2,3) colextent:6
-            │   │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(2,3) colextent:6
-            │   │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(2,7) colextent:23
-            │   │       ├─ KEYWORD,(passno=0,wrap=F) pos:(2,7) colextent:10
-            │   │       └─ ARGGROUP,(passno=0,wrap=F) pos:(2,11) colextent:23
-            │   │           └─ PARENGROUP,(passno=0,wrap=F) pos:(2,11) colextent:23
-            │   │               ├─ LPAREN,(passno=0,wrap=F) pos:(2,11) colextent:12
-            │   │               ├─ ARGGROUP,(passno=0,wrap=F) pos:(2,12) colextent:22
-            │   │               │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(2,12) colextent:15
-            │   │               │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(2,12) colextent:15
-            │   │               │   └─ KWARGGROUP,(passno=0,wrap=F) pos:(2,16) colextent:22
-            │   │               │       ├─ KEYWORD,(passno=0,wrap=F) pos:(2,16) colextent:18
-            │   │               │       └─ ARGGROUP,(passno=0,wrap=F) pos:(2,19) colextent:22
-            │   │               │           └─ PARGGROUP,(passno=0,wrap=F) pos:(2,19) colextent:22
-            │   │               │               └─ ARGUMENT,(passno=0,wrap=F) pos:(2,19) colextent:22
-            │   │               └─ RPAREN,(passno=0,wrap=F) pos:(2,22) colextent:23
-            │   └─ RPAREN,(passno=0,wrap=F) pos:(2,23) colextent:24
-            ├─ BODY,(passno=0,wrap=F) pos:(3,2) colextent:29
-            │   └─ STATEMENT,(passno=0,wrap=F) pos:(3,2) colextent:29
-            │       ├─ FUNNAME,(passno=0,wrap=F) pos:(3,2) colextent:13
-            │       ├─ LPAREN,(passno=0,wrap=F) pos:(3,13) colextent:14
-            │       ├─ ARGGROUP,(passno=0,wrap=F) pos:(3,14) colextent:28
-            │       │   ├─ PARGGROUP,(passno=0,wrap=F) pos:(3,14) colextent:19
-            │       │   │   └─ ARGUMENT,(passno=0,wrap=F) pos:(3,14) colextent:19
-            │       │   └─ PARGGROUP,(passno=0,wrap=F) pos:(3,20) colextent:28
-            │       │       └─ ARGUMENT,(passno=0,wrap=F) pos:(3,20) colextent:28
-            │       └─ RPAREN,(passno=0,wrap=F) pos:(3,28) colextent:29
-            └─ STATEMENT,(passno=0,wrap=F) pos:(4,0) colextent:7
-                ├─ FUNNAME,(passno=0,wrap=F) pos:(4,0) colextent:5
-                ├─ LPAREN,(passno=0,wrap=F) pos:(4,5) colextent:6
-                ├─ ARGGROUP,(passno=0,wrap=F) pos:(4,6) colextent:6
-                └─ RPAREN,(passno=0,wrap=F) pos:(4,6) colextent:7
+    └─ BODY,(passno=0,wrap=F,ok=T) pos:(0,0) colextent:35
+        ├─ STATEMENT,(passno=0,wrap=F,ok=T) pos:(0,0) colextent:35
+        │   ├─ FUNNAME,(passno=0,wrap=F,ok=T) pos:(0,0) colextent:22
+        │   ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(0,22) colextent:23
+        │   ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(0,23) colextent:34
+        │   │   └─ KWARGGROUP,(passno=0,wrap=F,ok=T) pos:(0,23) colextent:34
+        │   │       ├─ KEYWORD,(passno=0,wrap=F,ok=T) pos:(0,23) colextent:30
+        │   │       └─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(0,31) colextent:34
+        │   │           └─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(0,31) colextent:34
+        │   │               └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(0,31) colextent:34
+        │   └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(0,34) colextent:35
+        ├─ STATEMENT,(passno=0,wrap=F,ok=T) pos:(1,0) colextent:13
+        │   ├─ FUNNAME,(passno=0,wrap=F,ok=T) pos:(1,0) colextent:7
+        │   ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(1,7) colextent:8
+        │   ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(1,8) colextent:12
+        │   │   └─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(1,8) colextent:12
+        │   │       └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(1,8) colextent:12
+        │   └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(1,12) colextent:13
+        └─ FLOW_CONTROL,(passno=0,wrap=F,ok=T) pos:(2,0) colextent:29
+            ├─ STATEMENT,(passno=0,wrap=F,ok=T) pos:(2,0) colextent:24
+            │   ├─ FUNNAME,(passno=0,wrap=F,ok=T) pos:(2,0) colextent:2
+            │   ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(2,2) colextent:3
+            │   ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,3) colextent:23
+            │   │   ├─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,3) colextent:6
+            │   │   │   └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(2,3) colextent:6
+            │   │   └─ KWARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,7) colextent:23
+            │   │       ├─ KEYWORD,(passno=0,wrap=F,ok=T) pos:(2,7) colextent:10
+            │   │       └─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,11) colextent:23
+            │   │           └─ PARENGROUP,(passno=0,wrap=F,ok=T) pos:(2,11) colextent:23
+            │   │               ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(2,11) colextent:12
+            │   │               ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,12) colextent:22
+            │   │               │   ├─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,12) colextent:15
+            │   │               │   │   └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(2,12) colextent:15
+            │   │               │   └─ KWARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,16) colextent:22
+            │   │               │       ├─ KEYWORD,(passno=0,wrap=F,ok=T) pos:(2,16) colextent:18
+            │   │               │       └─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,19) colextent:22
+            │   │               │           └─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(2,19) colextent:22
+            │   │               │               └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(2,19) colextent:22
+            │   │               └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(2,22) colextent:23
+            │   └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(2,23) colextent:24
+            ├─ BODY,(passno=0,wrap=F,ok=T) pos:(3,2) colextent:29
+            │   └─ STATEMENT,(passno=0,wrap=F,ok=T) pos:(3,2) colextent:29
+            │       ├─ FUNNAME,(passno=0,wrap=F,ok=T) pos:(3,2) colextent:13
+            │       ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(3,13) colextent:14
+            │       ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(3,14) colextent:28
+            │       │   ├─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(3,14) colextent:19
+            │       │   │   └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(3,14) colextent:19
+            │       │   └─ PARGGROUP,(passno=0,wrap=F,ok=T) pos:(3,20) colextent:28
+            │       │       └─ ARGUMENT,(passno=0,wrap=F,ok=T) pos:(3,20) colextent:28
+            │       └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(3,28) colextent:29
+            └─ STATEMENT,(passno=0,wrap=F,ok=T) pos:(4,0) colextent:7
+                ├─ FUNNAME,(passno=0,wrap=F,ok=T) pos:(4,0) colextent:5
+                ├─ LPAREN,(passno=0,wrap=F,ok=T) pos:(4,5) colextent:6
+                ├─ ARGGROUP,(passno=0,wrap=F,ok=T) pos:(4,6) colextent:6
+                └─ RPAREN,(passno=0,wrap=F,ok=T) pos:(4,6) colextent:7
 
 .. dynamic: dump-example-layout-end
 

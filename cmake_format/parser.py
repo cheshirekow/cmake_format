@@ -420,14 +420,20 @@ def iter_semantic_tokens(tokens):
     yield token
 
 
+def get_nth_semantic_token(tokens, nth):
+  idx = 0
+  for token in iter_semantic_tokens(tokens):
+    if idx == nth:
+      return token
+    idx += 1
+  return None
+
+
 def get_first_semantic_token(tokens):
   """
   Return the first token with semantic meaning
   """
-
-  for token in iter_semantic_tokens(tokens):
-    return token
-  return None
+  return get_nth_semantic_token(tokens, 0)
 
 
 def parse_pattern(tokens, breakstack):
@@ -598,7 +604,7 @@ def parse_positional_tuples(tokens, npargs, ntup, flags, breakstack):
     subtree.children.append(child)
     ntup_consumed += 1
 
-    if ntup_consumed > ntup:
+    if ntup_consumed >= ntup:
       npargs_consumed += 1
       subtree = None
 
@@ -634,7 +640,8 @@ def parse_flags(tokens, flags, breakstack):
   Parse a continuous sequence of flags
   """
 
-  tree = TreeNode(NodeType.FLAGGROUP)
+  # TODO(josh): use a bespoke FLAGGROUP?
+  tree = TreeNode(NodeType.PARGGROUP)
   while tokens:
     # Break if the next token belongs to a parent parser, i.e. if it
     # matches a keyword argument of something higher in the stack, or if

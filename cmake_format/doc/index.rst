@@ -24,6 +24,8 @@ like crap.
    case_studies
    render_html
    configopts
+   contributing
+   automatic_parsers
 
    release_notes
    changelog

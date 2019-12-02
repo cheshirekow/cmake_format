@@ -8,6 +8,7 @@ import unittest
 import subprocess
 import sys
 import tempfile
+import warnings
 
 
 def get_repo_dir():
@@ -52,10 +53,20 @@ class TestContributorAgreements(unittest.TestCase):
     """
     Iterate over signatures and verify them.
     """
-
     if sys.version_info < (3, 0, 0):
       self.skipTest("no pgpy on this python version")
-    import pgpy  # pylint: disable=import-error
+
+    # TODO(josh): For some reason importing pgpy seems to cause the
+    # stderr filedescriptor to leak when we subprocess below. pgpy must be
+    # doing some ugly subprocess thing on it's own
+    warnings.simplefilter("ignore", ResourceWarning)
+
+    # TODO(josh): pgpy seems to import distutils and the version distributed
+    # with virtualenv on this system has an outdated import of `imp` instead
+    # of `importlib`.
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore", DeprecationWarning)
+      import pgpy  # pylint: disable=import-error
 
     repodir = get_repo_dir()
     with open(os.path.join(

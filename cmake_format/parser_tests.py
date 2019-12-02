@@ -166,9 +166,9 @@ class TestCanonicalParse(unittest.TestCase):
 
   def test_nested_kwargs(self):
     self.do_type_test("""\
-      add_custom_target(ALL VERBATIM
+      add_custom_target(name ALL VERBATIM
         COMMAND echo hello world
-        COMMENT this is some text)
+        COMMENT "this is some text")
       """, [
           (NodeType.BODY, [
               (NodeType.WHITESPACE, []),
@@ -177,7 +177,10 @@ class TestCanonicalParse(unittest.TestCase):
                   (NodeType.LPAREN, []),
                   (NodeType.ARGGROUP, [
                       (NodeType.PARGGROUP, [
+                          (NodeType.ARGUMENT, []),
                           (NodeType.FLAG, []),
+                      ]),
+                      (NodeType.PARGGROUP, [
                           (NodeType.FLAG, []),
                       ]),
                       (NodeType.KWARGGROUP, [
@@ -192,13 +195,8 @@ class TestCanonicalParse(unittest.TestCase):
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                          (NodeType.ARGGROUP, [
-                              (NodeType.PARGGROUP, [
-                                  (NodeType.ARGUMENT, []),
-                                  (NodeType.ARGUMENT, []),
-                                  (NodeType.ARGUMENT, []),
-                                  (NodeType.ARGUMENT, []),
-                              ]),
+                          (NodeType.PARGGROUP, [
+                              (NodeType.ARGUMENT, []),
                           ]),
                       ]),
                   ]),

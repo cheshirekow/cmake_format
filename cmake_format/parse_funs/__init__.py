@@ -140,8 +140,10 @@ SUBMODULE_NAMES = [
     "add_xxx",
     "external_project",
     "fetch_content",
+    "foreach",
     "file",
-    "install"
+    "install",
+    "set_target_properties"
 ]
 
 

@@ -4,13 +4,15 @@
 #
 # usage:
 # ~~~
-# format_and_lint(module
-#                 bar.h bar.cc
-#                 CMAKE CMakeLists.txt test/CMakeLists.txt
-#                 CC foo.h foo.cc
-#                 PY foo.py)
+# format_and_lint(
+#   module
+#   bar.h bar.cc
+#   CMAKE CMakeLists.txt test/CMakeLists.txt
+#   CC foo.h foo.cc
+#   CCDEPENDS ${CMAKE_BINARY_DIR}/generated.h ${CMAKE_BINARY_DIR}/generated.cc)
+#   PY foo.py
 # ~~~
-
+#
 # Will create rules `${module}_lint` and `${module}_format` using the standard
 # code formatters and lint checkers for the appropriate language. These
 # tools are:
@@ -21,27 +23,38 @@
 #
 # CPP:
 #   formatter: clang-format
-#   linter: cpplint
+#   linter: cpplint, clang-tidy
 #
 # PYTHON:
 #   formatter: autopep8
-#   linter: pylint
+#   linter: pylint, flake8
+#
+# Note that CCDEPENDS can be used to list additional file-level dependencies of
+# the generated rule. This is needed for any generated header files that may
+# be included by files that are to be linted. clang-tidy will fail out if it
+# cannot find the headers or if they are stale. We will need the code generator
+# to run before linting the dependant files.
 # ~~~
 function(format_and_lint module)
   set(cmake_files_)
   set(cc_files_)
+  set(ccdepends_files_)
   set(py_files_)
   set(js_files_)
   set(unknown_files_)
   set(state_ "AUTO")
 
+  # TODO(josh): I'm pretty sure this can be covered by a
+  # cmake_parse_args(args "" "" "CMAKE;CC;CCDEPENDS;PY" ${ARGN}) where the
+  # "auto" list is just ${args_UNPARED_ARGUMENTS}
   foreach(arg ${ARGN})
     # assign by filename
     if(state_ STREQUAL "AUTO")
-      if(arg STREQUAL "CMAKE" OR arg STREQUAL "CC" OR arg STREQUAL "PY")
+      if(arg STREQUAL "CMAKE" OR arg STREQUAL "CC" OR arg STREQUAL "CCDEPENDS"
+         OR arg STREQUAL "PY")
         set(state_ SPECIFIC)
         string(TOLOWER ${arg} typename_)
-        set(active_list_ ${typename}_files_)
+        set(active_list_ ${typename_}_files_)
       else()
         if(arg MATCHES ".*\.cmake" OR arg MATCHES ".*CMakeLists.txt")
           list(APPEND cmake_files_ ${arg})
@@ -56,9 +69,10 @@ function(format_and_lint module)
         endif()
       endif()
     elseif(state_ STREQUAL "SPECIFIC")
-      if(arg STREQUAL "CMAKE" OR arg STREQUAL "CC" OR arg STREQUAL "PY")
+      if(arg STREQUAL "CMAKE" OR arg STREQUAL "CC" OR arg STREQUAL "PY"
+         OR arg STREQUAL "CCDEPENDS")
         string(TOLOWER ${arg} typename_)
-        set(active_list_ ${typename}_files_)
+        set(active_list_ ${typename_}_files_)
       else()
         list(APPEND ${active_list_} ${arg})
       endif()
@@ -66,7 +80,7 @@ function(format_and_lint module)
   endforeach()
 
   set(fmtcmds_)
-  set(depfiles_)
+  set(depfiles_ ${ccdepends_files_})
   if(cmake_files_)
     list(APPEND fmtcmds_ COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR}
                                  python -Bm cmake_format -i ${cmake_files_})

@@ -159,38 +159,40 @@ class Configuration(object):
     out.update(misc_group)
     return out
 
-  def __init__(self, line_width=80, tab_size=2,
-               max_subgroups_hwrap=2,
-               max_pargs_hwrap=6,
-               separate_ctrl_name_with_space=False,
-               separate_fn_name_with_space=False,
-               dangle_parens=False,
-               dangle_align=None,
-               min_prefix_chars=4,
-               max_prefix_chars=10,
-               max_lines_hwrap=2,
-               bullet_char=None,
-               enum_char=None,
-               line_ending=None,
-               command_case=None,
-               keyword_case=None,
-               additional_commands=None,
-               always_wrap=None,
-               enable_sort=True,
-               autosort=False,
-               enable_markup=True,
-               first_comment_is_literal=False,
-               literal_comment_pattern=None,
-               fence_pattern=None,
-               ruler_pattern=None,
-               emit_byteorder_mark=False,
-               hashruler_min_length=10,
-               canonicalize_hashrulers=True,
-               input_encoding=None,
-               output_encoding=None,
-               per_command=None,
-               layout_passes=None,
-               **_):  # pylint: disable=W0613
+  def __init__(
+      self, line_width=80, tab_size=2,
+      max_subgroups_hwrap=2,
+      max_pargs_hwrap=6,
+      separate_ctrl_name_with_space=False,
+      separate_fn_name_with_space=False,
+      dangle_parens=False,
+      dangle_align=None,
+      min_prefix_chars=4,
+      max_prefix_chars=10,
+      max_lines_hwrap=2,
+      bullet_char=None,
+      enum_char=None,
+      line_ending=None,
+      command_case=None,
+      keyword_case=None,
+      additional_commands=None,
+      always_wrap=None,
+      enable_sort=True,
+      autosort=False,
+      enable_markup=True,
+      first_comment_is_literal=False,
+      literal_comment_pattern=None,
+      fence_pattern=None,
+      ruler_pattern=None,
+      emit_byteorder_mark=False,
+      hashruler_min_length=10,
+      canonicalize_hashrulers=True,
+      input_encoding=None,
+      output_encoding=None,
+      require_valid_layout=False,
+      per_command=None,
+      layout_passes=None,
+      **_):  # pylint: disable=W0613
 
     # pylint: disable=too-many-locals
     self.line_width = line_width
@@ -249,6 +251,7 @@ class Configuration(object):
 
     self.input_encoding = get_default(input_encoding, "utf-8")
     self.output_encoding = get_default(output_encoding, "utf-8")
+    self.require_valid_layout = require_valid_layout
 
     self.fn_spec = commands.get_fn_spec()
     if additional_commands is not None:
@@ -322,8 +325,8 @@ VARDOCS = {
         "If an argument group contains more than this many sub-groups "
         "(parg or kwarg groups), then force it to a vertical layout. "),
     "max_pargs_hwrap": (
-        "If a positinal argument group contains more than this many arguments, "
-        "then force it to a vertical layout. "),
+        "If a positional argument group contains more than this many"
+        " arguments, then force it to a vertical layout. "),
     "separate_ctrl_name_with_space": (
         "If true, separate flow control names from their parentheses with a"
         " space"),
@@ -338,8 +341,8 @@ VARDOCS = {
         " `prefix-indent`: the start of the statement, plus one indentation "
         " level, `child`: align to the column of the arguments"),
     "max_prefix_chars": (
-        "If the statement spelling length (including space and parenthesis"
-        " is larger than the tab width by more than this amoung, then"
+        "If the statement spelling length (including space and parenthesis)"
+        " is larger than the tab width by more than this amount, then"
         " force reject un-nested layouts."),
     "max_lines_hwrap": (
         "If a candidate layout is wrapped horizontally but it exceeds this"
@@ -391,6 +394,11 @@ VARDOCS = {
         "Specify the encoding of the output file. Defaults to utf-8. Note"
         " that cmake only claims to support utf-8 so be careful when using"
         " anything else"),
+    "require_valid_layout": (
+        "By default, if cmake-format cannot successfully fit everything into"
+        " the desired linewidth it will apply the last, most agressive attempt"
+        " that it made. If this flag is True, however, cmake-format will print"
+        " error, exit with non-zero status code, and write-out nothing"),
     "per_command": (
         "A dictionary containing any per-command configuration overrides."
         " Currently only `command_case` is supported."),

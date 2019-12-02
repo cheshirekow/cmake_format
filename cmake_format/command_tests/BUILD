@@ -4,15 +4,10 @@ py_library(
     name="command_tests",
     srcs=[
         "__init__.py",
-        "add_custom_command_tests.py",
         "add_executable_tests.py",
         "add_library_tests.py",
-        "conditional_tests.py",
-        "export_tests.py",
-        "file_tests.py",
-        "install_tests.py",
         "misc_tests.py",
-        "set_tests.py"],
+        "partialmethod.py"],
     data=[
         "add_custom_command_tests.cmake",
         "add_executable_tests.cmake",
@@ -22,62 +17,79 @@ py_library(
         "file_tests.cmake",
         "install_tests.cmake",
         "misc_tests.cmake",
+        "set_target_properties_tests.cmake",
         "set_tests.cmake"])
 
 # -- Python 2 --
 
 py_test(
     name="add_custom_command_tests",
-    srcs=["add_custom_command_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddCustomCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="add_executable_tests",
-    srcs=["add_executable_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddExecutableCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="add_library_tests",
-    srcs=["add_library_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddLibraryCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="conditional_tests",
-    srcs=["conditional_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestConditional"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="export_tests",
-    srcs=["export_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestExport"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="file_tests",
-    srcs=["file_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestFile"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="install_tests",
-    srcs=["install_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestInstall"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
 
 py_test(
     name="misc_tests",
-    srcs=["misc_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestMiscFormatting"],
     deps=[
         "//cmake_format:cmake_format",
         "//cmake_format/test:data",
@@ -86,8 +98,19 @@ py_test(
     )
 
 py_test(
+    name="set_target_properties",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestSetTargetProperties"],
+    deps=["//cmake_format:cmake_format", ":command_tests"],
+    python_version="PY2",
+    )
+
+py_test(
     name="set_tests",
-    srcs=["set_tests.py"],
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestSet"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY2",
     )
@@ -96,64 +119,72 @@ py_test(
 
 py_test(
     name="add_custom_command_tests_py3",
-    srcs=["add_custom_command_tests.py"],
-    main="add_custom_command_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddCustomCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="add_executable_tests_py3",
-    srcs=["add_executable_tests.py"],
-    main="add_executable_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddExecutableCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="add_library_tests_py3",
-    srcs=["add_library_tests.py"],
-    main="add_library_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestAddLibraryCommand"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="conditional_tests_py3",
-    srcs=["conditional_tests.py"],
-    main="conditional_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestConditional"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="export_tests_py3",
-    srcs=["export_tests.py"],
-    main="export_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestExport"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="file_tests_py3",
-    srcs=["file_tests.py"],
-    main="file_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestFile"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="install_tests_py3",
-    srcs=["install_tests.py"],
-    main="install_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestInstall"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )
 
 py_test(
     name="misc_tests_py3",
-    srcs=["misc_tests.py"],
-    main="misc_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestMiscFormatting"],
     deps=[
         "//cmake_format:cmake_format",
         "//cmake_format/test:data",
@@ -162,9 +193,19 @@ py_test(
     )
 
 py_test(
+    name="set_target_properties_py3",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestSetTargetProperties"],
+    deps=["//cmake_format:cmake_format", ":command_tests"],
+    python_version="PY3",
+    )
+
+py_test(
     name="set_tests_py3",
-    srcs=["set_tests.py"],
-    main="set_tests.py",
+    srcs=["__main__.py"],
+    main="__main__.py",
+    args=["TestSet"],
     deps=["//cmake_format:cmake_format", ":command_tests"],
     python_version="PY3",
     )

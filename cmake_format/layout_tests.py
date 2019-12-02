@@ -363,7 +363,7 @@ class TestCanonicalLayout(unittest.TestCase):
             (NodeType.COMMENT, 0, 10, 45, 76, []),
           ]),
           (NodeType.WHITESPACE, 0, 12, 4, 0, []),
-          (NodeType.STATEMENT, 5, 13, 4, 80, [
+          (NodeType.STATEMENT, 1, 13, 4, 80, [
             (NodeType.FUNNAME, 0, 13, 4, 17, []),
             (NodeType.LPAREN, 0, 13, 17, 18, []),
             (NodeType.ARGGROUP, 0, 14, 6, 62, [
@@ -698,7 +698,7 @@ class TestCanonicalLayout(unittest.TestCase):
       ]),
       (NodeType.KWARGGROUP, 0, 1, 34, 71, [
         (NodeType.KEYWORD, 0, 1, 34, 44, []),
-        (NodeType.ARGGROUP, 0, 1, 45, 71, [
+        (NodeType.PARGGROUP, 0, 1, 45, 71, [
           (NodeType.PARGGROUP, 0, 1, 45, 71, [
             (NodeType.ARGUMENT, 0, 1, 45, 58, []),
             (NodeType.ARGUMENT, 0, 2, 45, 71, []),

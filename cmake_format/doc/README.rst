@@ -69,6 +69,8 @@ Usage
                             stdout and exit
       --dump {lex,parse,layout,markup}
       -i, --in-place
+      --check               Exit with status code 0 if formatting would not change
+                            file contents, or status code 1 if it would
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Where to write the formatted file. Default is stdout.
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
@@ -85,7 +87,7 @@ Usage
                             groups (parg or kwarg groups), then force it to a
                             vertical layout.
       --max-pargs-hwrap MAX_PARGS_HWRAP
-                            If a positinal argument group contains more than this
+                            If a positional argument group contains more than this
                             many arguments, then force it to a vertical layout.
       --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
                             If true, separate flow control names from their
@@ -105,8 +107,8 @@ Usage
       --min-prefix-chars MIN_PREFIX_CHARS
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
-                            parenthesis is larger than the tab width by more than
-                            this amoung, then force reject un-nested layouts.
+                            parenthesis) is larger than the tab width by more than
+                            this amount, then force reject un-nested layouts.
       --max-lines-hwrap MAX_LINES_HWRAP
                             If a candidate layout is wrapped horizontally but it
                             exceeds this many lines, then reject the layout.
@@ -131,6 +133,12 @@ Usage
                             consecutive hash characters, then don't lstrip() them
                             off. This allows for lazy hash rulers where the first
                             hash char is not separated by space
+      --require-valid-layout [REQUIRE_VALID_LAYOUT]
+                            By default, if cmake-format cannot successfully fit
+                            everything into the desired linewidth it will apply
+                            the last, most agressive attempt that it made. If this
+                            flag is True, however, cmake-format will print error,
+                            exit with non-zero status code, and write-out nothing
 
     Comment Formatting:
       Override config options affecting comment formatting
@@ -204,7 +212,7 @@ pleasant way.
     # groups), then force it to a vertical layout.
     max_subgroups_hwrap = 2
 
-    # If a positinal argument group contains more than this many arguments, then
+    # If a positional argument group contains more than this many arguments, then
     # force it to a vertical layout.
     max_pargs_hwrap = 6
 
@@ -226,8 +234,8 @@ pleasant way.
 
     min_prefix_chars = 4
 
-    # If the statement spelling length (including space and parenthesis is larger
-    # than the tab width by more than this amoung, then force reject un-nested
+    # If the statement spelling length (including space and parenthesis) is larger
+    # than the tab width by more than this amount, then force reject un-nested
     # layouts.
     max_prefix_chars = 10
 
@@ -268,6 +276,12 @@ pleasant way.
     # then don't lstrip() them off. This allows for lazy hash rulers where the first
     # hash char is not separated by space
     hashruler_min_length = 10
+
+    # By default, if cmake-format cannot successfully fit everything into the
+    # desired linewidth it will apply the last, most agressive attempt that it made.
+    # If this flag is True, however, cmake-format will print error, exit with non-
+    # zero status code, and write-out nothing
+    require_valid_layout = False
 
     # A dictionary containing any per-command configuration overrides. Currently
     # only `command_case` is supported.
@@ -541,7 +555,7 @@ fields:
   only positionals, then it can be simply the ``pargs`` specification (as in
   the example above).
 
-For the example specification above, the custom command would look somehing
+For the example specification above, the custom command would look something
 like this:
 
 .. code::
@@ -574,7 +588,7 @@ You can also join the ``#cmake-format`` channel on our `discord server`_.
 Developers
 ----------
 
-If you want to hack on ``cmake-format``, please see the `documenation`__ for
+If you want to hack on ``cmake-format``, please see the `documentation`__ for
 contribution rules and guidelines.
 
 .. __: https://cmake-format.rtfd.io/contributing.html

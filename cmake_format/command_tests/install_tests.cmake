@@ -86,3 +86,9 @@ install(
   ARCHIVE DESTINATION lib COMPONENT install-app
   LIBRARY DESTINATION lib COMPONENT install-app
   RUNTIME DESTINATION bin COMPONENT install-app)
+
+# test: target_form_absent_prefix
+install(
+  TARGETS target #
+  CONFIGURATIONS Debug
+  RUNTIME DESTINATION Debug/bin)

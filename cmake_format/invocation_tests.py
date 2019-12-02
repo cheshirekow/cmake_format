@@ -102,6 +102,7 @@ class TestInvocations(unittest.TestCase):
                                          dir=self.tempdir)
     os.close(ofd)
     shutil.copyfile(infile_path, tmpfile_path)
+    os.chmod(tmpfile_path, 0o755)
     subprocess.check_call([sys.executable, '-Bm', 'cmake_format',
                            '-i', tmpfile_path], cwd=self.tempdir, env=self.env)
 
@@ -114,6 +115,28 @@ class TestInvocations(unittest.TestCase):
                                             actual_text.split('\n')))
     if delta_lines:
       raise AssertionError('\n'.join(delta_lines[2:]))
+
+    # Verify permissions are preserved
+    self.assertEqual(oct(os.stat(tmpfile_path).st_mode)[-3:], "755")
+
+  def test_check_invocation(self):
+    """
+    Test invocation for --check of a file
+    """
+
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    unformatted_path = os.path.join(thisdir, 'test', 'test_in.cmake')
+    formatted_path = os.path.join(thisdir, 'test', 'test_out.cmake')
+
+    statuscode = subprocess.call([
+        sys.executable, '-Bm', 'cmake_format',
+        '--check', unformatted_path], env=self.env)
+    self.assertEqual(1, statuscode)
+
+    statuscode = subprocess.call([
+        sys.executable, '-Bm', 'cmake_format',
+        '--check', formatted_path], env=self.env)
+    self.assertEqual(0, statuscode)
 
   def test_stream_invocation(self):
     """
@@ -285,6 +308,28 @@ class TestInvocations(unittest.TestCase):
         cwd=self.tempdir, env=self.env)
     mtime_after = os.path.getmtime(outfile_path)
     self.assertEqual(mtime_before, mtime_after)
+
+  def test_require_valid(self):
+    """
+    Verify that the --require-valid-layout flag works as intended
+    """
+    thisdir = os.path.realpath(os.path.dirname(__file__))
+    testfilepath = os.path.join(thisdir, 'test', 'test_invalid.cmake')
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".txt", prefix="CMakeLists", dir=self.tempdir) as outfile:
+      statuscode = subprocess.call(
+          [sys.executable, '-Bm', 'cmake_format', testfilepath],
+          stdout=outfile, stderr=outfile, env=self.env)
+    self.assertEqual(0, statuscode)
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".txt", prefix="CMakeLists", dir=self.tempdir) as outfile:
+      statuscode = subprocess.call(
+          [sys.executable, '-Bm', 'cmake_format', testfilepath,
+           "--require-valid-layout"],
+          stdout=outfile, stderr=outfile, env=self.env)
+    self.assertEqual(1, statuscode)
 
 
 if __name__ == '__main__':

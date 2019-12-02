@@ -315,9 +315,9 @@ class LayoutNode(object):
 
   def __repr__(self):
     boolmap = {True: "T", False: "F"}
-    return "{},(passno={},wrap={}) pos:({},{}) colextent:{}".format(
+    return "{},(passno={},wrap={},ok={}) pos:({},{}) colextent:{}".format(
         self.node_type.name,
-        self._passno, boolmap[self._wrap],
+        self._passno, boolmap[self._wrap], boolmap[self._reflow_valid],
         self.position[0], self.position[1],
         self.colextent)
 
@@ -392,7 +392,8 @@ class LayoutNode(object):
       # TODO(josh): figure out how to subtract out any terminal comment
       # contributions to the size, as noted in the algorithm doc.
       if size[0] > config.max_lines_hwrap:
-        return False
+        if not isinstance(self, (BodyNode, CommentNode, FlowControlNode)):
+          return False
 
       # Or if this nodepath is marked to always be vertical layout
       pathstr = "/".join(node.name for node in stack_context.node_path)
@@ -650,6 +651,7 @@ class StatementNode(LayoutNode):
   """
   Top-level node for a statement.
   """
+
   def __init__(self, pnode):
     super(StatementNode, self).__init__(pnode)
     self._layout_passes = [
@@ -850,6 +852,7 @@ class KwargGroupNode(LayoutNode):
   """
   A keyword argument group. Contains a keyword, followed by an argument group.
   """
+
   def __init__(self, pnode):
     super(KwargGroupNode, self).__init__(pnode)
     self._layout_passes = [

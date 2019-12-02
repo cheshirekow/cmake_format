@@ -377,7 +377,7 @@ def parse_file(tokens, breakstack):
       "WRITE": parse_file_write,
       "APPEND": parse_file_write,
       "TOUCH": StandardParser('+', flags=["TOUCH"]),
-      "TOUCH_NO_CREATE": StandardParser('+', flags=["TOUCH_NO_CREATE"]),
+      "TOUCH_NOCREATE": StandardParser('+', flags=["TOUCH_NOCREATE"]),
       "GENERATE": parse_file_generate_output,
       "GLOB": parse_file_glob,
       "GLOB_RECURSE": parse_file_glob,

@@ -1,10 +1,19 @@
 import logging
 
+from cmake_format import lexer
 from cmake_format.parser import (
     get_first_semantic_token,
+    get_normalized_kwarg,
+    KwargBreaker,
+    NodeType,
+    parse_kwarg,
     parse_pattern,
+    parse_positionals,
     parse_standard,
     PositionalParser,
+    should_break,
+    TreeNode,
+    WHITESPACE_TOKENS
 )
 
 logger = logging.getLogger("cmake-format")
@@ -58,18 +67,90 @@ def parse_install_targets(tokens, breakstack):
   kwargs = {
       "TARGETS": PositionalParser('+'),
       "EXPORT": PositionalParser(1),
-      "INCLUDES": PositionalParser('+', flags=["DESTINATION"])
+      "INCLUDES": PositionalParser('+', flags=["DESTINATION"]),
+      # Common kwargs
+      "DESTINATION": PositionalParser(1),
+      "PERMISSIONS": PositionalParser('+'),
+      "CONFIGURATIONS": PositionalParser('+'),
+      "COMPONENT": PositionalParser(1),
+      "NAMELINK_COMPONENT": PositionalParser(1),
   }
-  for subkey in ("ARCHIVE", "LIBRARY", "RUNTIME", "OBJECTS", "FRAMEWORK",
-                 "BUNDLE", "PRIVATE_HEADER", "PUBLIC_HEADER", "RESOURCE"):
-    kwargs[subkey] = parse_install_targets_sub
+  flags = (
+      "OPTIONAL",
+      "EXCLUDE_FROM_ALL",
+      "NAMELINK_ONLY",
+      "NAMELINK_SKIP"
+  )
+  designated_kwargs = (
+      "ARCHIVE", "LIBRARY", "RUNTIME", "OBJECTS", "FRAMEWORK",
+      "BUNDLE", "PRIVATE_HEADER", "PUBLIC_HEADER", "RESOURCE"
+  )
 
-  return parse_standard(
-      tokens,
-      npargs='*',
-      kwargs=kwargs,
-      flags=[],
-      breakstack=breakstack)
+  # NOTE(josh): from here on, code is essentially parse_standard(), except that
+  # we cannot break on the common subset of kwargs in the breakstack because
+  # they are valid kwargs for the subtrees (ARCHIVE, LIBRARY, etc) as well as
+  # the primary tree
+  tree = TreeNode(NodeType.ARGGROUP)
+
+  # If it is a whitespace token then put it directly in the parse tree at
+  # the current depth
+  while tokens and tokens[0].type in WHITESPACE_TOKENS:
+    tree.children.append(tokens.pop(0))
+    continue
+
+  # ARCHIVE, LIBRARY, RUNTIME, subtrees etc only break on the start of
+  # another subtree, or on "INCLUDES DESTINATION"
+  subtree_breakstack = breakstack + [KwargBreaker(
+      list(designated_kwargs) + ["INCLUDES"]
+  )]
+
+  # kwargs at this tree depth break on other kwargs or flags
+  kwarg_breakstack = breakstack + [KwargBreaker(
+      list(kwargs.keys()) + list(designated_kwargs) + list(flags)
+  )]
+
+  # and flags at this depth break only on kwargs
+  positional_breakstack = breakstack + [KwargBreaker(
+      list(kwargs.keys()) + list(designated_kwargs)
+  )]
+
+  while tokens:
+    # Break if the next token belongs to a parent parser, i.e. if it
+    # matches a keyword argument of something higher in the stack, or if
+    # it closes a parent group.
+    if should_break(tokens[0], breakstack):
+      break
+
+    # If it is a whitespace token then put it directly in the parse tree at
+    # the current depth
+    if tokens[0].type in WHITESPACE_TOKENS:
+      tree.children.append(tokens.pop(0))
+      continue
+
+    # If it's a comment, then add it at the current depth
+    if tokens[0].type in (lexer.TokenType.COMMENT,
+                          lexer.TokenType.BRACKET_COMMENT):
+      child = TreeNode(NodeType.COMMENT)
+      tree.children.append(child)
+      child.children.append(tokens.pop(0))
+      continue
+
+    ntokens = len(tokens)
+    # NOTE(josh): each flag is also stored in kwargs as with a positional parser
+    # of size zero. This is a legacy thing that should be removed, but for now
+    # just make sure we check flags first.
+    word = get_normalized_kwarg(tokens[0])
+    if word in designated_kwargs:
+      subtree = parse_kwarg(
+          tokens, word, parse_install_targets, subtree_breakstack)
+    elif word in kwargs:
+      subtree = parse_kwarg(tokens, word, kwargs[word], kwarg_breakstack)
+    else:
+      subtree = parse_positionals(tokens, '+', flags, positional_breakstack)
+
+    assert len(tokens) < ntokens
+    tree.children.append(subtree)
+  return tree
 
 
 def parse_install_files(tokens, breakstack):

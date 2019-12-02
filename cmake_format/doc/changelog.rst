@@ -6,6 +6,22 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.2
+------
+
+* some initial work on cmake helptext/usage parser
+* fix set_target_properties
+* fix TOUCH_NOCREATE
+* copymode during --in-place
+* add --check command
+* supress spurious warnings in tests
+* create add_custom_target parser
+* update add_custom_command parser with different forms
+* fix target form of install command
+* implement require-valid-layout and add tests
+* sidecar tests don't need a companion pyfile
+* fix some typos in documentation
+
 v0.6.1
 ------
 

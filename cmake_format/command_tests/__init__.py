@@ -8,9 +8,11 @@ import functools
 import inspect
 import io
 import os
-import six
 import sys
 import unittest
+
+import re
+import six
 
 from cmake_format import __main__
 from cmake_format import configuration
@@ -20,83 +22,9 @@ from cmake_format import parser
 from cmake_format import parse_funs
 from cmake_format.parser import NodeType
 
-# NOTE(josh): backport from functools.py in python 3.6 so that we can use it in
-# python 2.7
+# pylint: disable=C0412
 if sys.version_info < (3, 5, 0):
-  # pylint: disable=all
-  class partialmethod(object):
-    """Method descriptor with partial application of the given arguments
-    and keywords.
-
-    Supports wrapping existing descriptors and handles non-descriptor
-    callables as instance methods.
-    """
-
-    def __init__(self, func, *args, **keywords):
-      if not callable(func) and not hasattr(func, "__get__"):
-        raise TypeError("{!r} is not callable or a descriptor"
-                        .format(func))
-
-      # func could be a descriptor like classmethod which isn't callable,
-      # so we can't inherit from partial (it verifies func is callable)
-      if isinstance(func, partialmethod):
-        # flattening is mandatory in order to place cls/self before all
-        # other arguments
-        # it's also more efficient since only one function will be called
-        self.func = func.func
-        self.args = func.args + args
-        self.keywords = func.keywords.copy()
-        self.keywords.update(keywords)
-      else:
-        self.func = func
-        self.args = args
-        self.keywords = keywords
-
-    def __repr__(self):
-      args = ", ".join(map(repr, self.args))
-      keywords = ", ".join("{}={!r}".format(k, v)
-                           for k, v in self.keywords.items())
-      format_string = "{module}.{cls}({func}, {args}, {keywords})"
-      return format_string.format(module=self.__class__.__module__,
-                                  cls=self.__class__.__qualname__,
-                                  func=self.func,
-                                  args=args,
-                                  keywords=keywords)
-
-    def _make_unbound_method(self):
-      def _method(*args, **keywords):
-        call_keywords = self.keywords.copy()
-        call_keywords.update(keywords)
-        cls_or_self = args[0]
-        rest = args[:]
-        call_args = (cls_or_self,) + self.args + tuple(rest)
-        return self.func(*call_args, **call_keywords)
-      _method.__isabstractmethod__ = self.__isabstractmethod__
-      _method._partialmethod = self
-      return _method
-
-    def __get__(self, obj, cls):
-      get = getattr(self.func, "__get__", None)
-      result = None
-      if get is not None:
-        new_func = get(obj, cls)
-        if new_func is not self.func:
-          # Assume __get__ returning something new indicates the
-          # creation of an appropriate callable
-          result = functools.partial(new_func, *self.args, **self.keywords)
-          try:
-            result.__self__ = new_func.__self__
-          except AttributeError:
-            pass
-      if result is None:
-        # If the underlying descriptor didn't do anything, treat this
-        # like an instance method
-        result = self._make_unbound_method().__get__(obj, cls)
-      return result
-
-    @property
-    def __isabstractmethod__(self):
-      return getattr(self.func, "__isabstractmethod__", False)
+  from cmake_format.command_tests.partialmethod import partialmethod
 else:
   from functools import partialmethod
 
@@ -148,6 +76,45 @@ def overzip(iterable_a, iterable_b):
   while item_b is not None:
     yield(None, item_b)
     item_b = next(iter_b, None)
+
+
+def replace_camel_to_snake(camel_pair):
+  """
+  Substituion callback for camel_to_snake
+  """
+  chars = camel_pair.group(0)
+  return "{}_{}".format(chars[0], chars[1])
+
+
+def camel_to_snake(camelstr):
+  """
+  Translate a camelCaseString into a snake_case_string
+  """
+  return re.sub("[a-z][A-Z]", replace_camel_to_snake, camelstr).lower()
+
+
+def find_sidecar(filepath, cls):
+  if filepath is not None:
+    if filepath.endswith(".py"):
+      return filepath[:-3] + ".cmake"
+    return filepath
+
+  thisdir = os.path.dirname(__file__)
+  clsname = cls.__name__
+  if clsname.startswith("Test"):
+    clsname = clsname[4:]
+  candidate = camel_to_snake(clsname) + ".cmake"
+  candidate = os.path.join(thisdir, candidate)
+  if os.path.exists(candidate):
+    return candidate
+  candidate = camel_to_snake(clsname) + "_tests.cmake"
+  candidate = os.path.join(thisdir, candidate)
+  if os.path.exists(candidate):
+    return candidate
+  candidate = inspect.getfile(cls)[:-3] + ".cmake"
+  if os.path.exists(candidate):
+    return candidate
+  return None
 
 
 def assert_lex(test, input_str, expected_types):
@@ -302,13 +269,13 @@ def exec_sidecar(test, body, meta):
   # TODO(josh): just move this into the configuration for the one test where
   # it's needed.
   test.config.fn_spec.add(
-    'foo',
-    flags=['BAR', 'BAZ'],
-    kwargs={
-        "HEADERS": '*',
-        "SOURCES": '*',
-        "DEPENDS": '*'
-    })
+      'foo',
+      flags=['BAR', 'BAZ'],
+      kwargs={
+          "HEADERS": '*',
+          "SOURCES": '*',
+          "DEPENDS": '*'
+      })
 
   with test.subTest(phase="format"):
     assert_format(test, body, body)
@@ -319,7 +286,7 @@ class WrapTestWithRunFun(object):
   Given a instance of a bound test-method from a TestCase, wrap that with
   a callable that first calls the method, and then calls `
   test.assertExpectations()`. Which is really just an opaque way of
-  automatically calling `rest.assertExpectations()` at the end of each test
+  automatically calling `test.assertExpectations()` at the end of each test
   method.
   """
 
@@ -353,8 +320,8 @@ class SidecarMeta(type):
   sidecars. This way test methods are loaded before ``unittest`` inspects the
   class.
   """
-  def __new__(cls, name, bases, dct):
-    subcls = type.__new__(cls, name, bases, dct)
+  def __new__(mcs, name, bases, dct):
+    subcls = type.__new__(mcs, name, bases, dct)
     if name not in ("MetaBase", "TestBase"):
       subcls.load_sidecar_tests()
     return subcls
@@ -381,7 +348,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
     meta = {}
     if meta_str is not None:
       meta["NodeType"] = NodeType
-      exec(meta_str, meta)
+      exec(meta_str, meta)  # pylint: disable=exec-used
       meta.pop("__builtins__")
       meta.pop("NodeType")
 
@@ -395,10 +362,8 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
 
   @classmethod
   def load_sidecar_tests(cls, filepath=None):
-    if filepath is None:
-      filepath = inspect.getfile(cls)
-    cmake_sidecar = filepath[:-3] + ".cmake"
-    if not os.path.exists(cmake_sidecar):
+    cmake_sidecar = find_sidecar(filepath, cls)
+    if not cmake_sidecar or not os.path.exists(cmake_sidecar):
       return
     with io.open(cmake_sidecar, "r", encoding="utf-8") as infile:
       lines = infile.read().split("\n")
@@ -493,3 +458,59 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
     if self.expect_format is not None:
       with self.subTest(phase="format"):  # pylint: disable=no-member
         assert_format(self, self.source_str, self.expect_format)
+
+
+class TestAddCustomCommand(TestBase):
+  """
+  Test various examples of add_custom_command()
+  """
+  kExpectNumSidecarTests = 4
+
+
+class TestConditional(TestBase):
+  """
+  Test various examples of commands that take conditional statements
+  """
+  kExpectNumSidecarTests = 5
+
+
+class TestExport(TestBase):
+  """
+  Test various examples of export()
+  """
+  kExpectNumSidecarTests = 1
+
+
+class TestFile(TestBase):
+  """
+  Test various examples of the file command
+  """
+  kExpectNumSidecarTests = 10
+
+
+class TestForeach(TestBase):
+  """
+  Test various examples of the foreach() function
+  """
+  kExpectNumSidecarTests = 5
+
+
+class TestInstall(TestBase):
+  """
+  Test various examples of the install command
+  """
+  kExpectNumSidecarTests = 3
+
+
+class TestSetTargetProperties(TestBase):
+  """
+  Test various examples of the install command
+  """
+  kExpectNumSidecarTests = 1
+
+
+class TestSet(TestBase):
+  """
+  Test various examples of the set() function
+  """
+  kExpectNumSidecarTests = 8

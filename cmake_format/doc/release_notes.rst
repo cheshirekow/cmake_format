@@ -9,11 +9,20 @@ v0.6 series
 ===========
 
 ------
+v0.6.2
+------
+
+This is a maintenance release. Some additional command parsers have
+moved out of the standard parse model improving the parse of these
+commands. This release also includes some groundwork scripts to parse
+the usage strings in the cmake help text.
+
+------
 v0.6.1
 ------
 
 This is primarily a documentation update. Some of the testing infrastructure
-has change but no user-facing code has been modified.
+has changed but no user-facing code has been modified.
 
 ------
 v0.6.0

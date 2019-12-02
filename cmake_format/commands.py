@@ -147,20 +147,6 @@ def get_fn_spec():
   fn_spec = CommandSpec('<root>')
 
   fn_spec.add(
-      "add_custom_target",
-      flags=["ALL", "VERBATIM"],
-      kwargs={
-          "COMMAND": dict(
-              pargs=ONE_OR_MORE,
-              kwargs=[('ARGS', ZERO_OR_MORE)]
-          ),
-          "COMMENT": ZERO_OR_MORE,
-          "DEPENDS": ZERO_OR_MORE,
-          "SOURCES": ZERO_OR_MORE,
-          "WORKING_DIRECTORY": 1
-      })  # pylint: disable=bad-continuation
-
-  fn_spec.add(
       "add_test",
       flags=[],
       kwargs={
@@ -386,12 +372,6 @@ def get_fn_spec():
           "TARGET": ZERO_OR_MORE,
           "TEST": ZERO_OR_MORE
       })
-
-  fn_spec.add(
-      "set_target_properties",
-      pargs=ZERO_OR_MORE,
-      flags=[],
-      kwargs={"PROPERTIES": ZERO_OR_MORE})  # pylint: disable=E1124
 
   fn_spec.add(
       "set_tests_properties", flags=[], kwargs={
