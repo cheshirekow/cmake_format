@@ -1,6 +1,6 @@
-============
-cmake format
-============
+===================
+cmake quality tools
+===================
 
 .. image:: https://travis-ci.com/cheshirekow/cmake_format.svg?branch=master
     :target: https://travis-ci.com/cheshirekow/cmake_format
@@ -8,24 +8,30 @@ cmake format
 .. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
     :target: https://cmake_format.readthedocs.io
 
-``cmake-format`` can format your listfiles nicely so that they don't look
-like crap.
+The ``cmake-format`` project provides Quality Assurance (QA) tools
+for ``cmake``:
+
+
+* ``cmake-annotate`` can generate pretty HTML from your listfiles
+
+* ``cmake-format`` can format your listfiles nicely so that they don't
+  look like crap.
+
+* ``cmake-lint`` can check your listfiles for problems
+
+* ``ctest-to`` can parse a ctest output tree and translate it into a
+  more structured format (either JSON or XML).
 
 .. toctree::
    :maxdepth: 2
 
    installation
-   features
-   usage
-   example
-   parse_tree
-   parser_algorithm
-   format_algorithm
-   case_studies
-   render_html
-   configopts
+   configuration
+   cmake-annotate
+   cmake-format
+   cmake-lint
+   ctest-to
    contributing
-   automatic_parsers
 
    release_notes
    changelog

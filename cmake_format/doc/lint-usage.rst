@@ -2,27 +2,17 @@
 Usage
 =====
 
-.. dynamic: usage-begin
+.. dynamic: lint-usage-begin
 
 .. code:: text
 
     usage:
-    cmake-format [-h]
-                 [--dump-config {yaml,json,python} | -i | -o OUTFILE_PATH]
-                 [-c CONFIG_FILE]
-                 infilepath [infilepath ...]
+    cmake-lint [-h]
+               [--dump-config {yaml,json,python} | -o OUTFILE_PATH]
+               [-c CONFIG_FILE]
+               infilepath [infilepath ...]
 
-    Parse cmake listfiles and format them nicely.
-
-    Formatting is configurable by providing a configuration file. The configuration
-    file can be in json, yaml, or python format. If no configuration file is
-    specified on the command line, cmake-format will attempt to find a suitable
-    configuration for each ``inputpath`` by checking recursively checking it's
-    parent directory up to the root of the filesystem. It will return the first
-    file it finds with a filename that matches '\.?cmake-format(.yaml|.json|.py)'.
-
-    cmake-format can spit out the default configuration for you as starting point
-    for customization. Run with `--dump-config [yaml|json|python]`.
+    Check cmake listfile for lint
 
     positional arguments:
       infilepaths
@@ -34,12 +24,8 @@ Usage
       --dump-config [{yaml,json,python}]
                             If specified, print the default configuration to
                             stdout and exit
-      --dump {lex,parse,layout,markup}
-      -i, --in-place
-      --check               Exit with status code 0 if formatting would not change
-                            file contents, or status code 1 if it would
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
-                            Where to write the formatted file. Default is stdout.
+                            Write errors to this file. Default is stdout.
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 
@@ -153,4 +139,5 @@ Usage
                             utf-8. Note that cmake only claims to support utf-8 so
                             be careful when using anything else
 
-.. dynamic: usage-end
+.. dynamic: lint-usage-end
+

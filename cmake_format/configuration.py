@@ -1,163 +1,76 @@
 from __future__ import unicode_literals
 
-import collections
-import inspect
-import io
-import json
 import logging
-import pprint
-import sys
-import textwrap
 
 from cmake_format import commands
 from cmake_format import markup
-
-
-def serialize(obj):
-  """
-  Return a serializable representation of the object. If the object has an
-  `as_dict` method, then it will call and return the output of that method.
-  Otherwise return the object itself.
-  """
-  if hasattr(obj, 'as_dict'):
-    fun = getattr(obj, 'as_dict')
-    if callable(fun):
-      return fun()
-
-  return obj
-
-
-def parse_bool(string):
-  if string.lower() in ('y', 'yes', 't', 'true', '1', 'yup', 'yeah', 'yada'):
-    return True
-  if string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
-    return False
-
-  logging.warning("Ambiguous truthiness of string '%s' evalutes to 'FALSE'",
-                  string)
-  return False
-
-
-def get_default(value, default):
-  """
-  return ``value`` if it is not None, else default
-  """
-  if value is None:
-    return default
-
-  return value
+from cmake_format.config_util import (get_default, ConfigObject)
 
 
 COMMENT_GROUP = (
     "bullet_char", "enum_char", "first_comment_is_literal",
     "literal_comment_pattern", "fence_pattern", "ruler_pattern",
-    "hashruler-min-length", "canonicalize_hashrulers",
+    "hashruler_min_length", "canonicalize_hashrulers",
     "enable_markup")
 
 MISC_GROUP = ("emit_byteorder_mark", "input_encoding", "output_encoding")
 
 
-def python_dump(cfg, outfile):
-  ppr = pprint.PrettyPrinter(indent=2)
-  format_buffer = io.StringIO()
-  format_buffer.write("""
-# --------------------------
-# General Formatting Options
-# --------------------------
-""")
-  comment_buffer = io.StringIO()
-  comment_buffer.write("""
-# --------------------------
-# Comment Formatting Options
-# --------------------------
-""")
-  misc_buffer = io.StringIO()
-  misc_buffer.write("""
-# ---------------------------------
-# Miscellaneous Options
-# ---------------------------------
-""")
-  for key in cfg.get_field_names():
-    if key in COMMENT_GROUP:
-      outbuf = comment_buffer
-    elif key in MISC_GROUP:
-      outbuf = misc_buffer
-    else:
-      outbuf = format_buffer
+class LinterConfig(ConfigObject):
+  """Options affecting the linter"""
 
-    helptext = VARDOCS.get(key, None)
-    if helptext:
-      for line in textwrap.wrap(helptext, 78):
-        outbuf.write('# ' + line + '\n')
-    value = getattr(cfg, key)
-    if isinstance(value, dict):
-      outbuf.write('{} = {}\n\n'.format(key, json.dumps(value, indent=2)))
-    else:
-      outbuf.write('{} = {}\n\n'.format(key, ppr.pformat(value)))
-  outfile.write(format_buffer.getvalue())
-  outfile.write(comment_buffer.getvalue())
-  outfile.write(misc_buffer.getvalue())
+  _extra_fields = [
+      "function_pattern",
+      "macro_pattern",
+      "global_var_pattern",
+      "local_var_pattern",
+      "keyword_pattern",
+  ]
+
+  _vardocs = {
+      "function_pattern": (
+          "regular expression pattern describing valid function names"
+      ),
+      "macro_pattern": (
+          "regular expression pattern describing valid macro names"
+      ),
+      "global_var_pattern": (
+          "regular expression pattern describing valid names for variables"
+          " with global scope"
+      ),
+      "local_var_pattern": (
+          "regular expression pattern describing valid names for variables"
+          " with local scope"
+      ),
+      "keyword_pattern": (
+          "regular expression pattern describing valid names for keywords"
+          " used in functions or macros"
+      )
+  }
+
+  def __init__(self, **kwargs):
+    self.function_pattern = kwargs.pop("function_pattern", "[0-9a-z_]+")
+    self.macro_pattern = kwargs.pop("macro_pattern", "[0-9A-Z_]+")
+    self.global_var_pattern = kwargs.pop("macro_pattern", "[0-9A-Z_]+")
+    self.local_var_pattern = kwargs.pop("macro_pattern", "[0-9a-z_]+")
+    self.keyword_pattern = kwargs.pop("keyword_pattern", "[0-9A-Z_]+")
 
 
-class Configuration(object):
-  """
-  Encapsulates various configuration options/parameters for formatting
+class Configuration(ConfigObject):
+  """Various configuration options/parameters for formatting
   """
   # pylint: disable=too-many-arguments
   # pylint: disable=too-many-instance-attributes
 
-  @classmethod
-  def get_field_names(cls):
-    """
-    Return a list of field names, extracted from kwargs to __init__().
-    The order of fields in the tuple representation is the same as the order
-    of the fields in the __init__ function
-    """
+  _extra_fields = [
+      "linter",
+  ]
 
-    # NOTE(josh): args[0] is `self`
-    if sys.version_info >= (3, 5, 0):
-      sig = getattr(inspect, 'signature')(cls.__init__)
-      return [field for field, _ in list(sig.parameters.items())[1:-1]]
-
-    return getattr(inspect, 'getargspec')(cls.__init__).args[1:]
-
-  def as_dict(self):
-    """
-    Return a dictionary mapping field names to their values only for fields
-    specified in the constructor
-    """
-    return {field: serialize(getattr(self, field))
-            for field in self.get_field_names()}
-
-  def as_odict(self, with_comments=False):
-    """
-    Return a dictionary mapping field names to their values only for fields
-    specified in the constructor
-    """
-    format_group = []
-    comment_group = []
-    misc_group = []
-
-    for field in self.get_field_names():
-      if field in COMMENT_GROUP:
-        group = comment_group
-      elif field in MISC_GROUP:
-        group = misc_group
-      else:
-        group = format_group
-      group.append((field, serialize(getattr(self, field))))
-
-    out = collections.OrderedDict()
-    if with_comments:
-      out["_group0"] = ["General formatting options"]
-    out.update(format_group)
-    if with_comments:
-      out["_group1"] = ["Options affecting comment formatting"]
-    out.update(comment_group)
-    if with_comments:
-      out["_group2"] = ["Miscellaneous options"]
-    out.update(misc_group)
-    return out
+  _group_map = [
+      ("General Formatting Options", []),
+      ("Options affecting comment formatting", COMMENT_GROUP),
+      ("Miscellaneous options", MISC_GROUP),
+  ]
 
   def __init__(
       self, line_width=80, tab_size=2,
@@ -192,7 +105,7 @@ class Configuration(object):
       require_valid_layout=False,
       per_command=None,
       layout_passes=None,
-      **_):  # pylint: disable=W0613
+      **kwargs):  # pylint: disable=W0613
 
     # pylint: disable=too-many-locals
     self.line_width = line_width
@@ -281,11 +194,7 @@ class Configuration(object):
     # stack is this config object... so I'm abusing it by adding this field here
     self.first_token = None
 
-  def clone(self):
-    """
-    Return a copy of self.
-    """
-    return Configuration(**self.as_dict())
+    self.linter = LinterConfig(**kwargs.pop("linter", {}))
 
   def set_line_ending(self, detected):
     self.endl = {'windows': '\r\n',
@@ -318,7 +227,7 @@ VARCHOICES = {
     'keyword_case': ['lower', 'upper', 'unchanged'],
 }
 
-VARDOCS = {
+Configuration._vardocs = VARDOCS = {  # pylint: disable=W0212
     "line_width": "How wide to allow formatted cmake files",
     "tab_size": "How many spaces to tab for indent",
     "max_subgroups_hwrap": (
@@ -334,12 +243,15 @@ VARDOCS = {
         "If true, separate function names from parentheses with a space"),
     "dangle_parens": (
         "If a statement is wrapped to more than one line, than dangle the"
-        " closing parenthesis on it's own line."),
+        " closing parenthesis on its own line."),
     "dangle_align": (
-        "If the trailing parenthesis must be 'dangled' on it's on line, then"
+        "If the trailing parenthesis must be 'dangled' on its on line, then"
         " align it to this reference: `prefix`: the start of the statement, "
         " `prefix-indent`: the start of the statement, plus one indentation "
         " level, `child`: align to the column of the arguments"),
+    "min_prefix_chars": (
+        "If the statement spelling length (including space and parenthesis)"
+        " is smaller than this amount, then force reject nested layouts."),
     "max_prefix_chars": (
         "If the statement spelling length (including space and parenthesis)"
         " is larger than the tab width by more than this amount, then"
@@ -386,7 +298,7 @@ VARDOCS = {
         "rulers where the first hash char is not separated by space"),
     "canonicalize_hashrulers": (
         "If true, then insert a space between the first hash char and"
-        " remaining hash chars in a hash ruler, and normalize it's length to"
+        " remaining hash chars in a hash ruler, and normalize its length to"
         " fill the column"),
     "input_encoding": (
         "Specify the encoding of the input file. Defaults to utf-8."),

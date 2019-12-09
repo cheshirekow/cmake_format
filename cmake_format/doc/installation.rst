@@ -2,6 +2,9 @@
 Installation
 ============
 
+All of the tools are included as part of the ``cmake-format`` python
+distribution package.
+
 Install with pip
 ================
 
@@ -38,17 +41,18 @@ which I would probably recommend for most users.
 Install from source
 ===================
 
-You can also install from source with pip. You can download a release_ package
-from github and then install it directly with pip. For example::
+You can also install from source with pip. You can download a release package
+from github__ or pypi__ and then install it directly with pip. For example::
 
-  pip install v0.6.2.tar.gz
+  pip install v0.6.3.tar.gz
 
-.. _release: https://github.com/cheshirekow/cmake_format/releases
+.. __: https://github.com/cheshirekow/cmake_format/releases
+.. __: https://pypi.org/project/cmake-format/#files
 
-Note that the release packages are automatically generated from git tags which
-are the same commit used to generate the corresponding version package on
-``pypi.org``. So whether you install a particular version from github or
-pypi shouldn't matter.
+Note that the release packages on github are automatically generated from git
+tags which are the same commit used to generate the corresponding version
+package on ``pypi.org``. So whether you install a particular version from
+github or pypi shouldn't matter.
 
 Pip can also install directly from github. For example::
 
@@ -62,6 +66,8 @@ If you wish to test a pre-release or dev package from a branch called
 IDE Integrations
 ================
 
+For the formatter specifically:
+
 * There is an official `vscode extension`__
 * Someone also created a `sublime plugin`__
 
@@ -74,8 +80,8 @@ separately.
 Pre-commit
 ==========
 
-If you are a user of the `pre-commit`__ project you can easily add
-``cmake-format`` to your hooks with the following addition to your
+If you are a user of the `pre-commit`__ project you can easily add the
+formatter, ``cmake-format``, to your hooks with the following addition to your
 ``.pre-commit-hooks.yaml`` file.
 
 .. __: https://pre-commit.com/
@@ -84,6 +90,6 @@ If you are a user of the `pre-commit`__ project you can easily add
 
    repos:
      - repo: https://github.com/cheshirekow/cmake-format-precommit
-       rev: v0.6.2
+       rev: v0.6.3
        hooks:
        - id: cmake-format

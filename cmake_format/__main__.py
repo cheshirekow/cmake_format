@@ -30,6 +30,7 @@ import sys
 import cmake_format
 from cmake_format import commands
 from cmake_format import configuration
+from cmake_format import config_util
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import markup
@@ -180,15 +181,12 @@ def load_yaml(config_file):
   return out
 
 
-def exec_pyconfig(configfile_path, config_dict=None):
-  if config_dict is None:
-    config_dict = {}
-  config_dict["__file__"] = os.path.realpath(configfile_path)
+def exec_pyconfig(configfile_path):
+  _global = config_util.ExecGlobal(configfile_path)
   with io.open(configfile_path, 'r', encoding='utf-8') as infile:
     # pylint: disable=exec-used
-    exec(infile.read(), config_dict)
-  config_dict.pop("__file__")
-  return config_dict
+    exec(infile.read(), _global)
+  return _global
 
 
 def try_get_configdict(configfile_path):
@@ -327,7 +325,7 @@ def dump_config(args, config_dict, outfile):
     outfile.write('\n')
     return
 
-  configuration.python_dump(cfg, outfile)
+  cfg.dump(outfile)
 
 
 USAGE_STRING = """
@@ -377,7 +375,7 @@ def add_config_options(arg_parser):
     elif isinstance(value, bool):
       optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
                             default=None, const=(not value),
-                            type=configuration.parse_bool, help=helptext)
+                            type=config_util.parse_bool, help=helptext)
     elif isinstance(value, value_types):
       optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),
                             help=helptext,
@@ -436,13 +434,6 @@ def setup_argparser(arg_parser):
 
 def main():
   """Parse arguments, open files, start work."""
-
-  # set up main logger, which logs everything. We'll leave this one logging
-  # to the console
-  format_str = '[%(levelname)-4s] %(filename)s:%(lineno)-3s: %(message)s'
-  logging.basicConfig(level=logging.INFO,
-                      format=format_str,
-                      filemode='w')
 
   arg_parser = argparse.ArgumentParser(
       description=__doc__,
@@ -551,4 +542,11 @@ def main():
 
 
 if __name__ == '__main__':
+  # set up main logger, which logs everything. We'll leave this one logging
+  # to the console
+  format_str = '%(levelname)-4s %(filename)s:%(lineno)-3s: %(message)s'
+  logging.basicConfig(level=logging.INFO,
+                      format=format_str,
+                      filemode='w')
+
   sys.exit(main())

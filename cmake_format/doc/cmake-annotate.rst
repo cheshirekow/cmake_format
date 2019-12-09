@@ -1,22 +1,24 @@
 .. _render_html:
 
-===========================
-HTML Rendering of Listfiles
-===========================
+==============
+cmake-annotate
+==============
 
-The ``cmake_format`` package comes with the ``cmake-annotate`` frontend
+The ``cmake-annotate`` frontend
 program which can create semantic HTML documents from parsed listfiles.
 This enables, in particular, semantic highlighting for your
 code documentation.
 
-::
+.. dynamic: annotate-usage-begin
+
+.. code:: text
 
     usage:
     cmake-annotate [-h]
-                   [--format {page,stub}]
-                   [-o OUTFILE_PATH]
-                   [-c CONFIG_FILE]
-                   infilepath [infilepath ...]
+                 [--format {page,stub}]
+                 [-o OUTFILE_PATH]
+                 [-c CONFIG_FILE]
+                 infilepath [infilepath ...]
 
     Parse cmake listfiles and re-emit them with semantic annotations in HTML.
 
@@ -40,6 +42,11 @@ code documentation.
                             Where to write the formatted file. Default is stdout.
       -c CONFIG_FILE, --config-file CONFIG_FILE
                             path to configuration file
+
+    Formatter Configuration:
+      Override configfile options
+
+.. dynamic: annotate-usage-end
 
 ``--format stub`` will output just the marked-up listfile content. The
 markup is done as ``<span>`` elements with different css classes for each

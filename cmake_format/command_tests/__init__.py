@@ -481,6 +481,13 @@ class TestExport(TestBase):
   kExpectNumSidecarTests = 1
 
 
+class TestExternalProject(TestBase):
+  """
+  Test various examples of ExternalProject_xxx()
+  """
+  kExpectNumSidecarTests = 5
+
+
 class TestFile(TestBase):
   """
   Test various examples of the file command

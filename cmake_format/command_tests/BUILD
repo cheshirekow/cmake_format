@@ -7,18 +7,22 @@ py_library(
         "add_executable_tests.py",
         "add_library_tests.py",
         "misc_tests.py",
-        "partialmethod.py"],
+        "partialmethod.py"
+    ],
     data=[
         "add_custom_command_tests.cmake",
         "add_executable_tests.cmake",
         "add_library_tests.cmake",
         "conditional_tests.cmake",
         "export_tests.cmake",
+        "external_project_tests.cmake",
         "file_tests.cmake",
+        "foreach_tests.cmake",
         "install_tests.cmake",
         "misc_tests.cmake",
         "set_target_properties_tests.cmake",
-        "set_tests.cmake"])
+        "set_tests.cmake",
+    ])
 
 # -- Python 2 --
 

@@ -9,13 +9,36 @@ v0.6 series
 ===========
 
 ------
+v0.6.3
+------
+
+This release finally includes some progress on a long-standing goal: a
+`cmake-linter`__ built on the same foundation as the formatter. As of this
+release The ``cmake-format`` python package now comes with both the
+``cmake-format`` and ``cmake-lint`` programs. The linter is still in a
+relatively early state and lacks many features, but should continue to grow
+with the formatter in future releases.
+
+Along with the new linter, this release also includes some reorganization
+of the documentation in order to more clearly separate information about
+the different programs that are distributed from this repository.
+
+.. __: https://cmake-format.readthedocs.io/en/latest/cmake-lint.html
+
+------
 v0.6.2
 ------
 
 This is a maintenance release. Some additional command parsers have
 moved out of the standard parse model improving the parse of these
 commands. This release also includes some groundwork scripts to parse
-the usage strings in the cmake help text.
+the usage strings in the cmake help text. Additionally:
+
+* ``--in-place`` will preserve file mode
+* The new ``--check`` command line option will not format the file, but
+  exit with non-zero status if any changes would be made
+* The new ``--require-valid-layout`` option will exit with non-zero status
+  if an admissible layout is not found.
 
 ------
 v0.6.1

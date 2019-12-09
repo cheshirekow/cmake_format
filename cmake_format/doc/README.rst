@@ -8,8 +8,10 @@ cmake format
 .. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
     :target: https://cmake-format.readthedocs.io
 
-``cmake-format`` can format your listfiles nicely so that they don't look
-like crap.
+* ``cmake-annotate`` can generate pretty HTML from your listfiles
+* ``cmake-format`` can format your listfiles nicely so that they don't look
+   like crap.
+* ``cmake-lint`` can check your listfiles for problems
 
 ------------
 Installation
@@ -97,14 +99,17 @@ Usage
                             a space
       --dangle-parens [DANGLE_PARENS]
                             If a statement is wrapped to more than one line, than
-                            dangle the closing parenthesis on it's own line.
+                            dangle the closing parenthesis on its own line.
       --dangle-align {prefix,prefix-indent,child,off}
-                            If the trailing parenthesis must be 'dangled' on it's
+                            If the trailing parenthesis must be 'dangled' on its
                             on line, then align it to this reference: `prefix`:
                             the start of the statement, `prefix-indent`: the start
                             of the statement, plus one indentation level, `child`:
                             align to the column of the arguments
       --min-prefix-chars MIN_PREFIX_CHARS
+                            If the statement spelling length (including space and
+                            parenthesis) is smaller than this amount, then force
+                            reject nested layouts.
       --max-prefix-chars MAX_PREFIX_CHARS
                             If the statement spelling length (including space and
                             parenthesis) is larger than the tab width by more than
@@ -128,11 +133,6 @@ Usage
       --autosort [AUTOSORT]
                             If true, the parsers may infer whether or not an
                             argument list is sortable (without annotation).
-      --hashruler-min-length HASHRULER_MIN_LENGTH
-                            If a comment line starts with at least this many
-                            consecutive hash characters, then don't lstrip() them
-                            off. This allows for lazy hash rulers where the first
-                            hash char is not separated by space
       --require-valid-layout [REQUIRE_VALID_LAYOUT]
                             By default, if cmake-format cannot successfully fit
                             everything into the desired linewidth it will apply
@@ -164,10 +164,15 @@ Usage
       --ruler-pattern RULER_PATTERN
                             Regular expression to match rulers in comments
                             default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+      --hashruler-min-length HASHRULER_MIN_LENGTH
+                            If a comment line starts with at least this many
+                            consecutive hash characters, then don't lstrip() them
+                            off. This allows for lazy hash rulers where the first
+                            hash char is not separated by space
       --canonicalize-hashrulers [CANONICALIZE_HASHRULERS]
                             If true, then insert a space between the first hash
                             char and remaining hash chars in a hash ruler, and
-                            normalize it's length to fill the column
+                            normalize its length to fill the column
 
     Misc Options:
       Override miscellaneous config options
@@ -198,7 +203,6 @@ pleasant way.
 
 .. code:: text
 
-
     # --------------------------
     # General Formatting Options
     # --------------------------
@@ -223,15 +227,17 @@ pleasant way.
     separate_fn_name_with_space = False
 
     # If a statement is wrapped to more than one line, than dangle the closing
-    # parenthesis on it's own line.
+    # parenthesis on its own line.
     dangle_parens = False
 
-    # If the trailing parenthesis must be 'dangled' on it's on line, then align it
-    # to this reference: `prefix`: the start of the statement,  `prefix-indent`: the
+    # If the trailing parenthesis must be 'dangled' on its on line, then align it to
+    # this reference: `prefix`: the start of the statement,  `prefix-indent`: the
     # start of the statement, plus one indentation  level, `child`: align to the
     # column of the arguments
     dangle_align = 'prefix'
 
+    # If the statement spelling length (including space and parenthesis) is smaller
+    # than this amount, then force reject nested layouts.
     min_prefix_chars = 4
 
     # If the statement spelling length (including space and parenthesis) is larger
@@ -253,13 +259,7 @@ pleasant way.
     keyword_case = 'unchanged'
 
     # Specify structure for custom cmake functions
-    additional_commands = {
-      "pkg_find": {
-        "kwargs": {
-          "PKG": "*"
-        }
-      }
-    }
+    additional_commands = {'pkg_find': {'kwargs': {'PKG': '*'}}}
 
     # A list of command names which should always be wrapped
     always_wrap = []
@@ -271,11 +271,6 @@ pleasant way.
     # If true, the parsers may infer whether or not an argument list is sortable
     # (without annotation).
     autosort = False
-
-    # If a comment line starts with at least this many consecutive hash characters,
-    # then don't lstrip() them off. This allows for lazy hash rulers where the first
-    # hash char is not separated by space
-    hashruler_min_length = 10
 
     # By default, if cmake-format cannot successfully fit everything into the
     # desired linewidth it will apply the last, most agressive attempt that it made.
@@ -291,18 +286,36 @@ pleasant way.
     # documentation for more information.
     layout_passes = {}
 
+    # ----------------------------
+    # Options affecting the linter
+    # ----------------------------
+    with section("linter"):
+      # regular expression pattern describing valid function names
+      function_pattern = '[0-9a-z_]+'
 
-    # --------------------------
-    # Comment Formatting Options
-    # --------------------------
+      # regular expression pattern describing valid macro names
+      macro_pattern = '[0-9A-Z_]+'
+
+      # regular expression pattern describing valid names for variables with global
+      # scope
+      global_var_pattern = '[0-9A-Z_]+'
+
+      # regular expression pattern describing valid names for variables with local
+      # scope
+      local_var_pattern = '[0-9a-z_]+'
+
+      # regular expression pattern describing valid names for keywords used in
+      # functions or macros
+      keyword_pattern = '[0-9A-Z_]+'
+
+    # ------------------------------------
+    # Options affecting comment formatting
+    # ------------------------------------
     # What character to use for bulleted lists
     bullet_char = '*'
 
     # What character to use as punctuation after numerals in an enumerated list
     enum_char = '.'
-
-    # enable comment markup parsing and reflow
-    enable_markup = True
 
     # If comment markup is enabled, don't reflow the first comment block in each
     # listfile. Use this to preserve formatting of your copyright/license
@@ -321,14 +334,21 @@ pleasant way.
     # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
     ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
 
+    # If a comment line starts with at least this many consecutive hash characters,
+    # then don't lstrip() them off. This allows for lazy hash rulers where the first
+    # hash char is not separated by space
+    hashruler_min_length = 10
+
     # If true, then insert a space between the first hash char and remaining hash
-    # chars in a hash ruler, and normalize it's length to fill the column
+    # chars in a hash ruler, and normalize its length to fill the column
     canonicalize_hashrulers = True
 
+    # enable comment markup parsing and reflow
+    enable_markup = True
 
-    # ---------------------------------
-    # Miscellaneous Options
-    # ---------------------------------
+    # ---------------------
+    # Miscellaneous options
+    # ---------------------
     # If true, emit the unicode byte-order mark (BOM) at the start of the file
     emit_byteorder_mark = False
 

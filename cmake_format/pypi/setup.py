@@ -21,7 +21,8 @@ setup(
     packages=[
         'cmake_format',
         'cmake_format.command_tests',
-        'cmake_format.parse_funs'
+        'cmake_format.parse_funs',
+        'cmake_lint',
     ],
     version=VERSION,
     description="Can format your listfiles so they don't look like crap",
@@ -40,8 +41,10 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'cmake-format=cmake_format.__main__:main',
             'cmake-annotate=cmake_format.annotate:main',
+            'cmake-format=cmake_format.__main__:main',
+            'cmake-lint=cmake_lint.__main__:main',
+            'ctest-to=cmake_format.ctest_to:main'
         ],
     },
     extras_require={

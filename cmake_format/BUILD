@@ -8,7 +8,9 @@ py_library(
         "annotate.py",
         "commands.py",
         "common.py",
+        "config_util.py",
         "configuration.py",
+        "ctest_to.py",
         "formatter.py",
         "invocation_tests.py",
         "layout_tests.py",
@@ -30,7 +32,14 @@ py_library(
         "parser_tests.py",
         "pypi/setup.py",
         "render.py",
-        "tests.py"],
+        "tests.py",
+        "tools/__init__.py",
+        "tools/parse_cmake_help.py",
+        "tools/properties.jinja.py",
+        "tools/usage_lexer.py",
+        "tools/usage_parser.py",
+        "tools/variables.jinja.py"
+    ],
     data=["templates/layout.html.tpl",
           "templates/style.css"])
 

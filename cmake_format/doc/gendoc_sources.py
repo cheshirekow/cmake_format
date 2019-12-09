@@ -18,8 +18,12 @@ import subprocess
 import sys
 import tempfile
 
+import cmake_lint.test.genfiles
 
-def format_directive(content, codetag):
+
+def format_directive(content, codetag=None):
+  if codetag is None:
+    codetag = ""
   outlines = [".. code:: {}".format(codetag), ""]
   for line in content.split("\n"):
     outlines.append(("    " + line).rstrip())
@@ -100,6 +104,24 @@ endif()
 """
 
 
+def generate_annotate_output(outfile, argv, **kwargs):
+  outfile.write("""<template id="renderedcontent">
+""".encode("utf-8"))
+  outfile.flush()
+  subprocess.check_call(argv, stdout=outfile, **kwargs)
+  outfile.write("""
+</template>
+<iframe id="renderframe" style="width:100%;"></iframe>
+<script type="text/javascript">
+  var frame = document.getElementById("renderframe");
+  frame.addEventListener("load", function() {
+    frame.height = frame.contentWindow.document.body.scrollHeight + 30;
+  });
+  frame.srcdoc = document.getElementById("renderedcontent").innerHTML;
+</script>
+""".encode("utf-8"))
+
+
 def generate_docsources(verify):
   """
   Process dynamic text sources and perform text substitutions
@@ -117,6 +139,39 @@ def generate_docsources(verify):
           [sys.executable, "-Bm", "cmake_format", "--help"], env=env
       ).decode("utf-8"),
       "text")
+
+  dynamic_text["annotate-usage"] = format_directive(
+      subprocess.check_output(
+          [sys.executable, "-Bm", "cmake_format.annotate", "--help"], env=env
+      ).decode("utf-8"),
+      "text")
+
+  dynamic_text["ctest-to-usage"] = format_directive(
+      subprocess.check_output(
+          [sys.executable, "-Bm", "cmake_format.ctest_to", "--help"], env=env
+      ).decode("utf-8"),
+      "text")
+
+  with io.open(os.path.join(
+      repodir, "cmake_lint/test/expect_lint.cmake")) as infile:
+    dynamic_text["lint-in"] = format_directive(infile.read(), "cmake")
+
+  with tempfile.NamedTemporaryFile(delete=False) as outfile:
+    subprocess.call(
+        [sys.executable, "-Bm", "cmake_lint",
+         "cmake_lint/test/expect_lint.cmake"],
+        env=env, cwd=repodir, stdout=outfile)
+
+  lintout = outfile.name
+  with io.open(lintout, "r") as infile:
+    dynamic_text["lint-out"] = format_directive(infile.read(), "text")
+
+  dynamic_text["lint-usage"] = format_directive(
+      subprocess.check_output(
+          [sys.executable, "-Bm", "cmake_lint", "--help"], env=env
+      ).decode("utf-8"),
+      "text")
+
   dynamic_text["configuration"] = format_directive(
       subprocess.check_output(
           [sys.executable, "-Bm", "cmake_format", "--dump-config"], env=env
@@ -163,11 +218,32 @@ def generate_docsources(verify):
 
   for filename in (
       "doc/README.rst",
-      "doc/usage.rst",
+      "doc/configuration.rst",
+      "doc/cmake-annotate.rst",
+      "doc/cmake-format.rst",
+      "doc/cmake-lint.rst",
+      "doc/ctest-to.rst",
       "doc/example.rst",
+      "doc/lint-example.rst",
+      "doc/lint-usage.rst",
       "doc/parse_tree.rst",
+      "doc/usage.rst",
   ):
     handle_file(os.path.join(projectdir, filename), dynamic_text)
+
+  if not verify:
+    with io.open(os.path.join(
+        projectdir, "doc/example_rendered.html"), "wb") as outfile:
+      generate_annotate_output(
+          outfile, [sys.executable, "-Bm", "cmake_format.annotate",
+                    "--format", "page", "test/test_out.cmake"],
+          env=env, cwd=projectdir)
+
+    with io.open(
+        os.path.join(projectdir, "doc/lint-implemented.rst"), "wb") as outfile:
+      subprocess.check_call(
+          [sys.executable, "-Bm", "cmake_lint.gendocs"],
+          cwd=repodir, stdout=outfile)
 
 
 def main():
@@ -180,6 +256,8 @@ def main():
     sys.exit(0)
 
   generate_docsources(args.verify)
+  if not args.verify:
+    cmake_lint.test.genfiles.genfiles()
 
 
 if __name__ == "__main__":

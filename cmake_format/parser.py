@@ -78,6 +78,24 @@ ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
                 lexer.TokenType.FORMAT_OFF)
 
 
+def is_whitespace_token(token):
+  return token.type in WHITESPACE_TOKENS
+
+
+def is_comment_token(token):
+  return token.type in COMMENT_TOKENS
+
+
+def is_semantic_token(token):
+  if token.type in (
+      lexer.TokenType.WHITESPACE,
+      lexer.TokenType.NEWLINE,
+      lexer.TokenType.COMMENT,
+      lexer.TokenType.BRACKET_COMMENT):
+    return False
+  return True
+
+
 class TreeNode(object):
   """
   A node in the full-syntax-tree.
@@ -111,6 +129,35 @@ class TreeNode(object):
               .format(self.node_type.name, self.get_location()))
 
     return '{}: {}'.format(self.node_type.name, self.get_location())
+
+  def get_tokens(self, out=None, kind=None):
+    if out is None:
+      out = []
+    if kind is None:
+      kind = "all"
+
+    match_group = {
+        "semantic": is_semantic_token,
+        "whitespace": is_whitespace_token,
+        "comment": is_comment_token,
+        "all": lambda x: True
+    }[kind]
+
+    for child in self.children:
+      if isinstance(child, lexer.Token):
+        if match_group(child):
+          out.append(child)
+      elif isinstance(child, TreeNode):
+        child.get_tokens(out, kind)
+      else:
+        raise RuntimeError("Unexpected child of type {}".format(type(child)))
+    return out
+
+  def get_semantic_tokens(self, out=None):
+    """
+    Recursively reconstruct a stream of semantic tokens
+    """
+    return self.get_tokens(out, kind="semantic")
 
 
 def consume_whitespace(tokens):
@@ -409,15 +456,10 @@ def iter_semantic_tokens(tokens):
   Return a generator over the list of tokens yielding only those that
   have semantic meaning
   """
-  skip_tokens = (lexer.TokenType.WHITESPACE,
-                 lexer.TokenType.NEWLINE,
-                 lexer.TokenType.COMMENT,
-                 lexer.TokenType.BRACKET_COMMENT)
 
   for token in tokens:
-    if token.type in skip_tokens:
-      continue
-    yield token
+    if is_semantic_token(token):
+      yield token
 
 
 def get_nth_semantic_token(tokens, nth):
@@ -1024,7 +1066,12 @@ def consume_statement(tokens, parse_db):
     continue
 
   breakstack = [ParenBreaker()]
-  parse_fun = parse_db.get(fnname, StandardParser())
+
+  parse_fun = parse_db.get(fnname, None)
+  if parse_fun is None:
+    # If the parse_db provides a "_default" then use that. Otherwise use the
+    # standard parser with no kwargs or flags.
+    parse_fun = parse_db.get("_default", StandardParser())
   subtree = parse_fun(tokens, breakstack)
   node.children.append(subtree)
 

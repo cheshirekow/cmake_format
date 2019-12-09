@@ -155,5 +155,5 @@ def populate_db(parse_db):
   parse_db["externalproject_get_property"] = StandardParser('+')
   parse_db["externalproject_add_step"] = parse_external_project_add_step
   parse_db["externalproject_add_steptargets"] = \
-      PositionalParser('+', flags=["NO_DEPENDS"])
-  parse_db["externalproject_add_stepdependencies"] = PositionalParser('+')
+      StandardParser('+', flags=["NO_DEPENDS"])
+  parse_db["externalproject_add_stepdependencies"] = StandardParser('+')

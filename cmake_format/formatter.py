@@ -38,10 +38,9 @@ def clamp(value, min_value, max_value):
   return value
 
 
-def format_comment_lines(node, config, line_width):
-  """
-  Reflow comment lines into the given line width, parsing markup as necessary.
-  """
+def get_comment_lines(config, node):
+  """Given a comment node, iterate through it's tokens and generate a list
+  of textual lines."""
   inlines = []
   for token in node.children:
     assert isinstance(token, lexer.Token)
@@ -60,6 +59,14 @@ def format_comment_lines(node, config, line_width):
         # Otherwise strip off extra hash chars to keep things nice and
         # consistent (i.e. remove acciental `##`` prefixes)
         inlines.append(inline.lstrip('#'))
+  return inlines
+
+
+def format_comment_lines(node, config, line_width):
+  """
+  Reflow comment lines into the given line width, parsing markup as necessary.
+  """
+  inlines = get_comment_lines(config, node)
 
   if not config.enable_markup:
     return ["#" + line.rstrip() for line in inlines]

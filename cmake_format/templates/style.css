@@ -6,6 +6,7 @@ body {
 div.content {
   white-space: pre;
   font-family: 'Courier New', Courier, monospace;
+  font-size: 10pt;
 }
 
 span.cmf-COMMENT, span.cmf-BRACKET_COMMENT {

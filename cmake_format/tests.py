@@ -14,6 +14,7 @@ from cmake_format.command_tests import (
     TestAddCustomCommand,
     TestConditional,
     TestExport,
+    TestExternalProject,
     TestForeach,
     TestFile,
     TestInstall,

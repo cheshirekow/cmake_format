@@ -1,0 +1,198 @@
+=============
+Configuration
+=============
+
+The different tools utilize a common parsing core and so share a
+common configuration system and in fact can share the same configuration
+file(s).
+
+The tools accept configuration files in yaml, json, or python format.
+
+.. note::
+
+  In order to read your configuration files in YAML format, the
+  tools require the ``pyyaml`` python package to be installed. This
+  dependency is not enforced by default during installation since this
+  is an optional feature. It can be enabled by installing with a
+  command like ``pip install cmake_format[YAML]``. Or you can install
+  ``pyyaml`` manually.
+
+
+You may specify a path to a configuration file with the ``--config-file``
+command line option. Otherwise, the tools will search the ancestry
+of each source file looking for a configuration file to use. If no
+configuration file is found it will use sensible defaults.
+
+Automatically detected configuration files may have any name that matches
+``\.?cmake-format(.yaml|.json|.py)``.
+
+If you'd like to create a new configuration file, ``cmake-format`` can help
+by dumping out the default configuration in your preferred format. You can run
+``cmake-format --dump-config [yaml|json|python]`` to print the default
+configuration ``stdout`` and use that as a starting point.
+
+Here is an example python-style configuration file with the default options and
+help-text. Some detailed examples can be found at :ref:`configopts`.
+
+.. dynamic: configuration-begin
+
+.. code:: text
+
+    # --------------------------
+    # General Formatting Options
+    # --------------------------
+    # How wide to allow formatted cmake files
+    line_width = 80
+
+    # How many spaces to tab for indent
+    tab_size = 2
+
+    # If an argument group contains more than this many sub-groups (parg or kwarg
+    # groups), then force it to a vertical layout.
+    max_subgroups_hwrap = 2
+
+    # If a positional argument group contains more than this many arguments, then
+    # force it to a vertical layout.
+    max_pargs_hwrap = 6
+
+    # If true, separate flow control names from their parentheses with a space
+    separate_ctrl_name_with_space = False
+
+    # If true, separate function names from parentheses with a space
+    separate_fn_name_with_space = False
+
+    # If a statement is wrapped to more than one line, than dangle the closing
+    # parenthesis on its own line.
+    dangle_parens = False
+
+    # If the trailing parenthesis must be 'dangled' on its on line, then align it to
+    # this reference: `prefix`: the start of the statement,  `prefix-indent`: the
+    # start of the statement, plus one indentation  level, `child`: align to the
+    # column of the arguments
+    dangle_align = 'prefix'
+
+    # If the statement spelling length (including space and parenthesis) is smaller
+    # than this amount, then force reject nested layouts.
+    min_prefix_chars = 4
+
+    # If the statement spelling length (including space and parenthesis) is larger
+    # than the tab width by more than this amount, then force reject un-nested
+    # layouts.
+    max_prefix_chars = 10
+
+    # If a candidate layout is wrapped horizontally but it exceeds this many lines,
+    # then reject the layout.
+    max_lines_hwrap = 2
+
+    # What style line endings to use in the output.
+    line_ending = 'unix'
+
+    # Format command names consistently as 'lower' or 'upper' case
+    command_case = 'canonical'
+
+    # Format keywords consistently as 'lower' or 'upper' case
+    keyword_case = 'unchanged'
+
+    # Specify structure for custom cmake functions
+    additional_commands = {'pkg_find': {'kwargs': {'PKG': '*'}}}
+
+    # A list of command names which should always be wrapped
+    always_wrap = []
+
+    # If true, the argument lists which are known to be sortable will be sorted
+    # lexicographicall
+    enable_sort = True
+
+    # If true, the parsers may infer whether or not an argument list is sortable
+    # (without annotation).
+    autosort = False
+
+    # By default, if cmake-format cannot successfully fit everything into the
+    # desired linewidth it will apply the last, most agressive attempt that it made.
+    # If this flag is True, however, cmake-format will print error, exit with non-
+    # zero status code, and write-out nothing
+    require_valid_layout = False
+
+    # A dictionary containing any per-command configuration overrides. Currently
+    # only `command_case` is supported.
+    per_command = {}
+
+    # A dictionary mapping layout nodes to a list of wrap decisions. See the
+    # documentation for more information.
+    layout_passes = {}
+
+    # ----------------------------
+    # Options affecting the linter
+    # ----------------------------
+    with section("linter"):
+      # regular expression pattern describing valid function names
+      function_pattern = '[0-9a-z_]+'
+
+      # regular expression pattern describing valid macro names
+      macro_pattern = '[0-9A-Z_]+'
+
+      # regular expression pattern describing valid names for variables with global
+      # scope
+      global_var_pattern = '[0-9A-Z_]+'
+
+      # regular expression pattern describing valid names for variables with local
+      # scope
+      local_var_pattern = '[0-9a-z_]+'
+
+      # regular expression pattern describing valid names for keywords used in
+      # functions or macros
+      keyword_pattern = '[0-9A-Z_]+'
+
+    # ------------------------------------
+    # Options affecting comment formatting
+    # ------------------------------------
+    # What character to use for bulleted lists
+    bullet_char = '*'
+
+    # What character to use as punctuation after numerals in an enumerated list
+    enum_char = '.'
+
+    # If comment markup is enabled, don't reflow the first comment block in each
+    # listfile. Use this to preserve formatting of your copyright/license
+    # statements.
+    first_comment_is_literal = False
+
+    # If comment markup is enabled, don't reflow any comment block which matches
+    # this (regex) pattern. Default is `None` (disabled).
+    literal_comment_pattern = None
+
+    # Regular expression to match preformat fences in comments
+    # default=r'^\s*([`~]{3}[`~]*)(.*)$'
+    fence_pattern = '^\\s*([`~]{3}[`~]*)(.*)$'
+
+    # Regular expression to match rulers in comments
+    # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+    ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
+
+    # If a comment line starts with at least this many consecutive hash characters,
+    # then don't lstrip() them off. This allows for lazy hash rulers where the first
+    # hash char is not separated by space
+    hashruler_min_length = 10
+
+    # If true, then insert a space between the first hash char and remaining hash
+    # chars in a hash ruler, and normalize its length to fill the column
+    canonicalize_hashrulers = True
+
+    # enable comment markup parsing and reflow
+    enable_markup = True
+
+    # ---------------------
+    # Miscellaneous options
+    # ---------------------
+    # If true, emit the unicode byte-order mark (BOM) at the start of the file
+    emit_byteorder_mark = False
+
+    # Specify the encoding of the input file. Defaults to utf-8.
+    input_encoding = 'utf-8'
+
+    # Specify the encoding of the output file. Defaults to utf-8. Note that cmake
+    # only claims to support utf-8 so be careful when using anything else
+    output_encoding = 'utf-8'
+
+
+.. dynamic: configuration-end

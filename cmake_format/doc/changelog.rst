@@ -6,6 +6,22 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.3
+------
+
+* Add ``ctest-to`` program
+* Add ``cmake-lint`` program
+* Separate documentation by program
+* Add some more detailed configuration documentation
+* Make some of the config logic generic and push into a base class
+* Some groundwork for cleaning up the config into different sections
+* Fix externalproject_add_stepdependencies
+
+
+* Closes `#152`_: AssertionError on externalproject_add_stepdependencies
+
+.. _#152: https://github.com/cheshirekow/cmake_format/issues/152
+
 v0.6.2
 ------
 
@@ -21,6 +37,31 @@ v0.6.2
 * implement require-valid-layout and add tests
 * sidecar tests don't need a companion pyfile
 * fix some typos in documentation
+
+
+* Closes `#133`_: Better handling of un-wrappable, too-long lines
+* Closes `#134`_: Wrong formatting of install(TARGETS)
+* Closes `#140`_: add USES_TERMINAL to kwargs
+* Closes `#142`_: Add a --check option that doesn't write the files
+* Closes `#143`_: Broken file attributes after formatting
+* Closes `#144`_: Wrong warning about "file(TOUCH_NOCREATE ...)"
+* Closes `#145`_: Bad formatting for `set_target_properties`
+* Closes `#147`_: foreach format
+* Closes `#150`_: Contributing documentation
+* Closes `#151`_: README.rst: fix two typos
+
+
+.. _#133: https://github.com/cheshirekow/cmake_format/issues/133
+.. _#134: https://github.com/cheshirekow/cmake_format/issues/134
+.. _#140: https://github.com/cheshirekow/cmake_format/issues/140
+.. _#142: https://github.com/cheshirekow/cmake_format/issues/142
+.. _#143: https://github.com/cheshirekow/cmake_format/issues/143
+.. _#144: https://github.com/cheshirekow/cmake_format/issues/144
+.. _#145: https://github.com/cheshirekow/cmake_format/issues/145
+.. _#147: https://github.com/cheshirekow/cmake_format/issues/147
+.. _#150: https://github.com/cheshirekow/cmake_format/issues/150
+.. _#151: https://github.com/cheshirekow/cmake_format/issues/151
+
 
 v0.6.1
 ------
@@ -66,6 +107,7 @@ v0.5.5
 * Fix vscode extension args type configuration
 * Support multiple config files
 
+
 * Closes `#121`_: Support ``BYPRODUCTS``
 * Closes `#123`_: Allow multiple config files
 * Closes `#125`_: Swap ordering of cwd location in vscode extension
@@ -90,6 +132,7 @@ v0.5.4
 * Fix yaml-loader returns None instead of empty dictionary for an empty yaml
   config file.
 
+
 * Closes `#114`_: Example of adding custom cmake functions/macros
 * Closes `#117`_: Fix handling of --dump-config with empty existing yaml config
 * Closes `#118`_: Avoid writing outfile unnecessarily
@@ -111,6 +154,7 @@ v0.5.3
 * add a couple more case studies
 * split reflow methods into smaller methods per case
 * fix os.expanduser on None
+
 
 * Closes `#115`_: crash when no config file
 
@@ -135,6 +179,7 @@ v0.5.2
 * Changed documentation theme to something based on rtd
 * Get rid of ``COMMAND`` kwarg specialization
 
+
 * Closes `#111`_: Formatting breaks ``add_library``
 * Closes `#112`_: expanduser on configfile_path
 
@@ -158,6 +203,7 @@ v0.5.1
 * Fix missing tests on travis
 * Fix new tests using unicode literals (affects python2)
 * Fix command parser after --
+
 
 * Closes `#104`_: Extra space for export targets
 * Closes `#106`_: Formatting of ``file(READ)`` fails
@@ -190,6 +236,7 @@ v0.5.0
 * Fix python3 lint
 * Fix bad lexing of make-style variables
 * Fix multiple hash chars ``lstrip()ed`` from comments
+
 
 * Closes `#62`_: Possible improvement on formatting "file"
 * Closes `#75`_: configurable positioning of flags
@@ -224,6 +271,7 @@ v0.4.5
 * Add travis CI configuration
 * Fix some issues with lint under python3
 
+
 * Closes `#40`_
 * Closes `#76`_
 * Closes `#77`_
@@ -250,6 +298,7 @@ v0.4.4
 * add new quoted assignment pattern to lexer for cases like quoted compile
   definitions
 * add `--dump html-stub` and `--dump html-page` listfile renderers
+
 
 * Fixes `#56`_: ignores boolean configuration values
 * Closes `#66`_: Positional argument of keyword incorrectly matched as keyword
@@ -281,6 +330,7 @@ v0.4.3
 
 Closed issues:
 
+
 * Fixes `#70`_: ignores boolean configuration values
 
 .. _#70: https://github.com/cheshirekow/cmake_format/issues/70
@@ -303,6 +353,7 @@ v0.4.2
 * Add config options to preserve first comment or any matching a regex
 
 Closed issues:
+
 
 * Fixes `#34`_: if conditions with many elements
 * Closes `#35`_: break_before_args
@@ -340,6 +391,7 @@ v0.4.1
 
 Closed issues:
 
+
 * Fixes `#53`_: add numpy as required
 * Closes `#54`_: more cmake commands
 * Fixes `#55`_: function with interior comment
@@ -368,6 +420,7 @@ v0.4.0
 * Improve layout of complicated boolean expressions
 
 Closed issues:
+
 
 * Implements `#10`_: treat COMPONENT keyword different
 * Implements `#37`_: --dump-config dumps current config
