@@ -1,27 +1,26 @@
+# pylint: disable=too-many-statements
 import logging
 
-from cmake_format import lexer
-from cmake_format.parser import (
-    NodeType,
+from cmake_format.lexer import TokenType
+from cmake_format.parse.additional_nodes import (
+    FlagGroupNode, ShellCommandNode, TupleParser)
+from cmake_format.parse.argument_nodes import (
+    ArgGroupNode,
+    KeywordGroupNode,
+    PositionalGroupNode,
+    PositionalParser,
+    StandardArgTree)
+from cmake_format.parse.common import KwargBreaker, NodeType, TreeNode
+from cmake_format.parse.util import (
+    WHITESPACE_TOKENS,
     get_first_semantic_token,
     get_normalized_kwarg,
-    KwargBreaker,
-    parse_flags,
-    parse_kwarg,
-    parse_positionals,
-    parse_standard,
-    parse_shell_command,
-    PositionalParser,
-    PositionalTupleParser,
-    should_break,
-    TreeNode,
-    WHITESPACE_TOKENS
-)
+    should_break)
 
 logger = logging.getLogger("cmake-format")
 
 
-def parse_add_custom_command_events(tokens, breakstack):
+def parse_add_custom_command_events(ctx, tokens, breakstack):
   """
   ::
     add_custom_command(TARGET <target>
@@ -35,12 +34,12 @@ def parse_add_custom_command_events(tokens, breakstack):
                     [COMMAND_EXPAND_LISTS])
   :see: https://cmake.org/cmake/help/latest/command/add_custom_command.html
   """
-  return parse_standard(
-      tokens,
+  subtree = StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "BYPRODUCTS": PositionalParser('*'),
-          "COMMAND": parse_shell_command,
+          "COMMAND": ShellCommandNode.parse,
           "COMMENT": PositionalParser('*'),
           "TARGET": PositionalParser(1),
           "WORKING_DIRECTORY": PositionalParser(1)
@@ -50,8 +49,16 @@ def parse_add_custom_command_events(tokens, breakstack):
           "PRE_BUILD", "PRE_LINK", "POST_BUILD"],
       breakstack=breakstack)
 
+  subtree.check_required_kwargs(ctx.lint_ctx, {
+      # Truly required keyword arguments
+      "COMMAND": "E1125",
+      # Required by convention
+      "COMMENT": "C0113"
+  })
+  return subtree
 
-def parse_add_custom_command_standard(tokens, breakstack):
+
+def parse_add_custom_command_standard(ctx, tokens, breakstack):
   """
   ::
 
@@ -72,17 +79,17 @@ def parse_add_custom_command_standard(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/latest/command/add_custom_command.html
   """
-  return parse_standard(
-      tokens,
+  subtree = StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "BYPRODUCTS": PositionalParser('*'),
-          "COMMAND": parse_shell_command,
+          "COMMAND": ShellCommandNode.parse,
           "COMMENT": PositionalParser('*'),
           "DEPENDS": PositionalParser('*'),
           "DEPFILE": PositionalParser(1),
           "JOB_POOL": PositionalParser(1),
-          "IMPLICIT_DEPENDS": PositionalTupleParser(2, '+'),
+          "IMPLICIT_DEPENDS": TupleParser(2, '+'),
           "MAIN_DEPENDENCY": PositionalParser(1),
           "OUTPUT": PositionalParser('+'),
           "WORKING_DIRECTORY": PositionalParser(1)
@@ -90,26 +97,51 @@ def parse_add_custom_command_standard(tokens, breakstack):
       flags=["APPEND", "VERBATIM", "USES_TERMINAL", "COMMAND_EXPAND_LISTS"],
       breakstack=breakstack)
 
+  subtree.check_required_kwargs(ctx.lint_ctx, {
+      # Truly required keyword arguments
+      "COMMAND": "E1125",
+      # Required by convention
+      "COMMENT": "C0113"
+  })
 
-def parse_add_custom_command(tokens, breakstack):
+  return subtree
+
+
+def parse_add_custom_command(ctx, tokens, breakstack):
   """
   There are two forms of `add_custom_command`. This is the dispatcher between
   the two forms.
   """
   descriminator_token = get_first_semantic_token(tokens)
+  if (descriminator_token is None or
+      descriminator_token.type is TokenType.RIGHT_PAREN):
+    location = ()
+    if tokens:
+      location = tokens[0].get_location()
+    logger.warning("Invalid empty file() command at %s", location)
+    ctx.lint_ctx.record_lint("E1120", location=location)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
+
+  if descriminator_token.type is TokenType.DEREF:
+    ctx.lint_ctx.record_lint(
+        "C0114", location=descriminator_token.get_location())
+    return parse_add_custom_command_standard(ctx, tokens, breakstack)
+
   descriminator_word = get_normalized_kwarg(descriminator_token)
   if descriminator_word == "TARGET":
-    return parse_add_custom_command_events(tokens, breakstack)
+    return parse_add_custom_command_events(ctx, tokens, breakstack)
   if descriminator_word == "OUTPUT":
-    return parse_add_custom_command_standard(tokens, breakstack)
+    return parse_add_custom_command_standard(ctx, tokens, breakstack)
 
   logger.warning(
-      "Indeterminate form of add_custom_command at %s",
-      descriminator_token.location)
-  return parse_add_custom_command_standard(tokens, breakstack)
+      "Indeterminate form of add_custom_command \"%s\" at %s",
+      descriminator_word, descriminator_token.location())
+  ctx.lint_ctx.record_lint("E1126", location=descriminator_token.get_location())
+  return parse_add_custom_command_standard(ctx, tokens, breakstack)
 
 
-def parse_add_custom_target(tokens, breakstack):
+def parse_add_custom_target(ctx, tokens, breakstack):
   """
   ::
     add_custom_target(Name [ALL] [command1 [args1...]]
@@ -127,15 +159,22 @@ def parse_add_custom_target(tokens, breakstack):
   """
   kwargs = {
       "BYPRODUCTS": PositionalParser("+"),
-      "COMMAND": parse_shell_command,
+      "COMMAND": ShellCommandNode.parse,
       "COMMENT": PositionalParser(1),
       "DEPENDS": PositionalParser("+"),
       "JOB_POOL": PositionalParser(1),
       "SOURCES": PositionalParser("+"),
       "WORKING_DIRECTORY": PositionalParser(1),
   }
+
+  required_kwargs = {
+      # Required by convention
+      "COMMAND": "C0113",
+      "COMMENT": "C0113"
+  }
+
   flags = ("VERBATIM", "USES_TERMINAL", "COMMAND_EXPAND_LISTS")
-  tree = TreeNode(NodeType.ARGGROUP)
+  tree = ArgGroupNode()
 
   # If it is a whitespace token then put it directly in the parse tree at
   # the current depth
@@ -163,8 +202,8 @@ def parse_add_custom_target(tokens, breakstack):
       continue
 
     # If it's a comment, then add it at the current depth
-    if tokens[0].type in (lexer.TokenType.COMMENT,
-                          lexer.TokenType.BRACKET_COMMENT):
+    if tokens[0].type in (TokenType.COMMENT,
+                          TokenType.BRACKET_COMMENT):
       child = TreeNode(NodeType.COMMENT)
       tree.children.append(child)
       child.children.append(tokens.pop(0))
@@ -179,7 +218,8 @@ def parse_add_custom_target(tokens, breakstack):
       else:
         npargs = 1
 
-      nametree = parse_positionals(tokens, npargs, ["ALL"], child_breakstack)
+      nametree = PositionalGroupNode.parse(
+          ctx, tokens, npargs, ["ALL"], child_breakstack)
       assert len(tokens) < ntokens
       tree.children.append(nametree)
       state = "first-command"
@@ -188,32 +228,47 @@ def parse_add_custom_target(tokens, breakstack):
     word = get_normalized_kwarg(tokens[0])
     if state == "first-command":
       if not(word in kwargs or word in flags):
-        subtree = parse_positionals(tokens, '+', [], child_breakstack)
+        subtree = PositionalGroupNode.parse(
+            ctx, tokens, '+', [], child_breakstack)
         tree.children.append(subtree)
         assert len(tokens) < ntokens
       state = "kwargs"
       continue
 
     if word in flags:
-      subtree = parse_flags(
-          tokens, flags, breakstack + [KwargBreaker(list(kwargs.keys()))])
+      subtree = FlagGroupNode.parse(
+          ctx, tokens, flags, breakstack + [KwargBreaker(list(kwargs.keys()))])
       assert len(tokens) < ntokens
       tree.children.append(subtree)
       continue
 
     if word in kwargs:
-      subtree = parse_kwarg(tokens, word, kwargs[word], child_breakstack)
+      required_kwargs.pop(word, None)
+      subtree = KeywordGroupNode.parse(
+          ctx, tokens, word, kwargs[word], child_breakstack)
       assert len(tokens) < ntokens
       tree.children.append(subtree)
       continue
 
+    ctx.lint_ctx.record_lint("E1122", location=tokens[0].get_location())
     logger.warning(
         "Unexpected positional argument %s at %s",
         tokens[0].spelling, tokens[0].location())
-    subtree = parse_positionals(tokens, '+', [], child_breakstack)
+    subtree = PositionalGroupNode.parse(ctx, tokens, '+', [], child_breakstack)
     assert len(tokens) < ntokens
     tree.children.append(subtree)
     continue
+
+  if required_kwargs:
+    location = ()
+    for token in tree.get_semantic_tokens():
+      location = token.get_location()
+      break
+
+    missing_kwargs = sorted(
+        (lintid, word) for word, lintid in sorted(required_kwargs.items()))
+    for lintid, word in missing_kwargs:
+      ctx.lint_ctx.record_lint(lintid, word, location=location)
   return tree
 
 

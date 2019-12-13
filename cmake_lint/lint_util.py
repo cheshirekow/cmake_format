@@ -66,7 +66,7 @@ class FileContext(object):
       return
 
     spec = self.global_ctx.lintdb[idstr]
-    location = kwargs.pop("location", None)
+    location = kwargs.pop("location", ())
     msg = spec.msgfmt.format(*args, **kwargs)
     record = LintRecord(spec, location, msg)
     self._lint.append(record)
@@ -74,8 +74,9 @@ class FileContext(object):
   def get_lint(self):
     """Return lint records in sorted order"""
     return [
-        record for __, record in sorted((
-            record.location, record) for record in self._lint)]
+        record for _, _, _, record in sorted(
+            (record.location, record.spec.idstr, idx, record)
+            for idx, record in enumerate(self._lint))]
 
   def writeout(self, outfile):
     for record in self.get_lint():

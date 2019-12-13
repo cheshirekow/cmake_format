@@ -11,7 +11,7 @@ import logging
 import os
 
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format.parse.common import TreeNode
 
 
 def dump_html(node, outfile):
@@ -20,7 +20,7 @@ def dump_html(node, outfile):
   parsed into the parse tree rooted at `node`
   """
 
-  if isinstance(node, parser.TreeNode):
+  if isinstance(node, TreeNode):
     outfile.write('<span class="cmf-{}">'.format(node.node_type.name))
     for child in node.children:
       dump_html(child, outfile)

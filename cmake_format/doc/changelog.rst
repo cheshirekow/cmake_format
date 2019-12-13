@@ -6,6 +6,21 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.4
+------
+
+* Split ``parser.py`` module into ``parse/`` sub package.
+* Implement derived classes of `TreeNode` for for many parsers
+* Refactor parse functions into class members of the appropriate
+  `TreeNode` derived class
+* Add lint checkers for:
+  C0103, C0113, C0202, C0305, E0103, E0104, E0108, E0109, E1120,
+  E1122, W0101
+* Fix wrong token pattern for unquoted literal was including literal
+  tabs and newlines (not literal "t" and "n").
+
+# Closes `#153`_: Spaces added to generator expressions
+
 v0.6.3
 ------
 

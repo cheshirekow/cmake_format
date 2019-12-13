@@ -1,24 +1,23 @@
 import logging
 
 from cmake_format.lexer import TokenType
-from cmake_format.parser import (
-    consume_trailing_comment,
-    iter_semantic_tokens,
-    get_normalized_kwarg,
-    get_tag,
-    NodeType,
-    only_comments_and_whitespace_remain,
-    parse_positionals,
-    parse_standard,
-    should_break,
-    TreeNode,
+from cmake_format.parse.argument_nodes import (
+    PositionalGroupNode, StandardArgTree)
+from cmake_format.parse.common import NodeType, TreeNode
+from cmake_format.parse.simple_nodes import CommentNode
+from cmake_format.parse.util import (
     WHITESPACE_TOKENS,
+    get_tag,
+    get_normalized_kwarg,
+    iter_semantic_tokens,
+    only_comments_and_whitespace_remain,
+    should_break
 )
 
 logger = logging.getLogger("cmake-format")
 
 
-def parse_add_library_standard(tokens, breakstack, sortable):
+def parse_add_library_standard(ctx, tokens, breakstack, sortable):
   """
   ::
 
@@ -85,7 +84,7 @@ def parse_add_library_standard(tokens, breakstack, sortable):
       tree.children.append(parg_group)
       child = TreeNode(NodeType.ARGUMENT)
       child.children.append(token)
-      consume_trailing_comment(child, tokens)
+      CommentNode.consume_trailing(ctx, tokens, child)
       parg_group.children.append(child)
       state_ += 1
     elif state_ is parsing_type:
@@ -93,7 +92,7 @@ def parse_add_library_standard(tokens, breakstack, sortable):
         token = tokens.pop(0)
         child = TreeNode(NodeType.FLAG)
         child.children.append(token)
-        consume_trailing_comment(child, tokens)
+        CommentNode.consume_trailing(ctx, tokens, child)
         parg_group.children.append(child)
       state_ += 1
     elif state_ is parsing_flag:
@@ -101,7 +100,7 @@ def parse_add_library_standard(tokens, breakstack, sortable):
         token = tokens.pop(0)
         child = TreeNode(NodeType.FLAG)
         child.children.append(token)
-        consume_trailing_comment(child, tokens)
+        CommentNode.consume_trailing(ctx, tokens, child)
         parg_group.children.append(child)
       state_ += 1
       src_group = TreeNode(NodeType.PARGGROUP, sortable=sortable)
@@ -111,7 +110,7 @@ def parse_add_library_standard(tokens, breakstack, sortable):
       token = tokens.pop(0)
       child = TreeNode(NodeType.ARGUMENT)
       child.children.append(token)
-      consume_trailing_comment(child, tokens)
+      CommentNode.consume_trailing(ctx, tokens, child)
       src_group.children.append(child)
 
       if only_comments_and_whitespace_remain(tokens, breakstack):
@@ -120,7 +119,7 @@ def parse_add_library_standard(tokens, breakstack, sortable):
   return tree
 
 
-def parse_add_library_imported(tokens, breakstack):
+def parse_add_library_imported(ctx, tokens, breakstack):
   """
   ::
     add_library(<name> <SHARED|STATIC|MODULE|OBJECT|UNKNOWN> IMPORTED
@@ -128,15 +127,15 @@ def parse_add_library_imported(tokens, breakstack):
 
     :see: https://cmake.org/cmake/help/latest/command/add_library.html
   """
-  return parse_standard(
-      tokens, npargs='+',
+  return StandardArgTree.parse(
+      ctx, tokens, npargs='+',
       kwargs={},
       flags=["SHARED", "STATIC", "MODULE", "OBJECT", "UNKOWN", "IMPORTED",
              "GLOBAL"],
       breakstack=breakstack)
 
 
-def parse_add_library_object(tokens, breakstack):
+def parse_add_library_object(ctx, tokens, breakstack):
   """
   ::
     add_library(<name> OBJECT <src>...)
@@ -152,7 +151,7 @@ def parse_add_library_object(tokens, breakstack):
     continue
 
   ntokens = len(tokens)
-  subtree = parse_positionals(tokens, 2, ["OBJECT"], breakstack)
+  subtree = PositionalGroupNode.parse(ctx, tokens, 2, ["OBJECT"], breakstack)
   assert len(tokens) < ntokens
   tree.children.append(subtree)
 
@@ -179,41 +178,41 @@ def parse_add_library_object(tokens, breakstack):
         continue
 
     ntokens = len(tokens)
-    subtree = parse_positionals(tokens, '+', [], breakstack)
+    subtree = PositionalGroupNode.parse(ctx, tokens, '+', [], breakstack)
     assert len(tokens) < ntokens
     tree.children.append(subtree)
   return tree
 
 
-def parse_add_library_alias(tokens, breakstack):
+def parse_add_library_alias(ctx, tokens, breakstack):
   """
   ::
     add_library(<name> ALIAS <target>)
 
     :see: https://cmake.org/cmake/help/latest/command/add_library.html#alias-libraries
   """
-  return parse_standard(
-      tokens, npargs=3,
+  return StandardArgTree.parse(
+      ctx, tokens, npargs=3,
       kwargs={},
       flags=["ALIAS"],
       breakstack=breakstack)
 
 
-def parse_add_library_interface(tokens, breakstack):
+def parse_add_library_interface(ctx, tokens, breakstack):
   """
   ::
     add_library(<name> INTERFACE [IMPORTED [GLOBAL]])
 
     :see: https://cmake.org/cmake/help/latest/command/add_library.html#interface-libraries
   """
-  return parse_standard(
-      tokens, npargs='+',
+  return StandardArgTree.parse(
+      ctx, tokens, npargs='+',
       kwargs={},
       flags=["INTERFACE", "IMPORTED", "GLOBAL"],
       breakstack=breakstack)
 
 
-def parse_add_library(tokens, breakstack):
+def parse_add_library(ctx, tokens, breakstack):
   """
   ``add_library()`` has several forms:
 
@@ -238,8 +237,8 @@ def parse_add_library(tokens, breakstack):
     # All add_library() commands should have at least two arguments
     logger.warning("Invalid add_library() command at %s",
                    tokens[0].get_location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
   descriminator = second_token.spelling.upper()
   parsemap = {
@@ -249,13 +248,13 @@ def parse_add_library(tokens, breakstack):
       "IMPORTED": parse_add_library_imported
   }
   if descriminator in parsemap:
-    return parsemap[descriminator](tokens, breakstack)
+    return parsemap[descriminator](ctx, tokens, breakstack)
 
   third_token = next(semantic_iter, None)
   if third_token is not None:
     descriminator = third_token.spelling.upper()
     if descriminator == "IMPORTED":
-      return parse_add_library_imported(tokens, breakstack)
+      return parse_add_library_imported(ctx, tokens, breakstack)
 
   # If the descriminator token might be a variable dereference, then it
   # might be hiding the descriminator... so we shouldn't infer
@@ -264,7 +263,7 @@ def parse_add_library(tokens, breakstack):
   sortable = True
   if "${" in second_token.spelling or "${" in third_token.spelling:
     sortable = False
-  return parse_add_library_standard(tokens, breakstack, sortable)
+  return parse_add_library_standard(ctx, tokens, breakstack, sortable)
 
 
 def populate_db(parse_db):

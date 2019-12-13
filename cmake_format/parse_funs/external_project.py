@@ -1,12 +1,9 @@
-from cmake_format.parser import (
-    parse_standard,
-    parse_shell_command,
-    PositionalParser,
-    StandardParser
-)
+from cmake_format.parse.additional_nodes import ShellCommandNode
+from cmake_format.parse.argument_nodes import (
+    PositionalParser, StandardArgTree, StandardParser)
 
 
-def parse_external_project_add(tokens, breakstack):
+def parse_external_project_add(ctx, tokens, breakstack):
   """
   ::
 
@@ -14,8 +11,8 @@ def parse_external_project_add(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/module/ExternalProject.html
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={
           # Directory Options
@@ -28,7 +25,7 @@ def parse_external_project_add(tokens, breakstack):
           "BINARY_DIR": PositionalParser(1),
           "INSTALL_DIR": PositionalParser(1),
           # Download Step Options
-          "DOWNLOAD_COMMAND": parse_shell_command,
+          "DOWNLOAD_COMMAND": ShellCommandNode.parse,
           "URL": PositionalParser('+'),
           "URL_HASH": PositionalParser(1),
           "URL_MD5": PositionalParser(1),
@@ -66,11 +63,11 @@ def parse_external_project_add(tokens, breakstack):
           "CVS_MODULE": PositionalParser(1),
           "CVS_TAG": PositionalParser(1),
           # Update/Patch Step Options
-          "UPDATE_COMMAND": parse_shell_command,
+          "UPDATE_COMMAND": ShellCommandNode.parse,
           "UPDATE_DISCONNECTED": PositionalParser(1),
-          "PATCH_COMMAND": parse_shell_command,
+          "PATCH_COMMAND": ShellCommandNode.parse,
           # Configure Step Options
-          "CONFIGURE_COMMAND": parse_shell_command,
+          "CONFIGURE_COMMAND": ShellCommandNode.parse,
           "CMAKE_COMMAND": PositionalParser(1),
           "CMAKE_GENERATOR": PositionalParser(1),
           "CMAKE_GENERATOR_PLATFORM": PositionalParser(1),
@@ -81,14 +78,14 @@ def parse_external_project_add(tokens, breakstack):
           "CMAKE_CACHE_DEFAULT_ARGS": PositionalParser('+'),
           "SOURCE_SUBDIR": PositionalParser(1),
           # Build Step Options
-          "BUILD_COMMAND": parse_shell_command,
+          "BUILD_COMMAND": ShellCommandNode.parse,
           "BUILD_IN_SOURCE": PositionalParser(1),
           "BUILD_ALWAYS": PositionalParser(1),
           "BUILD_BYPRODUCTS": PositionalParser('+'),
           # Install Step Options
-          "INSTALL_COMMAND": parse_shell_command,
+          "INSTALL_COMMAND": ShellCommandNode.parse,
           # Test Step Options
-          "TEST_COMMAND": parse_shell_command,
+          "TEST_COMMAND": ShellCommandNode.parse,
           "TEST_BEFORE_INSTALL": PositionalParser(1),
           "TEST_AFTER_INSTALL": PositionalParser(1),
           "TEST_EXCLUDE_FROM_MAIN": PositionalParser(1),
@@ -116,13 +113,13 @@ def parse_external_project_add(tokens, breakstack):
           "INDEPENDENT_STEP_TARGETS": PositionalParser('+'),
           # Misc Options
           "LIST_SEPARATOR": PositionalParser(1),
-          "COMMAND": parse_shell_command,
+          "COMMAND": ShellCommandNode.parse,
       },
       flags=[],
       breakstack=breakstack)
 
 
-def parse_external_project_add_step(tokens, breakstack):
+def parse_external_project_add_step(ctx, tokens, breakstack):
   """
   ::
 
@@ -130,11 +127,11 @@ def parse_external_project_add_step(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/module/ExternalProject.html#command:externalproject_add_step
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=2,
       kwargs={
-          "COMMAND": parse_shell_command,
+          "COMMAND": ShellCommandNode.parse,
           "COMMENT": PositionalParser('+'),
           "DEPENDEES": PositionalParser('+'),
           "DEPENDERS": PositionalParser('+'),

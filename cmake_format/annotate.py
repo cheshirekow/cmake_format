@@ -21,7 +21,7 @@ import cmake_format
 from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
 from cmake_format import render
 
@@ -40,7 +40,8 @@ def annotate_file(config, infile, outfile, outfmt=None):
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
-  parse_tree = parser.parse(tokens, parse_db)
+  ctx = parse.ParseContext(parse_db)
+  parse_tree = parse.parse(tokens, ctx)
 
   if outfmt == "page":
     html_content = render.get_html(parse_tree, fullpage=True)

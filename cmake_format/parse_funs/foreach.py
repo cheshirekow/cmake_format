@@ -2,25 +2,26 @@
 import logging
 
 from cmake_format import lexer
-from cmake_format.parser import (
+from cmake_format.parse.common import KwargBreaker, NodeType
+from cmake_format.parse.common import TreeNode
+from cmake_format.parse.argument_nodes import (
+    ArgGroupNode,
+    PositionalParser,
+    StandardArgTree,
+    PositionalGroupNode,
+    KeywordGroupNode)
+from cmake_format.parse.util import (
+    WHITESPACE_TOKENS,
     get_normalized_kwarg,
     get_tag,
     iter_semantic_tokens,
-    KwargBreaker,
-    NodeType,
-    parse_kwarg,
-    parse_positionals,
-    parse_standard,
-    PositionalParser,
     should_break,
-    TreeNode,
-    WHITESPACE_TOKENS,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def parse_foreach_standard(tokens, breakstack):
+def parse_foreach_standard(ctx, tokens, breakstack):
   """
   ::
 
@@ -28,7 +29,7 @@ def parse_foreach_standard(tokens, breakstack):
       <commands>
     endforeach()
   """
-  tree = TreeNode(NodeType.ARGGROUP)
+  tree = ArgGroupNode()
 
   # If it is a whitespace token then put it directly in the parse tree at
   # the current depth
@@ -38,20 +39,20 @@ def parse_foreach_standard(tokens, breakstack):
 
   # Consume the loop variable and any attached comments
   ntokens = len(tokens)
-  subtree = parse_positionals(tokens, 1, [], breakstack)
+  subtree = PositionalGroupNode.parse(ctx, tokens, 1, [], breakstack)
   assert len(tokens) < ntokens
   tree.children.append(subtree)
 
   # Consume the items of iteration
   ntokens = len(tokens)
-  subtree = parse_positionals(tokens, '+', [], breakstack)
+  subtree = PositionalGroupNode.parse(ctx, tokens, '+', [], breakstack)
   assert len(tokens) < ntokens
   tree.children.append(subtree)
 
   return tree
 
 
-def parse_foreach_range(tokens, breakstack):
+def parse_foreach_range(ctx, tokens, breakstack):
   """
   ::
 
@@ -60,8 +61,8 @@ def parse_foreach_range(tokens, breakstack):
     endforeach()
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={"RANGE": PositionalParser(3)},
       flags=[],
@@ -69,13 +70,13 @@ def parse_foreach_range(tokens, breakstack):
   )
 
 
-def parse_foreach_in(tokens, breakstack):
+def parse_foreach_in(ctx, tokens, breakstack):
   """
   ::
 
     foreach(loop_var IN [LISTS [<lists>]] [ITEMS [<items>]])
   """
-  tree = TreeNode(NodeType.ARGGROUP)
+  tree = ArgGroupNode()
 
   # If it is a whitespace token then put it directly in the parse tree at
   # the current depth
@@ -85,7 +86,7 @@ def parse_foreach_in(tokens, breakstack):
 
   # Consume the loop variable and any attached comments
   ntokens = len(tokens)
-  pargs = parse_positionals(tokens, 2, ["IN"], breakstack)
+  pargs = PositionalGroupNode.parse(ctx, tokens, 2, ["IN"], breakstack)
   assert len(tokens) < ntokens
   tree.children.append(pargs)
 
@@ -121,18 +122,19 @@ def parse_foreach_in(tokens, breakstack):
     word = get_normalized_kwarg(tokens[0])
     subparser = kwargs.get(word, None)
     if subparser is not None:
-      subtree = parse_kwarg(tokens, word, subparser, sub_breakstack)
+      subtree = KeywordGroupNode.parse(
+          ctx, tokens, word, subparser, sub_breakstack)
     else:
       logger.warning(
           "Unexpected positional argument at %s", tokens[0].location)
-      subtree = parse_positionals(tokens, '+', [], sub_breakstack)
+      subtree = PositionalGroupNode.parse(ctx, tokens, '+', [], sub_breakstack)
 
     assert len(tokens) < ntokens
     tree.children.append(subtree)
   return tree
 
 
-def parse_foreach(tokens, breakstack):
+def parse_foreach(ctx, tokens, breakstack):
   """
   ``parse_foreach()`` has a couple of forms:
 
@@ -155,8 +157,8 @@ def parse_foreach(tokens, breakstack):
     # All foreach() statements should have at least two arguments
     logger.warning("Invalid foreach() statement at %s",
                    tokens[0].get_location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    return StandardArgTree.parse(
+        ctx, tokens, npargs='*', kwargs={}, flags=[], breakstack=breakstack)
 
   descriminator = second_token.spelling.upper()
   dispatchee = {
@@ -164,9 +166,9 @@ def parse_foreach(tokens, breakstack):
       "IN": parse_foreach_in
   }.get(descriminator, None)
   if dispatchee is not None:
-    return dispatchee(tokens, breakstack)
+    return dispatchee(ctx, tokens, breakstack)
 
-  return parse_foreach_standard(tokens, breakstack)
+  return parse_foreach_standard(ctx, tokens, breakstack)
 
 
 def populate_db(parse_db):

@@ -97,6 +97,12 @@ class TestSpecificLexings(unittest.TestCase):
          TokenType.LEFT_PAREN, TokenType.WORD, TokenType.WHITESPACE,
          TokenType.UNQUOTED_LITERAL, TokenType.RIGHT_PAREN])
 
+  def test_generator_expression(self):
+    self.assert_tok_types(
+        r'$<JOIN:${ldgen_libraries},\n>',
+        [TokenType.UNQUOTED_LITERAL]
+    )
+
 
 if __name__ == '__main__':
   unittest.main()

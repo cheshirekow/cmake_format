@@ -16,7 +16,7 @@ from xml.etree import ElementTree as ET
 
 from cmake_format import __main__
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 
 
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ class ParseContext(object):
     with io.open(filepath, "r", encoding="utf-8") as infile:
       infile_content = infile.read()
     tokens = lexer.tokenize(infile_content)
-    _ = parser.parse(tokens, self.get_db())
+    _ = parse.parse(tokens, self.get_db())
 
   def start(self, firstdir):
     """Main entry-point into the parse. Pushes the first directory onto the

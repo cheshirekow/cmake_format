@@ -6,6 +6,9 @@ help generate the file.
 import io
 import os
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def make_expect_lint():
@@ -35,17 +38,20 @@ def rewrite_lint_tests():
 
   # Need to remove newline
   if content[-1] == "\n":
+    logger.info("Removing final newline")
     have_changes = True
 
   outlines = []
   for line in lines:
     if line.rstrip() == "# This line has the wrong line endings":
       if not line.endswith("\r"):
+        logger.info("Adding carriage return to line ending test")
         line = line.rstrip() + "\r"
         have_changes = True
 
     if line.rstrip() == "# This line has trailing whitespace":
       if not line.endswith(" "):
+        logger.info("Adding whitespace to trailing whitespace test")
         line = line.rstrip() + "   "
         have_changes = True
     outlines.append(line)
@@ -64,4 +70,5 @@ def genfiles():
 
 
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.INFO)
   genfiles()

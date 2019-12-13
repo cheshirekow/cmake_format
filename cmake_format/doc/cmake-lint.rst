@@ -11,6 +11,5 @@ common mistakes, and anti-patterns.
 
    lint-usage
    lint-example
+   lint-summary
    lint-implemented
-   lint-todo
-

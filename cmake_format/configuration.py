@@ -16,15 +16,26 @@ COMMENT_GROUP = (
 MISC_GROUP = ("emit_byteorder_mark", "input_encoding", "output_encoding")
 
 
-class LinterConfig(ConfigObject):
+class LinterConfig(ConfigObject):   # pylint: disable=R0902
   """Options affecting the linter"""
 
   _extra_fields = [
       "function_pattern",
       "macro_pattern",
       "global_var_pattern",
+      "internal_var_pattern",
       "local_var_pattern",
+      "private_var_pattern",
+      "public_var_pattern",
       "keyword_pattern",
+      "max_conditionals_custom_parser",
+      "min_statement_spacing",
+      "max_statement_spacing",
+      "max_returns",
+      "max_branches",
+      "max_arguments",
+      "max_localvars",
+      "max_statements"
   ]
 
   _vardocs = {
@@ -45,15 +56,47 @@ class LinterConfig(ConfigObject):
       "keyword_pattern": (
           "regular expression pattern describing valid names for keywords"
           " used in functions or macros"
+      ),
+      "max_conditionals_custom_parser": (
+          "In the heuristic for C0201, how many conditionals to match within"
+          " a loop in before considering the loop a parser."
+      ),
+      "min_statement_spacing": (
+          "Require at least this many newlines between statements"
+      ),
+      "max_statement_spacing": (
+          "Require no more than this many newlines between statements"
       )
   }
 
   def __init__(self, **kwargs):
-    self.function_pattern = kwargs.pop("function_pattern", "[0-9a-z_]+")
-    self.macro_pattern = kwargs.pop("macro_pattern", "[0-9A-Z_]+")
-    self.global_var_pattern = kwargs.pop("macro_pattern", "[0-9A-Z_]+")
-    self.local_var_pattern = kwargs.pop("macro_pattern", "[0-9a-z_]+")
-    self.keyword_pattern = kwargs.pop("keyword_pattern", "[0-9A-Z_]+")
+
+    self.function_pattern = kwargs.pop(
+        "function_pattern", "[0-9a-z_]+")
+    self.macro_pattern = kwargs.pop(
+        "macro_pattern", "[0-9A-Z_]+")
+    self.global_var_pattern = kwargs.pop(
+        "global_var_pattern", "[0-9A-Z][0-9A-Z_]+")
+    self.internal_var_pattern = kwargs.pop(
+        "internal_var_pattern", "_[0-9A-Z_]+")
+    self.local_var_pattern = kwargs.pop(
+        "local_var_pattern", "[0-9a-z][0-9a-z_]+")
+    self.private_var_pattern = kwargs.pop(
+        "private_var_pattern", "_[0-9a-z_]+")
+    self.public_var_pattern = kwargs.pop(
+        "public_var_pattern", "[0-9A-Z][0-9A-Z_]+")
+    self.keyword_pattern = kwargs.pop(
+        "keyword_pattern", "[0-9A-Z_]+")
+    self.max_conditionals_custom_parser = kwargs.pop(
+        "max_conditionals_custom_parser", 2)
+
+    self.min_statement_spacing = kwargs.pop("min_statement_spacing", 1)
+    self.max_statement_spacing = kwargs.pop("max_statement_spacing", 1)
+    self.max_returns = kwargs.pop("max_returns", 6)
+    self.max_branches = kwargs.pop("max_branches", 12)
+    self.max_arguments = kwargs.pop("max_arguments", 5)
+    self.max_localvars = kwargs.pop("max_localvars", 15)
+    self.max_statements = kwargs.pop("max_statements", 50)
 
 
 class Configuration(ConfigObject):

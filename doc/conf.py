@@ -26,8 +26,12 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosectionlabel',
 ]
+
+autosection_label_prefix_document = True
+
 mathjax_path = (
     "https://cdnjs.cloudflare.com/ajax/libs/mathjax/"
     "2.7.5/MathJax.js?config=TeX-MML-AM_CHTML")

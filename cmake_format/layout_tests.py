@@ -9,10 +9,10 @@ import sys
 from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
 from cmake_format import formatter
-from cmake_format.parser import NodeType
+from cmake_format.parse.common import NodeType
 
 
 def strip_indent(content, indent=6):
@@ -98,7 +98,8 @@ class TestCanonicalLayout(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestCanonicalLayout, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
-    self.parse_db = parse_funs.get_parse_db()
+    parse_db = parse_funs.get_parse_db()
+    self.parse_ctx = parse.ParseContext(parse_db)
 
   def setUp(self):
     self.config.fn_spec.add(
@@ -110,7 +111,7 @@ class TestCanonicalLayout(unittest.TestCase):
             "DEPENDS": '*'
         })
 
-    self.parse_db.update(
+    self.parse_ctx.parse_db.update(
         parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
   def tearDown(self):
@@ -132,7 +133,7 @@ class TestCanonicalLayout(unittest.TestCase):
 
     input_str = strip_indent(input_str, strip_len)
     tokens = lexer.tokenize(input_str)
-    parse_tree = parser.parse(tokens, self.parse_db)
+    parse_tree = parse.parse(tokens, self.parse_ctx)
     box_tree = formatter.layout_tree(parse_tree, self.config)
     assert_tree(self, [box_tree], expect_tree)
 

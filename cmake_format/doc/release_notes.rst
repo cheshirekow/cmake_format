@@ -9,6 +9,20 @@ v0.6 series
 ===========
 
 ------
+v0.6.4
+------
+
+This release includes implementations for many more lint checkers. Under the
+hood there was a pretty significant refactor of the parser, though none of the
+parse logic has changed. The refactor was primarily to split up the very large
+`parser` module, and to make it easier to access qualifiers of the parse tree
+during lint checks.
+
+You can see a running list of all the implemented checkers at `the docs`__.
+
+.. __: https://cmake-format.readthedocs.io/en/latest/lint-implemented.html
+
+------
 v0.6.3
 ------
 

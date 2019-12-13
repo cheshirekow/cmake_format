@@ -30,6 +30,15 @@ format_and_lint(
   lexer_tests.py
   markup.py
   markup_tests.py
+  parse/__init__.py
+  parse/additional_nodes.py
+  parse/argument_nodes.py
+  parse/body_nodes.py
+  parse/common.py
+  parse/printer.py
+  parse/simple_nodes.py
+  parse/statement_node.py
+  parse/util.py
   parse_funs/__init__.py
   parse_funs/add_executable.py
   parse_funs/add_library.py
@@ -39,8 +48,8 @@ format_and_lint(
   parse_funs/file.py
   parse_funs/foreach.py
   parse_funs/install.py
+  parse_funs/set.py
   parse_funs/set_target_properties.py
-  parser.py
   parser_tests.py
   pypi/setup.py
   render.py

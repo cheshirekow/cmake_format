@@ -13,7 +13,7 @@ import cmake_format
 from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
 
 from cmake_lint import basic_checker
@@ -37,7 +37,9 @@ def process_file(config, local_ctx, infile_content):
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
-  parse_tree = parser.parse(tokens, parse_db)
+  ctx = parse.ParseContext(parse_db, local_ctx)
+  parse_tree = parse.parse(tokens, ctx)
+  parse_tree.build_ancestry()
   basic_checker.check_tree(config, local_ctx, parse_tree)
 
 

@@ -18,9 +18,10 @@ from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import formatter
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
-from cmake_format.parser import NodeType
+from cmake_format.parse.common import NodeType
+from cmake_format.parse.printer import test_string, tree_string
 
 # pylint: disable=C0412
 if sys.version_info < (3, 5, 0):
@@ -143,9 +144,9 @@ def assert_parse_tree(test, nodes, tups, tree=None, history=None):
       continue
     message = ("For node {} at\n {} within \n{}. "
                "If this is infact correct, copy-paste this:\n\n{}"
-               .format(node, parser.tree_string([node]),
-                       parser.tree_string(tree, history),
-                       parser.test_string(tree, ' ' * 6, ' ' * 2)))
+               .format(node, tree_string([node]),
+                       tree_string(tree, history),
+                       test_string(tree, ' ' * 6, ' ' * 2)))
     test.assertIsNotNone(node, msg="Missing node " + message)
     test.assertIsNotNone(tup, msg="Extra node " + message)
     expect_type, expect_children = tup
@@ -161,8 +162,7 @@ def assert_parse(test, input_str, expect_tree):
   ``expect_tree`` tuple tree.
   """
   tokens = lexer.tokenize(input_str)
-
-  fst_root = parser.parse(tokens, test.parse_db)
+  fst_root = parse.parse(tokens, test.parse_ctx)
   assert_parse_tree(test, [fst_root], expect_tree)
 
 
@@ -210,7 +210,7 @@ def assert_layout(test, input_str, expect_tree, strip_len=0):
 
   input_str = strip_indent(input_str, strip_len)
   tokens = lexer.tokenize(input_str)
-  parse_tree = parser.parse(tokens, test.parse_db)
+  parse_tree = parse.parse(tokens, test.parse_db)
   box_tree = formatter.layout_tree(parse_tree, test.config)
   assert_layout_tree(test, [box_tree], expect_tree)
 
@@ -404,7 +404,8 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
   def __init__(self, *args, **kwargs):
     super(TestBase, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
-    self.parse_db = parse_funs.get_parse_db()
+    parse_db = parse_funs.get_parse_db()
+    self.parse_ctx = parse.ParseContext(parse_db)
     self.source_str = None
     self.expect_lex = None
     self.expect_parse = None
@@ -430,7 +431,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
             "DEPENDS": '*'
         })
 
-    self.parse_db.update(
+    self.parse_ctx.parse_db.update(
         parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
   @contextlib.contextmanager

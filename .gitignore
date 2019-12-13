@@ -13,6 +13,7 @@
 
 # python packaging
 *.egg-info/
+build/
 dist/
 
 # pyces build

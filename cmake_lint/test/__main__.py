@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import io
+import logging
 import os
 import re
 import sys
@@ -13,6 +14,7 @@ from cmake_format import lexer
 
 from cmake_lint import __main__
 from cmake_lint import lint_util
+from cmake_lint.test import genfiles
 
 
 def overzip(iterable_a, iterable_b):
@@ -116,12 +118,15 @@ class TestBase(unittest.TestCase):
         raise AssertionError(
             "Expected lint {} but got lint {}".format(expect_id, actual))
 
-      for expect_val, actual_val in zip(expect_loc, actual.location):
+      actual_loc = actual.location
+      if actual_loc is None:
+        actual_loc = ()
+      for expect_val, actual_val in zip(expect_loc, actual_loc):
         if expect_val != actual_val:
           raise AssertionError(
               "Expected lint {}@{} but got it at {}".format(
                   expect_id, ":".join(str(x) for x in expect_loc),
-                  actual.location))
+                  actual_loc))
 
 
 def iter_testfiles():
@@ -199,10 +204,14 @@ def gen_test_classes():
     yield type(classname, (TestBase,), defn)
 
 
+if __name__ == "__main__":
+  genfiles.rewrite_lint_tests()
+
 classobj = None
 for classobj in gen_test_classes():
   globals()[classobj.__name__] = classobj
 del classobj
 
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.INFO)
   unittest.main()

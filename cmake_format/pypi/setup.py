@@ -21,6 +21,7 @@ setup(
     packages=[
         'cmake_format',
         'cmake_format.command_tests',
+        'cmake_format.parse',
         'cmake_format.parse_funs',
         'cmake_lint',
     ],

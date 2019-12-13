@@ -1,32 +1,28 @@
 import logging
 
 from cmake_format import lexer
-from cmake_format.parser import (
+from cmake_format.parse.common import (
+    KwargBreaker, NodeType, TreeNode)
+from cmake_format.parse.argument_nodes import (
+    KeywordGroupNode, PositionalGroupNode, PositionalParser, StandardArgTree)
+from cmake_format.parse.additional_nodes import PatternNode
+from cmake_format.parse.util import (
+    WHITESPACE_TOKENS,
     get_first_semantic_token,
     get_normalized_kwarg,
-    KwargBreaker,
-    NodeType,
-    parse_kwarg,
-    parse_pattern,
-    parse_positionals,
-    parse_standard,
-    PositionalParser,
-    should_break,
-    TreeNode,
-    WHITESPACE_TOKENS
-)
+    should_break)
 
 logger = logging.getLogger("cmake-format")
 
 
-def parse_install_targets_sub(tokens, breakstack):
+def parse_install_targets_sub(ctx, tokens, breakstack):
   """
     Parse the inner kwargs of an ``install(TARGETS)`` command. This is common
     logic for ARCHIVE, LIBRARY, RUNTIME, etc.
   :see: https://cmake.org/cmake/help/v3.14/command/install.html#targets
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "DESTINATION": PositionalParser(1),
@@ -44,7 +40,7 @@ def parse_install_targets_sub(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_install_targets(tokens, breakstack):
+def parse_install_targets(ctx, tokens, breakstack):
   """
   ::
 
@@ -86,7 +82,8 @@ def parse_install_targets(tokens, breakstack):
       "BUNDLE", "PRIVATE_HEADER", "PUBLIC_HEADER", "RESOURCE"
   )
 
-  # NOTE(josh): from here on, code is essentially parse_standard(), except that
+  # NOTE(josh): from here on, code is essentially StandardArgTree.parse(),
+  # except that
   # we cannot break on the common subset of kwargs in the breakstack because
   # they are valid kwargs for the subtrees (ARCHIVE, LIBRARY, etc) as well as
   # the primary tree
@@ -141,19 +138,21 @@ def parse_install_targets(tokens, breakstack):
     # just make sure we check flags first.
     word = get_normalized_kwarg(tokens[0])
     if word in designated_kwargs:
-      subtree = parse_kwarg(
-          tokens, word, parse_install_targets, subtree_breakstack)
+      subtree = KeywordGroupNode.parse(
+          ctx, tokens, word, parse_install_targets, subtree_breakstack)
     elif word in kwargs:
-      subtree = parse_kwarg(tokens, word, kwargs[word], kwarg_breakstack)
+      subtree = KeywordGroupNode.parse(
+          ctx, tokens, word, kwargs[word], kwarg_breakstack)
     else:
-      subtree = parse_positionals(tokens, '+', flags, positional_breakstack)
+      subtree = PositionalGroupNode.parse(
+          ctx, tokens, '+', flags, positional_breakstack)
 
     assert len(tokens) < ntokens
     tree.children.append(subtree)
   return tree
 
 
-def parse_install_files(tokens, breakstack):
+def parse_install_files(ctx, tokens, breakstack):
   """
   ::
     install(<FILES|PROGRAMS> files...
@@ -165,8 +164,8 @@ def parse_install_files(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/command/install.html#files
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "FILES": PositionalParser('+'),
@@ -185,7 +184,7 @@ def parse_install_files(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_install_directory(tokens, breakstack):
+def parse_install_directory(ctx, tokens, breakstack):
   """
   ::
 
@@ -202,8 +201,8 @@ def parse_install_directory(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/command/install.html#directory
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "DIRECTORY": PositionalParser('+'),
@@ -214,8 +213,8 @@ def parse_install_directory(tokens, breakstack):
           "CONFIGURATIONS": PositionalParser('+'),
           "COMPONENT": PositionalParser(1),
           "RENAME": PositionalParser(1),
-          "PATTERN": parse_pattern,
-          "REGEX": parse_pattern,
+          "PATTERN": PatternNode.parse,
+          "REGEX": PatternNode.parse,
       },
       flags=[
           "USER_SOURCE_PERMISSIONS",
@@ -226,7 +225,7 @@ def parse_install_directory(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_install_script(tokens, breakstack):
+def parse_install_script(ctx, tokens, breakstack):
   """
   ::
 
@@ -235,8 +234,8 @@ def parse_install_script(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/command/install.html#custom-installation-logic
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "SCRIPT": PositionalParser(1),
@@ -249,7 +248,7 @@ def parse_install_script(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_install_export(tokens, breakstack):
+def parse_install_export(ctx, tokens, breakstack):
   """
   ::
 
@@ -263,8 +262,8 @@ def parse_install_export(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/command/install.html#installing-exports
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "EXPORT": PositionalParser(1),
@@ -281,7 +280,7 @@ def parse_install_export(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_install(tokens, breakstack):
+def parse_install(ctx, tokens, breakstack):
   """
   The ``install()`` command has multiple different forms, implemented
   by different functions. The forms are indicated by the first token
@@ -300,8 +299,8 @@ def parse_install(tokens, breakstack):
   descriminator_token = get_first_semantic_token(tokens)
   if descriminator_token is None:
     logger.warning("Invalid install() command at %s", tokens[0].get_location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
   descriminator = descriminator_token.spelling.upper()
   parsemap = {
@@ -316,10 +315,10 @@ def parse_install(tokens, breakstack):
   if descriminator not in parsemap:
     logger.warning("Invalid install form \"%s\" at %s", descriminator,
                    tokens[0].location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
-  return parsemap[descriminator](tokens, breakstack)
+  return parsemap[descriminator](ctx, tokens, breakstack)
 
 
 def populate_db(parse_db):

@@ -1,22 +1,21 @@
 import logging
 
 from cmake_format import lexer
-from cmake_format.parser import (
-    consume_trailing_comment,
-    get_normalized_kwarg,
-    get_tag,
-    iter_semantic_tokens,
-    NodeType,
-    only_comments_and_whitespace_remain,
-    parse_standard,
-    TreeNode,
+from cmake_format.parse.argument_nodes import StandardArgTree
+from cmake_format.parse.common import NodeType, TreeNode
+from cmake_format.parse.simple_nodes import CommentNode
+from cmake_format.parse.util import (
     WHITESPACE_TOKENS,
+    get_tag,
+    get_normalized_kwarg,
+    iter_semantic_tokens,
+    only_comments_and_whitespace_remain
 )
 
 logger = logging.getLogger(__name__)
 
 
-def parse_add_executable_imported(tokens, breakstack):
+def parse_add_executable_imported(ctx, tokens, breakstack):
   """
   ::
 
@@ -24,28 +23,28 @@ def parse_add_executable_imported(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/latest/command/add_executable.html
   """
-  return parse_standard(
-      tokens, npargs='+',
+  return StandardArgTree.parse(
+      ctx, tokens, npargs='+',
       kwargs={},
       flags=["IMPORTED", "GLOBAL"],
       breakstack=breakstack)
 
 
-def parse_add_executable_alias(tokens, breakstack):
+def parse_add_executable_alias(ctx, tokens, breakstack):
   """
   ::
     add_executable(<name> ALIAS <target>)
 
     :see: https://cmake.org/cmake/help/latest/command/add_executable.html
   """
-  return parse_standard(
-      tokens, npargs=3,
+  return StandardArgTree.parse(
+      ctx, tokens, npargs=3,
       kwargs={},
       flags=["ALIAS"],
       breakstack=breakstack)
 
 
-def parse_add_executable_standard(tokens, breakstack, sortable):
+def parse_add_executable_standard(ctx, tokens, breakstack, sortable):
   """
   ::
 
@@ -109,7 +108,7 @@ def parse_add_executable_standard(tokens, breakstack, sortable):
       tree.children.append(parg_group)
       child = TreeNode(NodeType.ARGUMENT)
       child.children.append(token)
-      consume_trailing_comment(child, tokens)
+      CommentNode.consume_trailing(ctx, tokens, child)
       parg_group.children.append(child)
       state_ += 1
     elif state_ is parsing_flags:
@@ -118,7 +117,7 @@ def parse_add_executable_standard(tokens, breakstack, sortable):
         token = tokens.pop(0)
         child = TreeNode(NodeType.FLAG)
         child.children.append(token)
-        consume_trailing_comment(child, tokens)
+        CommentNode.consume_trailing(ctx, tokens, child)
         parg_group.children.append(child)
       else:
         state_ += 1
@@ -129,7 +128,7 @@ def parse_add_executable_standard(tokens, breakstack, sortable):
       token = tokens.pop(0)
       child = TreeNode(NodeType.ARGUMENT)
       child.children.append(token)
-      consume_trailing_comment(child, tokens)
+      CommentNode.consume_trailing(ctx, tokens, child)
       src_group.children.append(child)
 
       if only_comments_and_whitespace_remain(tokens, breakstack):
@@ -138,7 +137,7 @@ def parse_add_executable_standard(tokens, breakstack, sortable):
   return tree
 
 
-def parse_add_executable(tokens, breakstack):
+def parse_add_executable(ctx, tokens, breakstack):
   """
   ``add_executable()`` has a couple of forms:
 
@@ -161,8 +160,8 @@ def parse_add_executable(tokens, breakstack):
     # All add_library() commands should have at least two arguments
     logger.warning("Invalid add_executable() command at %s",
                    tokens[0].get_location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
   descriminator = second_token.spelling.upper()
   parsemap = {
@@ -170,7 +169,7 @@ def parse_add_executable(tokens, breakstack):
       "IMPORTED": parse_add_executable_imported
   }
   if descriminator in parsemap:
-    return parsemap[descriminator](tokens, breakstack)
+    return parsemap[descriminator](ctx, tokens, breakstack)
 
   # If the descriminator token might be a variable dereference, then it
   # might be hiding the descriminator... so we shouldn't infer
@@ -180,7 +179,7 @@ def parse_add_executable(tokens, breakstack):
   if "${" in second_token.spelling:
     sortable = False
 
-  return parse_add_executable_standard(tokens, breakstack, sortable)
+  return parse_add_executable_standard(ctx, tokens, breakstack, sortable)
 
 
 def populate_db(parse_db):

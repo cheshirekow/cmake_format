@@ -85,6 +85,31 @@ include some useful documentation so that code readers know what your
 function/macro does and how to use it.
 """
 }), (
+"C0113", "Missing {:s} in statement which allows it", {
+}), (
+"C0114", "Form descriminator hidden behind variable dereference", {
+"description": """\
+Used when a keyword used to descriminate betwen different forms of a command is
+hidden behind a variable dereference.
+
+This message is implemented by individual command checkers.
+""",
+"explain": """\
+Some cmake commands have very different behavior depending on the presence of
+a particular keyword (see e.g. the `file` command). And because cmake is a
+macro languge that keyword can actually be held inside a variable. Thus the
+keyword might not actually be visible to cmake-lint (or humans). In general
+there is no reason to do this and it really hurts readability since different
+descriminator keywords yield essentially different commands.
+"""
+}), (
+"C0201", "Consider replacing custom parser logic with cmake_parse_arguments", {
+"description": """\
+Used when custom parse logic is detected.
+"""
+}), (
+"C0202", "Argument name {:s} differs from existing argument only in case", {
+}), (
 "C0301", "Line too long ({:d}/{:d})", {
 "description": """\
 Used when a line is longer than the limit specified in the line-length
@@ -125,6 +150,10 @@ While cmake itself does not require line end character(s) on the last line,
 is simply good practice to have it.
 """
 }), (
+"C0305", "{:s} newlines between statements", {
+}), (
+"C0321", "Multiple statements on a single line", {
+}), (
 "C0327", "Wrong line ending ({:s})", {
 "description": """\
 Used when a line ends with the wrong line ending character. e.g. A line ends
@@ -157,5 +186,58 @@ This message belongs to the basic checker.
 cmake-lint allows for some inline comments to supress warnings (among other
 things). This lint is emitted if a bad option is provided to one of these
 pragmas.
-"""}),
+"""
+}), (
+"E0103", "{:s} outside of loop", {
+"description": """\
+Used when a break() or continue() statement is used outside a loop.
+
+This message belongs to the basic checker.
+""",
+}), (
+"E0108", "Duplicate argument name {:s} in function/macro definition", {
+}), (
+"E0109", "Invalid argument name {:s} in function/macro definition", {
+}), (
+"E1120", "Missing required positional argument", {
+"description": """\
+Used when a positional argument group expecting an exact number of arguments
+is closed (by a parenthesis) before that number of arguments is found.
+
+This message belongs to the basic checker.
+""",
+}), (
+"E1121", "Too many positional arguments", {
+"description": """\
+Used when a positional argument is found when no argument group is expected.
+
+This message is implemented by individual command checkers
+""",
+}), (
+"E1122", "Duplicate keyword argument {:s}", {
+"description": """
+Used when a keyword shows up more than once within an argument group. In
+general, only COMMAND is allowed more than once.
+"""
+}), (
+"E1125", "Missing required keyword argument {:s}", {
+}), (
+"E1126", "Invalid form descriminator", {
+"description": """
+Used when a keyword used to descriminate between different command forms is
+ommitted.
+"""
+}), (
+"R0911", "Too many return statements {:d}/{:d}", {
+  }), (
+"R0912", "Too many branches {:d}/{:d}", {
+  }), (
+"R0913", "Too many named arguments {:d}/{:d}", {
+  }), (
+"R0914", "Too many local variables {:d}/{:d}", {
+  }), (
+"R0915", "Too many statements {:d}/{:d}", {
+}), (
+"W0101", "Unreachable code", {
+}),
 ]

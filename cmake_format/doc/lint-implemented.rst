@@ -1,4 +1,6 @@
 
+.. _lint-checks:
+
 ===================
 Lint Code Reference
 ===================
@@ -32,8 +34,6 @@ specified with the bad-names option. This message is raised whenever a name is
 in the list of names defined with the bad-names option.
 
 
-
-
 -----
 C0103
 -----
@@ -60,8 +60,6 @@ explanation
 
 The naming convention is defined with a regular expression, and the naming
 convention is satisfied if the name matches the regular expression.
-
-
 
 
 -----
@@ -95,8 +93,6 @@ semantics of those arguements? You should include documentation in a comment
 block prior to the function declaration with this information.
 
 
-
-
 -----
 C0112
 -----
@@ -126,6 +122,78 @@ include some useful documentation so that code readers know what your
 function/macro does and how to use it.
 
 
+-----
+C0113
+-----
+
+message
+-------
+
+.. code:: 
+
+    Missing {:s} in statement which allows it
+
+
+-----
+C0114
+-----
+
+message
+-------
+
+.. code:: 
+
+    Form descriminator hidden behind variable dereference
+
+
+description
+-----------
+
+Used when a keyword used to descriminate betwen different forms of a command is
+hidden behind a variable dereference.
+
+This message is implemented by individual command checkers.
+
+
+explanation
+-----------
+
+Some cmake commands have very different behavior depending on the presence of
+a particular keyword (see e.g. the `file` command). And because cmake is a
+macro languge that keyword can actually be held inside a variable. Thus the
+keyword might not actually be visible to cmake-lint (or humans). In general
+there is no reason to do this and it really hurts readability since different
+descriminator keywords yield essentially different commands.
+
+
+-----
+C0201
+-----
+
+message
+-------
+
+.. code:: 
+
+    Consider replacing custom parser logic with cmake_parse_arguments
+
+
+description
+-----------
+
+Used when custom parse logic is detected.
+
+
+-----
+C0202
+-----
+
+message
+-------
+
+.. code:: 
+
+    Argument name {:s} differs from existing argument only in case
 
 
 -----
@@ -161,8 +229,6 @@ Note that the line length and the limit are counted in characters, not in Bytes
 needed to represent these characters.
 
 
-
-
 -----
 C0303
 -----
@@ -189,8 +255,6 @@ explanation
 
 Such trailing whitespace is visually indistinguishable and some editors will
 trim them.
-
-
 
 
 -----
@@ -220,6 +284,28 @@ While cmake itself does not require line end character(s) on the last line,
 is simply good practice to have it.
 
 
+-----
+C0305
+-----
+
+message
+-------
+
+.. code:: 
+
+    {:s} newlines between statements
+
+
+-----
+C0321
+-----
+
+message
+-------
+
+.. code:: 
+
+    Multiple statements on a single line
 
 
 -----
@@ -250,8 +336,6 @@ While cmake itself does not enforce a particular line ending, it is good
 practice for a project to be consist with their line endings.
 
 
-
-
 -----
 E0011
 -----
@@ -275,8 +359,6 @@ explanation
 
 cmake-lint allows for some inline comments to supress warnings (among other
 things). This lint is emitted if a bad option key is provided in such a pragma
-
-
 
 
 -----
@@ -308,5 +390,212 @@ things). This lint is emitted if a bad option is provided to one of these
 pragmas.
 
 
+-----
+E0103
+-----
+
+message
+-------
+
+.. code:: 
+
+    {:s} outside of loop
+
+
+description
+-----------
+
+Used when a break() or continue() statement is used outside a loop.
+
+This message belongs to the basic checker.
+
+
+-----
+E0108
+-----
+
+message
+-------
+
+.. code:: 
+
+    Duplicate argument name {:s} in function/macro definition
+
+
+-----
+E0109
+-----
+
+message
+-------
+
+.. code:: 
+
+    Invalid argument name {:s} in function/macro definition
+
+
+-----
+E1120
+-----
+
+message
+-------
+
+.. code:: 
+
+    Missing required positional argument
+
+
+description
+-----------
+
+Used when a positional argument group expecting an exact number of arguments
+is closed (by a parenthesis) before that number of arguments is found.
+
+This message belongs to the basic checker.
+
+
+-----
+E1121
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many positional arguments
+
+
+description
+-----------
+
+Used when a positional argument is found when no argument group is expected.
+
+This message is implemented by individual command checkers
+
+
+-----
+E1122
+-----
+
+message
+-------
+
+.. code:: 
+
+    Duplicate keyword argument {:s}
+
+
+description
+-----------
+
+
+Used when a keyword shows up more than once within an argument group. In
+general, only COMMAND is allowed more than once.
+
+
+-----
+E1125
+-----
+
+message
+-------
+
+.. code:: 
+
+    Missing required keyword argument {:s}
+
+
+-----
+E1126
+-----
+
+message
+-------
+
+.. code:: 
+
+    Invalid form descriminator
+
+
+description
+-----------
+
+
+Used when a keyword used to descriminate between different command forms is
+ommitted.
+
+
+-----
+R0911
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many return statements {:d}/{:d}
+
+
+-----
+R0912
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many branches {:d}/{:d}
+
+
+-----
+R0913
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many named arguments {:d}/{:d}
+
+
+-----
+R0914
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many local variables {:d}/{:d}
+
+
+-----
+R0915
+-----
+
+message
+-------
+
+.. code:: 
+
+    Too many statements {:d}/{:d}
+
+
+-----
+W0101
+-----
+
+message
+-------
+
+.. code:: 
+
+    Unreachable code
 
 

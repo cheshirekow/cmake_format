@@ -1,22 +1,22 @@
 import logging
 
-from cmake_format.parser import (
-    consume_whitespace_and_comments,
-    get_first_semantic_token,
-    NodeType,
-    parse_conditional,
-    parse_pattern,
-    parse_positionals,
-    parse_standard,
+from cmake_format.lexer import TokenType
+from cmake_format.parse.common import NodeType
+from cmake_format.parse.additional_nodes import PatternNode
+from cmake_format.parse.argument_nodes import (
+    ConditionalGroupNode,
+    PositionalGroupNode,
     PositionalParser,
-    StandardParser,
-    TreeNode,
-)
+    StandardArgTree,
+    StandardParser)
+from cmake_format.parse.common import TreeNode
+from cmake_format.parse.util import get_first_semantic_token
+from cmake_format.parse.simple_nodes import consume_whitespace_and_comments
 
 logger = logging.getLogger("cmake-format")
 
 
-def parse_file_read(tokens, breakstack):
+def parse_file_read(ctx, tokens, breakstack):
   """
   ::
 
@@ -26,8 +26,8 @@ def parse_file_read(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#read
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "OFFSET": PositionalParser(1),
@@ -40,7 +40,7 @@ def parse_file_read(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file_strings(tokens, breakstack):
+def parse_file_strings(ctx, tokens, breakstack):
   """
   ::
 
@@ -49,8 +49,8 @@ def parse_file_strings(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#read
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "LENGTH_MAXIMUM": PositionalParser(1),
@@ -86,7 +86,7 @@ HASH_STRINGS = [
 ]
 
 
-def parse_file_hash(tokens, breakstack):
+def parse_file_hash(ctx, tokens, breakstack):
   """
   ::
 
@@ -95,15 +95,15 @@ def parse_file_hash(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#strings
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=3,
       kwargs={},
       flags=HASH_STRINGS,
       breakstack=breakstack)
 
 
-def parse_file_timestamp(tokens, breakstack):
+def parse_file_timestamp(ctx, tokens, breakstack):
   """
   ::
 
@@ -112,15 +112,15 @@ def parse_file_timestamp(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#strings
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='+',
       kwargs={},
       flags=["TIMESTAMP", "UTC"],
       breakstack=breakstack)
 
 
-def parse_file_write(tokens, breakstack):
+def parse_file_write(ctx, tokens, breakstack):
   """
   ::
 
@@ -132,15 +132,16 @@ def parse_file_write(tokens, breakstack):
   tree = TreeNode(NodeType.ARGGROUP)
   consume_whitespace_and_comments(tokens, tree)
   tree.children.append(
-      parse_positionals(tokens, 2, ["WRITE", "APPEND"], breakstack))
+      PositionalGroupNode.parse(
+          ctx, tokens, 2, ["WRITE", "APPEND"], breakstack))
   consume_whitespace_and_comments(tokens, tree)
   tree.children.append(
-      parse_positionals(tokens, '+', [], breakstack))
+      PositionalGroupNode.parse(ctx, tokens, '+', [], breakstack))
 
   return tree
 
 
-def parse_file_generate_output(tokens, breakstack):
+def parse_file_generate_output(ctx, tokens, breakstack):
   """
   ::
 
@@ -151,20 +152,20 @@ def parse_file_generate_output(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#writing
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={
           "OUTPUT": PositionalParser(1),
           "INPUT": PositionalParser(1),
           "CONTENT": PositionalParser('+'),
-          "CONDITION": parse_conditional,
+          "CONDITION": ConditionalGroupNode.parse,
       },
       flags=["GENERATE"],
       breakstack=breakstack)
 
 
-def parse_file_glob(tokens, breakstack):
+def parse_file_glob(ctx, tokens, breakstack):
   """
   ::
 
@@ -177,8 +178,8 @@ def parse_file_glob(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#filesystem
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='+',
       kwargs={
           "LIST_DIRECTORIES": PositionalParser(1),
@@ -192,7 +193,7 @@ def parse_file_glob(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file_copy(tokens, breakstack):
+def parse_file_copy(ctx, tokens, breakstack):
   """
   ::
 
@@ -207,8 +208,8 @@ def parse_file_copy(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#filesystem
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='*',
       kwargs={
           "COPY": PositionalParser('*'),
@@ -221,8 +222,8 @@ def parse_file_copy(tokens, breakstack):
                          "WORLD_READ", "WORLD_WRITE", "WORLD_EXECUTE",
                          "SETUID", "SETGID"]),
           "DIRECTORY_PERMISSIONS": PositionalParser('+'),
-          "PATTERN": parse_pattern,
-          "REGEX": parse_pattern,
+          "PATTERN": PatternNode.parse,
+          "REGEX": PatternNode.parse,
       },
       flags=[
           "INSTALL",
@@ -233,7 +234,7 @@ def parse_file_copy(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file_create_link(tokens, breakstack):
+def parse_file_create_link(ctx, tokens, breakstack):
   """
   ::
 
@@ -243,8 +244,8 @@ def parse_file_create_link(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#filesystem
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='+',
       kwargs={
           "RESULT": PositionalParser(1),
@@ -256,7 +257,7 @@ def parse_file_create_link(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file_xfer(tokens, breakstack):
+def parse_file_xfer(ctx, tokens, breakstack):
   """
   ::
 
@@ -266,8 +267,8 @@ def parse_file_xfer(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#transfer
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=3,
       kwargs={
           "INACTIVITY_TIMEOUT": PositionalParser(1),
@@ -293,7 +294,7 @@ def parse_file_xfer(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file_lock(tokens, breakstack):
+def parse_file_lock(ctx, tokens, breakstack):
   """
   ::
 
@@ -305,8 +306,8 @@ def parse_file_lock(tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#locking
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='+',
       kwargs={
           "GUARD": PositionalParser(1, flags=["FUNCTION", "FILE", "PROCESS"]),
@@ -321,7 +322,7 @@ def parse_file_lock(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_file(tokens, breakstack):
+def parse_file(ctx, tokens, breakstack):
   """
   The ``file()`` command has a lot of different forms, depending on the first
   argument. This function just dispatches the correct parse implementation for
@@ -363,11 +364,21 @@ def parse_file(tokens, breakstack):
   """
 
   descriminator_token = get_first_semantic_token(tokens)
-  if descriminator_token is None:
-    logger.warning("Invalid empty file() command at %s",
-                   tokens[0].get_location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+  if (descriminator_token is None or
+      descriminator_token.type is TokenType.RIGHT_PAREN):
+    location = ()
+    if tokens:
+      location = tokens[0].get_location()
+    logger.warning("Invalid empty file() command at %s", location)
+    ctx.lint_ctx.record_lint("E1120", location=location)
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
+
+  if descriminator_token.type is TokenType.DEREF:
+    ctx.lint_ctx.record_lint(
+        "C0114", location=descriminator_token.get_location())
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
   descriminator = descriminator_token.spelling.upper()
   parsemap = {
@@ -401,12 +412,15 @@ def parse_file(tokens, breakstack):
     parsemap[hashname] = parse_file_hash
 
   if descriminator not in parsemap:
-    logger.warning("Invalid file() form \"%s\" at %s", descriminator,
-                   tokens[0].location())
-    return parse_standard(tokens, npargs='*', kwargs={}, flags=[],
-                          breakstack=breakstack)
+    logger.warning(
+        "Indeterminate form of file() command \"%s\" at %s", descriminator,
+        tokens[0].location())
+    ctx.lint_ctx.record_lint(
+        "E1126", location=descriminator_token.get_location())
+    return StandardArgTree.parse(ctx, tokens, npargs='*', kwargs={}, flags=[],
+                                 breakstack=breakstack)
 
-  return parsemap[descriminator](tokens, breakstack)
+  return parsemap[descriminator](ctx, tokens, breakstack)
 
 
 def populate_db(parse_db):

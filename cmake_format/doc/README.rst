@@ -298,15 +298,41 @@ pleasant way.
 
       # regular expression pattern describing valid names for variables with global
       # scope
-      global_var_pattern = '[0-9A-Z_]+'
+      global_var_pattern = '[0-9A-Z][0-9A-Z_]+'
+
+      internal_var_pattern = '_[0-9A-Z_]+'
 
       # regular expression pattern describing valid names for variables with local
       # scope
-      local_var_pattern = '[0-9a-z_]+'
+      local_var_pattern = '[0-9a-z][0-9a-z_]+'
+
+      private_var_pattern = '_[0-9a-z_]+'
+
+      public_var_pattern = '[0-9A-Z][0-9A-Z_]+'
 
       # regular expression pattern describing valid names for keywords used in
       # functions or macros
       keyword_pattern = '[0-9A-Z_]+'
+
+      # In the heuristic for C0201, how many conditionals to match within a loop in
+      # before considering the loop a parser.
+      max_conditionals_custom_parser = 2
+
+      # Require at least this many newlines between statements
+      min_statement_spacing = 1
+
+      # Require no more than this many newlines between statements
+      max_statement_spacing = 1
+
+      max_returns = 6
+
+      max_branches = 12
+
+      max_arguments = 5
+
+      max_localvars = 15
+
+      max_statements = 50
 
     # ------------------------------------
     # Options affecting comment formatting

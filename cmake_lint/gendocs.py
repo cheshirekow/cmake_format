@@ -8,12 +8,15 @@ import io
 import logging
 import os
 import sys
+import textwrap
 
 import cmake_format
 from cmake_format.doc.gendoc_sources import format_directive
 from cmake_lint import lintdb
 
 HEADER = """
+.. _lint-checks:
+
 ===================
 Lint Code Reference
 ===================
@@ -36,6 +39,7 @@ def setup_argparse(argparser):
       '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
   argparser.add_argument('infilepaths', nargs='*')
+  argparser.add_argument("command", choices=["reference", "table"])
 
 
 def write_title(outfile, title, rulerchar=None, numrule=1):
@@ -51,9 +55,35 @@ def write_title(outfile, title, rulerchar=None, numrule=1):
   outfile.write("\n\n")
 
 
-def gendocs(outfile):
+def write_ruler(outfile):
+  outfile.write("+")
+  outfile.write("-" * 7)
+  outfile.write("+")
+  outfile.write("-" * 68)
+  outfile.write("+")
+  outfile.write("\n")
+
+
+def write_cell(outfile, idstr, msgfmt):
+  lines = textwrap.wrap(msgfmt, width=66)
+  outfile.write("|`{:5s}`| {:66s} |\n".format(idstr, lines.pop(0)))
+  for line in lines:
+    outfile.write("| {:5s} | {:66s} |\n".format("", line))
+
+
+def gen_table(outfile):
+
+  write_ruler(outfile)
+  for idstr, msgfmt, _ in lintdb.LINT_DB:
+    write_cell(outfile, idstr, msgfmt)
+    write_ruler(outfile)
+  outfile.write("\n")
+
+
+def gen_reference(outfile):
   outfile.write(HEADER)
   for idstr, msgfmt, kwargs in lintdb.LINT_DB:
+    # outfile.write(".. _{}:\n".format(idstr.lower()))
     write_title(outfile, idstr, numrule=2)
     write_title(outfile, "message")
     outfile.write(format_directive(msgfmt))
@@ -69,7 +99,6 @@ def gendocs(outfile):
       write_title(outfile, "explanation")
       outfile.write(explain)
       outfile.write("\n\n")
-    outfile.write("\n\n")
 
 
 def main():
@@ -92,7 +121,10 @@ def main():
   else:
     outfile = io.open(args.outfile_path, 'w', encoding="utf-8", newline='')
 
-  gendocs(outfile)
+  if args.command == "reference":
+    gen_reference(outfile)
+  elif args.command == "table":
+    gen_table(outfile)
   outfile.close()
   return 0
 

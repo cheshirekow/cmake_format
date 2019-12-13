@@ -1,7 +1,8 @@
-from cmake_format.parser import PositionalTupleParser, parse_standard
+from cmake_format.parse.additional_nodes import TupleParser
+from cmake_format.parse.argument_nodes import StandardArgTree
 
 
-def parse_set_target_properties(tokens, breakstack):
+def parse_set_target_properties(ctx, tokens, breakstack):
   """
   ::
     set_target_properties(target1 target2 ...
@@ -9,11 +10,11 @@ def parse_set_target_properties(tokens, breakstack):
                         prop2 value2 ...)
   """
 
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs='+',
       kwargs={
-          "PROPERTIES": PositionalTupleParser(2, '+', [])
+          "PROPERTIES": TupleParser(2, '+', [])
       },
       flags=[],
       breakstack=breakstack)

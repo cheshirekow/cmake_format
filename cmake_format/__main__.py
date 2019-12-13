@@ -34,8 +34,11 @@ from cmake_format import config_util
 from cmake_format import formatter
 from cmake_format import lexer
 from cmake_format import markup
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
+from cmake_format.parse.common import NodeType, TreeNode
+from cmake_format.parse.printer import dump_tree as dump_parse
+
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ def dump_markup(nodes, config, outfile=None, indent=None):
     outfile = sys.stdout
 
   for idx, node in enumerate(nodes):
-    if not isinstance(node, parser.TreeNode):
+    if not isinstance(node, TreeNode):
       continue
 
     # outfile.write(indent)
@@ -75,7 +78,7 @@ def dump_markup(nodes, config, outfile=None, indent=None):
     if sys.version_info[0] < 3:
       noderep = getattr(noderep, 'decode')('utf-8')
 
-    if node.node_type is parser.NodeType.COMMENT:
+    if node.node_type is NodeType.COMMENT:
       outfile.write(noderep)
       outfile.write('\n')
       inlines = []
@@ -115,9 +118,10 @@ def process_file(config, infile_content, dump=None, extra=None):
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
-  parse_tree = parser.parse(tokens, parse_db)
+  ctx = parse.ParseContext(parse_db)
+  parse_tree = parse.parse(tokens, ctx)
   if dump == "parse":
-    parser.dump_tree([parse_tree], outfile)
+    dump_parse([parse_tree], outfile)
     return outfile.getvalue()
   if dump == "markup":
     dump_markup([parse_tree], config, outfile)

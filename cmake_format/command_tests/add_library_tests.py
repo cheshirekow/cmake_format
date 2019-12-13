@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import unittest
 
 from cmake_format.command_tests import TestBase
-from cmake_format.parser import NodeType
+from cmake_format.parse.common import NodeType
 
 
 class TestAddLibraryCommand(TestBase):

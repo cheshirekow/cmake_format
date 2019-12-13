@@ -104,15 +104,15 @@ def tokenize(contents):
   legacy_pattern = "({})+".format(
       "|".join([
           # Make-style variable like $(MAKE)
-          r'\$\([^\$\(\)]+\)',
+          r'(\$\([^\$\(\)]+\))',
           # Quoted-substring
-          r'"[^"\\]*(?:\\.[^"\\]*)*"',
+          r'("[^"\\]*(?:\\.[^"\\]*)*")',
           # Any element except whitespace or one of '()#"\'
-          r'[^\s\(\)#"\\]',
+          r'([^\s\(\)#"\\])',
           # Escape sequences
           # https://cmake.org/cmake/help/v3.0/manual/
           #   cmake-language.7.html#grammar-token-escape_sequence
-          r'\\[\(\)#" \\\$@\^\t\r\n;]'
+          r'(\\[\(\)#" \\\$@^trn;])'
       ])
   )
 
@@ -121,11 +121,11 @@ def tokenize(contents):
   unquoted_pattern = "({})+".format(
       "|".join([
           # Any element except whitespace or one of '()#"\'
-          r'[^\s\(\)#"\\]',
+          r'([^\s\(\)#"\\])',
           # Escape sequences
           # https://cmake.org/cmake/help/v3.0/manual/
           #   cmake-language.7.html#grammar-token-escape_sequence
-          r'\\[\(\)#" \\\$@\^\t\r\n;]'
+          r'(\\[\(\)#" \\\$@^trn;])'
       ])
   )
 

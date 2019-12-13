@@ -5,9 +5,10 @@ import unittest
 
 from cmake_format import configuration
 from cmake_format import lexer
-from cmake_format import parser
+from cmake_format import parse
 from cmake_format import parse_funs
-from cmake_format.parser import NodeType
+from cmake_format.parse.printer import tree_string, test_string
+from cmake_format.parse.common import NodeType
 
 
 def overzip(iterable_a, iterable_b):
@@ -61,9 +62,9 @@ def assert_tree_type(test, nodes, tups, tree=None, history=None):
       continue
     message = ("For node {} at\n {} within \n{}. "
                "If this is infact correct, copy-paste this:\n\n{}"
-               .format(node, parser.tree_string([node]),
-                       parser.tree_string(tree, history),
-                       parser.test_string(tree)))
+               .format(node, tree_string([node]),
+                       tree_string(tree, history),
+                       test_string(tree)))
     test.assertIsNotNone(node, msg="Missing node " + message)
     test.assertIsNotNone(tup, msg="Extra node " + message)
     expect_type, expect_children = tup
@@ -82,7 +83,8 @@ class TestCanonicalParse(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestCanonicalParse, self).__init__(*args, **kwargs)
     self.config = configuration.Configuration()
-    self.parse_db = parse_funs.get_parse_db()
+    parse_db = parse_funs.get_parse_db()
+    self.parse_ctx = parse.ParseContext(parse_db)
 
   def setUp(self):
     self.config.fn_spec.add(
@@ -94,7 +96,7 @@ class TestCanonicalParse(unittest.TestCase):
             "DEPENDS": '*'
         })
 
-    self.parse_db.update(
+    self.parse_ctx.parse_db.update(
         parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
 
   def do_type_test(self, input_str, expect_tree):
@@ -104,7 +106,7 @@ class TestCanonicalParse(unittest.TestCase):
     """
     tokens = lexer.tokenize(input_str)
 
-    fst_root = parser.parse(tokens, self.parse_db)
+    fst_root = parse.parse(tokens, self.parse_ctx)
     assert_tree_type(self, [fst_root], expect_tree)
 
   def test_collapse_additional_newlines(self):

@@ -92,7 +92,8 @@ def verify_file(filepath, dynamic_text):
 
   diff = list(difflib.unified_diff(lines_a, lines_b))
   if diff:
-    raise RuntimeError("{} is out of date".format(filepath))
+    raise RuntimeError("{} is out of date\n{}"
+                       .format(filepath, "\n".join(diff)))
 
 
 DUMP_EXAMPLE = """
@@ -211,6 +212,10 @@ def generate_docsources(verify):
       encoding="utf-8") as infile:
     dynamic_text["example-out"] = format_directive(infile.read(), "cmake")
 
+  dynamic_text["lintimpl-table"] = subprocess.check_output(
+      [sys.executable, "-Bm", "cmake_lint.gendocs", "table"],
+      cwd=repodir, env=env).decode("utf-8")
+
   if verify:
     handle_file = verify_file
   else:
@@ -226,6 +231,7 @@ def generate_docsources(verify):
       "doc/example.rst",
       "doc/lint-example.rst",
       "doc/lint-usage.rst",
+      "doc/lint-summary.rst",
       "doc/parse_tree.rst",
       "doc/usage.rst",
   ):
@@ -242,7 +248,7 @@ def generate_docsources(verify):
     with io.open(
         os.path.join(projectdir, "doc/lint-implemented.rst"), "wb") as outfile:
       subprocess.check_call(
-          [sys.executable, "-Bm", "cmake_lint.gendocs"],
+          [sys.executable, "-Bm", "cmake_lint.gendocs", "reference"],
           cwd=repodir, stdout=outfile)
 
 

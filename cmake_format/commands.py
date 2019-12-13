@@ -128,7 +128,7 @@ class CommandSpec(dict):
       return subspec != 0
     if isinstance(subspec, STRING_TYPES + (CommandSpec,)):
       return True
-    raise ValueError("Unexepcted kwargspec for {}: {}"
+    raise ValueError("Unexpected kwargspec for {}: {}"
                      .format(key, type(subspec)))
 
   def add(self, name, pargs=None, flags=None, kwargs=None):

@@ -11,10 +11,10 @@ import sys
 
 from cmake_format import lexer
 from cmake_format import markup
-from cmake_format import parser
 
 from cmake_format.lexer import TokenType
-from cmake_format.parser import FlowType, NodeType
+from cmake_format.parse.common import FlowType, NodeType, TreeNode
+from cmake_format.parse.util import comment_is_tag
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ def is_line_comment(node):
   if isinstance(node, CommentNode):
     node = node.pnode
 
-  if not isinstance(node, parser.TreeNode):
+  if not isinstance(node, TreeNode):
     return False
 
   if not node.children:
@@ -262,7 +262,7 @@ class LayoutNode(object):
     # when viewing the tree for debugging.
     self._wrap = False
 
-    assert isinstance(pnode, parser.TreeNode)
+    assert isinstance(pnode, TreeNode)
 
   @property
   def name(self):
@@ -307,7 +307,7 @@ class LayoutNode(object):
   @property
   def node_type(self):
     """
-    Return the `parser.NodeType` of the corresponding parser node that generated
+    Return the `NodeType` of the corresponding parser node that generated
     this layout node.
     """
     return self.pnode.node_type
@@ -415,7 +415,7 @@ class LayoutNode(object):
     be placed at the given `cursor` on the current `parent_passno`.
     """
     assert self._locked
-    assert isinstance(self.pnode, parser.TreeNode)
+    assert isinstance(self.pnode, TreeNode)
 
     self._position = cursor.clone()
     outcursor = None
@@ -931,7 +931,7 @@ class KwargGroupNode(LayoutNode):
     if len(self.children) == 1:
       return cursor
 
-    # keyword = parser.get_normalized_kwarg(child.pnode.children[0])
+    # keyword = get_normalized_kwarg(child.pnode.children[0])
     if self._wrap:
       column_cursor = Cursor(cursor[0] + 1, start_cursor[1] + config.tab_size)
     else:
@@ -1432,7 +1432,7 @@ class CommentNode(LayoutNode):
   """
 
   def is_tag(self):
-    return parser.comment_is_tag(self.pnode.children[0])
+    return comment_is_tag(self.pnode.children[0])
 
   def _reflow(self, stack_context, cursor, passno):
     """
@@ -1518,7 +1518,7 @@ def create_box_tree(pnode):
 
   while child_queue:
     pchild = child_queue.pop(0)
-    if not isinstance(pchild, parser.TreeNode):
+    if not isinstance(pchild, TreeNode):
       continue
 
     if (pchild.node_type == NodeType.WHITESPACE

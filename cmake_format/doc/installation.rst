@@ -44,7 +44,7 @@ Install from source
 You can also install from source with pip. You can download a release package
 from github__ or pypi__ and then install it directly with pip. For example::
 
-  pip install v0.6.3.tar.gz
+  pip install v0.6.4.tar.gz
 
 .. __: https://github.com/cheshirekow/cmake_format/releases
 .. __: https://pypi.org/project/cmake-format/#files
@@ -90,6 +90,6 @@ formatter, ``cmake-format``, to your hooks with the following addition to your
 
    repos:
      - repo: https://github.com/cheshirekow/cmake-format-precommit
-       rev: v0.6.3
+       rev: v0.6.4
        hooks:
        - id: cmake-format

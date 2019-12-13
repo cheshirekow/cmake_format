@@ -1,11 +1,9 @@
-from cmake_format.parser import (
-    parse_standard,
-    parse_shell_command,
-    PositionalParser,
-)
+from cmake_format.parse.additional_nodes import ShellCommandNode
+from cmake_format.parse.argument_nodes import (
+    PositionalParser, StandardArgTree)
 
 
-def parse_fetchcontent_declare(tokens, breakstack):
+def parse_fetchcontent_declare(ctx, tokens, breakstack):
   """
   ::
 
@@ -13,12 +11,12 @@ def parse_fetchcontent_declare(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/module/FetchContent.html?highlight=fetchcontent#command:fetchcontent_declare
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={
           # Download Step Options
-          "DOWNLOAD_COMMAND": parse_shell_command,
+          "DOWNLOAD_COMMAND": ShellCommandNode.parse,
           "URL": PositionalParser('+'),
           "URL_HASH": PositionalParser(1),
           "URL_MD5": PositionalParser(1),
@@ -56,15 +54,15 @@ def parse_fetchcontent_declare(tokens, breakstack):
           "CVS_MODULE": PositionalParser(1),
           "CVS_TAG": PositionalParser(1),
           # Update/Patch Step Options
-          "UPDATE_COMMAND": parse_shell_command,
+          "UPDATE_COMMAND": ShellCommandNode.parse,
           "UPDATE_DISCONNECTED": PositionalParser(1),
-          "PATCH_COMMAND": parse_shell_command,
+          "PATCH_COMMAND": ShellCommandNode.parse,
       },
       flags=[],
       breakstack=breakstack)
 
 
-def parse_fetchcontent_populate(tokens, breakstack):
+def parse_fetchcontent_populate(ctx, tokens, breakstack):
   """
   ::
 
@@ -78,15 +76,15 @@ def parse_fetchcontent_populate(tokens, breakstack):
 
   :see: https://cmake.org/cmake/help/v3.14/module/FetchContent.html?highlight=fetchcontent#command:fetchcontent_populate
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={
           "SUBBUILD_DIR": PositionalParser(1),
           "SOURCE_DIR": PositionalParser(1),
           "BINARY_DIR": PositionalParser(1),
           # Download Step Options
-          "DOWNLOAD_COMMAND": parse_shell_command,
+          "DOWNLOAD_COMMAND": ShellCommandNode.parse,
           "URL": PositionalParser('+'),
           "URL_HASH": PositionalParser(1),
           "URL_MD5": PositionalParser(1),
@@ -124,9 +122,9 @@ def parse_fetchcontent_populate(tokens, breakstack):
           "CVS_MODULE": PositionalParser(1),
           "CVS_TAG": PositionalParser(1),
           # Update/Patch Step Options
-          "UPDATE_COMMAND": parse_shell_command,
+          "UPDATE_COMMAND": ShellCommandNode.parse,
           "UPDATE_DISCONNECTED": PositionalParser(1),
-          "PATCH_COMMAND": parse_shell_command,
+          "PATCH_COMMAND": ShellCommandNode.parse,
       },
       flags=[
           "QUIET"
@@ -134,7 +132,7 @@ def parse_fetchcontent_populate(tokens, breakstack):
       breakstack=breakstack)
 
 
-def parse_fetchcontent_getproperties(tokens, breakstack):
+def parse_fetchcontent_getproperties(ctx, tokens, breakstack):
   """
   ::
 
@@ -144,8 +142,8 @@ def parse_fetchcontent_getproperties(tokens, breakstack):
       [POPULATED <doneVar>]
     )
   """
-  return parse_standard(
-      tokens,
+  return StandardArgTree.parse(
+      ctx, tokens,
       npargs=1,
       kwargs={
           "SOURCE_DIR": PositionalParser(1),

@@ -121,6 +121,10 @@ class ConfigObject(object):
   Base class for encapsulationg options/parameters
   """
 
+  # TODO(josh): merge all of the following into an ordered list of named tuples
+  # containing (name, default_value, choices, vardocs). Then replace all of the
+  # self.<name> = assignments with an iteration over the list
+
   # Map group name to list of fields
   _group_map = {}
 
