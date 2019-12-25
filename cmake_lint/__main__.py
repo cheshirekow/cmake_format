@@ -121,23 +121,33 @@ def main():
 
     cfg = configuration.Configuration(**config_dict)
     if infile_path == '-':
-      infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding=cfg.input_encoding, newline='')
-    else:
-      infile = io.open(
-          infile_path, 'r', encoding=cfg.input_encoding, newline='')
-    with infile:
-      intext = infile.read()
+      infile_path = os.dup(sys.stdin.fileno())
 
     try:
-      local_ctx = global_ctx.get_file_ctx(infile_path)
+      infile = io.open(
+          infile_path, mode='r', encoding=cfg.input_encoding, newline='')
+    except (IOError, OSError):
+      logger.error("Failed to open %s for read", infile_path)
+      returncode = 1
+
+    try:
+      with infile:
+        intext = infile.read()
+    except UnicodeDecodeError:
+      logger.error("Unable to read %s as %s", infile_path, cfg.input_encoding)
+
+    try:
+      local_ctx = global_ctx.get_file_ctx(infile_path, cfg)
       process_file(cfg, local_ctx, intext)
+      outfile.write("{}\n{}\n".format(infile_path, "=" * len(infile_path)))
       local_ctx.writeout(outfile)
+      outfile.write("\n")
       if local_ctx.has_lint():
         returncode = 1
     except:
       logger.warning('While processing %s', infile_path)
       raise
+  global_ctx.write_summary(outfile)
 
   outfile.close()
   return returncode

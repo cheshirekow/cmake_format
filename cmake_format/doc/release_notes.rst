@@ -9,6 +9,15 @@ v0.6 series
 ===========
 
 ------
+v0.6.5
+------
+
+This is largely a maintenance release, implementing explicit parse logic for
+all cmake commands that don't already have parsers. One additional
+configuration option is added allowing ``cmake-lint`` to globally ignore
+specific lint ids.
+
+------
 v0.6.4
 ------
 

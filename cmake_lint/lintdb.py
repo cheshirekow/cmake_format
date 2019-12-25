@@ -239,5 +239,7 @@ ommitted.
 "R0915", "Too many statements {:d}/{:d}", {
 }), (
 "W0101", "Unreachable code", {
+}), (
+"W0104", "Use of deprecated command {:s}", {
 }),
 ]

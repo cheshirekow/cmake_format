@@ -23,12 +23,6 @@ from cmake_format import parse_funs
 from cmake_format.parse.common import NodeType
 from cmake_format.parse.printer import test_string, tree_string
 
-# pylint: disable=C0412
-if sys.version_info < (3, 5, 0):
-  from cmake_format.command_tests.partialmethod import partialmethod
-else:
-  from functools import partialmethod
-
 
 def strip_indent(content, indent=6):
   """
@@ -229,7 +223,7 @@ def assert_format(test, input_str, output_str=None, strip_len=0):
   if sys.version_info[0] < 3:
     assert isinstance(input_str, unicode)
 
-  actual_str = __main__.process_file(test.config, input_str,)
+  actual_str, _reflow_valid = __main__.process_file(test.config, input_str)
   delta_lines = list(difflib.unified_diff(output_str.split('\n'),
                                           actual_str.split('\n')))
   delta = '\n'.join(delta_lines[2:])
@@ -327,6 +321,18 @@ class SidecarMeta(type):
     return subcls
 
 
+def make_test_fun(test_name, test_body, test_meta):
+  def test_fun(self):
+    return exec_sidecar(self, test_body, test_meta)
+  if sys.version_info < (3, 0, 0):
+    # In python 2.7 test_name is a unicode object. We need to convert it to
+    # a string.
+    test_name = test_name.encode("utf-8")
+  test_fun.__name__ = test_name
+  test_fun.__doc__ = " ".join(test_name.split("_")[1:])
+  return test_fun
+
+
 class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
   """
   Given a bunch of example usages of a particular command, ensure that they
@@ -353,10 +359,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
       meta.pop("NodeType")
 
     body = "\n".join(line_buffer) + "\n"
-    closure = partialmethod(exec_sidecar, body, meta)
-    # TODO(josh): figure out how to set the docstring correctly, this doesn't
-    # seem to work
-    closure.__doc__ = ""
+    closure = make_test_fun(test_name, body, meta)
     setattr(cls, "test_" + test_name, closure)
     cls.kNumSidecarTests += 1
 

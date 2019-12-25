@@ -88,12 +88,15 @@ def snake_to_camel(camelstr, upper=False):
 
 
 class TestBase(unittest.TestCase):
+  def __init__(self, *args):
+    super(TestBase, self).__init__(*args)
+    self.config = configuration.Configuration()
+
   def execute_test(self, test_name, test_body, expect_list):
     outfile = io.StringIO()
     global_ctx = lint_util.GlobalContext(outfile)
-    local_ctx = global_ctx.get_file_ctx(test_name)
-    config = configuration.Configuration()
-    __main__.process_file(config, local_ctx, test_body)
+    local_ctx = global_ctx.get_file_ctx(test_name, self.config)
+    __main__.process_file(self.config, local_ctx, test_body)
     for actual, expected in overzip(local_ctx.get_lint(), expect_list):
       if expected is None:
         raise AssertionError(
@@ -188,6 +191,7 @@ def make_test_fun(test_name, test_body, expect_list):
     # a string.
     test_name = test_name.encode("utf-8")
   test_fun.__name__ = test_name
+  test_fun.__doc__ = " ".join(test_name.split("_")[1:])
   return test_fun
 
 
@@ -202,6 +206,17 @@ def gen_test_classes():
       defn[method_name] = make_test_fun(method_name, test_body, expect_list)
 
     yield type(classname, (TestBase,), defn)
+
+
+class ConfigTestCase(TestBase):
+  """
+  Test that config options function correctly
+  """
+
+  def test_disabled_codes(self):
+    self.config.linter.disabled_codes = ["E1120"]
+    test_body = "set(VARNAME varvalue CACHE STRING)\n"
+    self.execute_test("test_disabled_code", test_body, [])
 
 
 if __name__ == "__main__":

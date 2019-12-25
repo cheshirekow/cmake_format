@@ -12,7 +12,6 @@ format_and_lint(
   command_tests/add_library_tests.py
   command_tests/CMakeLists.txt
   command_tests/misc_tests.py
-  command_tests/partialmethod.py
   common.py
   configuration.py
   contrib/__init__.py

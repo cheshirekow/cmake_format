@@ -100,7 +100,7 @@ def dump_markup(nodes, config, outfile=None, indent=None):
       dump_markup(node.children, config, outfile, indent + '│   ')
 
 
-def process_file(config, infile_content, dump=None, extra=None):
+def process_file(config, infile_content, dump=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
   """
@@ -114,7 +114,7 @@ def process_file(config, infile_content, dump=None, extra=None):
   if dump == "lex":
     for token in tokens:
       outfile.write("{}\n".format(token))
-    return outfile.getvalue()
+    return outfile.getvalue(), True
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
@@ -122,23 +122,21 @@ def process_file(config, infile_content, dump=None, extra=None):
   parse_tree = parse.parse(tokens, ctx)
   if dump == "parse":
     dump_parse([parse_tree], outfile)
-    return outfile.getvalue()
+    return outfile.getvalue(), True
   if dump == "markup":
     dump_markup([parse_tree], config, outfile)
-    return outfile.getvalue()
+    return outfile.getvalue(), True
 
   box_tree = formatter.layout_tree(parse_tree, config)
   if dump == "layout":
     formatter.dump_tree([box_tree], outfile)
-    return outfile.getvalue()
-
-  if extra is not None:
-    extra["reflow_valid"] = box_tree.reflow_valid
+    return outfile.getvalue(), True
 
   outstr = formatter.write_tree(box_tree, config, infile_content)
   if config.emit_byteorder_mark:
-    return "\ufeff" + outstr
-  return outstr
+    outstr = "\ufeff" + outstr
+
+  return (outstr, box_tree.reflow_valid)
 
 
 def find_config_file(infile_path):
@@ -498,10 +496,8 @@ def main():
       intext = infile.read()
 
     try:
-      # TODO(josh)[06918d6]: get rid of "extra" dictionary in process_files
-      extra = {"reflow_valid": True}
-      outtext = process_file(cfg, intext, args.dump, extra)
-      if cfg.require_valid_layout and not extra.get("reflow_valid", False):
+      outtext, reflow_valid = process_file(cfg, intext, args.dump)
+      if cfg.require_valid_layout and not reflow_valid:
         logger.error("Failed to format %s", infile_path)
         returncode = 1
         continue

@@ -1,3 +1,7 @@
 add_test(NAME cmake_format-versionnumber-test
-         COMMAND python -B version_number_test.py
-         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+         COMMAND python -Bm cmake_format.test.version_number_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_test(NAME cmake_format-command-db-test
+         COMMAND python -Bm cmake_format.test.command_db_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

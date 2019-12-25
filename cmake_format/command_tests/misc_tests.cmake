@@ -151,7 +151,7 @@ add_test(NAME myTestName COMMAND testCommand --run_test=@quick)
 
 # test: quoted_assignment_literal
 target_compile_definitions(foo PUBLIC BAR="Quoted String"
-                           BAZ_______________________Z)
+                                      BAZ_______________________Z)
 
 # test: canonical_spelling
 ExternalProject_Add(

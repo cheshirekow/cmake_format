@@ -131,6 +131,11 @@ def cmd_get_usages(args, jenv):
     for usage in get_usages(helpstr):
       print(usage)
 
+def cmd_print_deprecated(args, jenv):
+  for command_name in get_command_list(args):
+    helpstr = get_command_help(args, command_name)
+    if "Deprecated" in helpstr:
+      print(command_name)
 
 def setup_argparse(parser):
   """Setup argument parser"""
@@ -144,6 +149,7 @@ def setup_argparse(parser):
   subparsers.add_parser("properties")
   subparsers.add_parser("variables")
   subparsers.add_parser("usages")
+  subparsers.add_parser("deprecated")
 
 
 def main():
@@ -167,6 +173,8 @@ def main():
     get_variables(args, jenv)
   elif args.command == "usages":
     cmd_get_usages(args, jenv)
+  elif args.command == "deprecated":
+    cmd_print_deprecated(args, jenv)
   else:
     logger.warning("Unknown command %s", args.command)
 

@@ -162,6 +162,8 @@ The output is:
 
 .. code:: text
 
+    cmake_lint/test/expect_lint.cmake
+    =================================
     cmake_lint/test/expect_lint.cmake:00: [C0301] Line too long (92/80)
     cmake_lint/test/expect_lint.cmake:02: [C0303] Trailing whitespace
     cmake_lint/test/expect_lint.cmake:04: [C0327] Wrong line ending (windows)
@@ -221,5 +223,15 @@ The output is:
     cmake_lint/test/expect_lint.cmake:141,04: [C0103] Invalid directory variable name "invalid_public_name"
     cmake_lint/test/expect_lint.cmake:143,06: [C0103] Invalid local variable name "INVALID_LOCAL_NAME"
     cmake_lint/test/expect_lint.cmake:146: [C0304] Final newline missing
+
+    Summary
+    =======
+    files scanned: 1
+    found lint:
+      Convention: 40
+           Error: 12
+        Refactor: 4
+         Warning: 3
+
 
 .. dynamic: lint-out-end

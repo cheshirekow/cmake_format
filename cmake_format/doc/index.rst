@@ -35,7 +35,6 @@ for ``cmake``:
 
    release_notes
    changelog
-   todo
    modules
 
 

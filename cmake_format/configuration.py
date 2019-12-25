@@ -20,6 +20,7 @@ class LinterConfig(ConfigObject):   # pylint: disable=R0902
   """Options affecting the linter"""
 
   _extra_fields = [
+      "disabled_codes",
       "function_pattern",
       "macro_pattern",
       "global_var_pattern",
@@ -39,6 +40,9 @@ class LinterConfig(ConfigObject):   # pylint: disable=R0902
   ]
 
   _vardocs = {
+      "disabled_codes": (
+          "a list of lint codes to disable"
+      ),
       "function_pattern": (
           "regular expression pattern describing valid function names"
       ),
@@ -70,7 +74,8 @@ class LinterConfig(ConfigObject):   # pylint: disable=R0902
   }
 
   def __init__(self, **kwargs):
-
+    self.disabled_codes = kwargs.pop(
+        "disabled_codes", [])
     self.function_pattern = kwargs.pop(
         "function_pattern", "[0-9a-z_]+")
     self.macro_pattern = kwargs.pop(

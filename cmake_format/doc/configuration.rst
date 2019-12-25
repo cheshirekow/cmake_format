@@ -125,6 +125,9 @@ help-text. Some detailed examples can be found at :ref:`configopts`.
     # Options affecting the linter
     # ----------------------------
     with section("linter"):
+      # a list of lint codes to disable
+      disabled_codes = []
+
       # regular expression pattern describing valid function names
       function_pattern = '[0-9a-z_]+'
 

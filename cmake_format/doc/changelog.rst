@@ -6,6 +6,27 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.5
+------
+
+* Fix bullet formatting in README
+* Capture some input exceptions and print a more friendly error message
+* Fix partialmethod docstrings in command tests
+* Add a more detailed configuration description and samples
+* Get rid of "extra" dictionary hack to get valid reflow bit out of
+  ``process_file`` in ``__main__.py``.
+* Implement disabled lint codes config option
+* Add preamble and summary to cmake-lint output
+* Add test to ensure all cmake commands are in the database
+* Implement all commands available in cmake 3.10.2
+
+* Closes `#154`_: cmake-lint: Human readable errors
+* Closes: 06918d6, 0b6db3a, 26582bc, 7039c5c, c8d18f1, ea5583e, eb4fb01,
+* Closes: 5abae5c
+
+.. _#154: https://github.com/cheshirekow/cmake_format/issues/154
+
+
 v0.6.4
 ------
 
@@ -19,7 +40,10 @@ v0.6.4
 * Fix wrong token pattern for unquoted literal was including literal
   tabs and newlines (not literal "t" and "n").
 
-# Closes `#153`_: Spaces added to generator expressions
+* Closes `#153`_: Spaces added to generator expressions
+
+.. _#153: https://github.com/cheshirekow/cmake_format/issues/153
+
 
 v0.6.3
 ------

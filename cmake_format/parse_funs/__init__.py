@@ -61,11 +61,15 @@ SUBMODULE_NAMES = [
     "add_executable",
     "add_library",
     "add_xxx",
+    "deprecated",
+    "break",
     "external_project",
     "fetch_content",
     "foreach",
     "file",
     "install",
+    "miscellaneous",
+    "random",
     "set",
     "set_target_properties"
 ]
@@ -83,7 +87,9 @@ def get_parse_db():
     submodule = importlib.import_module("cmake_format.parse_funs." + subname)
     submodule.populate_db(parse_db)
 
-  for key in ("if", "else", "elseif", "endif", "while", "endwhile"):
+  for key in (
+      "if", "else", "elseif", "endif", "while", "endwhile",
+      "function", "endfunction", "macro", "endmacro"):
     parse_db[key] = ConditionalGroupNode.parse
 
   return parse_db

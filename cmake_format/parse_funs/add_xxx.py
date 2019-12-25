@@ -272,6 +272,71 @@ def parse_add_custom_target(ctx, tokens, breakstack):
   return tree
 
 
+def parse_add_compile_options(ctx, tokens, breakstack):
+  """
+  ::
+
+    add_compile_options(<option> ...)
+
+  :see: https://cmake.org/cmake/help/latest/command/add_compile_options.html
+  """
+  return StandardArgTree.parse(ctx, tokens, "+", {}, [], breakstack)
+
+
+def parse_add_definitions(ctx, tokens, breakstack):
+  """
+  ::
+
+    add_definitions(-DFOO -DBAR ...)
+
+  :see: https://cmake.org/cmake/help/latest/command/add_definitions.html
+  """
+  return StandardArgTree.parse(ctx, tokens, "+", {}, [], breakstack)
+
+
+def parse_add_dependencies(ctx, tokens, breakstack):
+  """
+  ::
+
+    add_dependencies(<target> [<target-dependency>]...)
+
+  :see: https://cmake.org/cmake/help/latest/command/add_dependencies.html
+  """
+
+  return StandardArgTree.parse(ctx, tokens, "2+", {}, [], breakstack)
+
+
+def parse_add_subdirectory(ctx, tokens, breakstack):
+  """
+  ::
+
+    add_subdirectory(source_dir [binary_dir] [EXCLUDE_FROM_ALL])
+
+  :see: https://cmake.org/cmake/help/latest/command/add_subdirectory.html
+  """
+
+  return StandardArgTree.parse(
+      ctx, tokens, "+", {}, ["EXCLUDE_FROM_ALL"], breakstack)
+
+
+def parse_aux_source_directory(ctx, tokens, breakstack):
+  """
+  ::
+
+    aux_source_directory(<dir> <variable>)
+
+  :see: https://cmake.org/cmake/help/latest/command/aux_source_directory.html
+  """
+
+  return StandardArgTree.parse(
+      ctx, tokens, "2", {}, [], breakstack)
+
+
 def populate_db(parse_db):
   parse_db["add_custom_command"] = parse_add_custom_command
   parse_db["add_custom_target"] = parse_add_custom_target
+  parse_db["add_compile_options"] = parse_add_compile_options
+  parse_db["add_definitions"] = parse_add_definitions
+  parse_db["add_dependencies"] = parse_add_dependencies
+  parse_db["add_subdirectory"] = parse_add_subdirectory
+  parse_db["aux_source_directory"] = parse_aux_source_directory

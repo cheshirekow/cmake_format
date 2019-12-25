@@ -35,6 +35,8 @@ from cmake_format.doc.docsources_test \
     import TestDocSources
 from cmake_format.test.version_number_test \
     import TestVersionNumber
+from cmake_format.test.command_db_test \
+    import TestCommandDatabase
 
 if __name__ == '__main__':
   unittest.main()

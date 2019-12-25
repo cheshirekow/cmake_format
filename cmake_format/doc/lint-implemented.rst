@@ -599,3 +599,15 @@ message
     Unreachable code
 
 
+-----
+W0104
+-----
+
+message
+-------
+
+.. code:: 
+
+    Use of deprecated command {:s}
+
+

@@ -7,7 +7,6 @@ py_library(
         "add_executable_tests.py",
         "add_library_tests.py",
         "misc_tests.py",
-        "partialmethod.py"
     ],
     data=[
         "add_custom_command_tests.cmake",

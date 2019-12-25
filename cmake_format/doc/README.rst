@@ -9,8 +9,10 @@ cmake format
     :target: https://cmake-format.readthedocs.io
 
 * ``cmake-annotate`` can generate pretty HTML from your listfiles
+
 * ``cmake-format`` can format your listfiles nicely so that they don't look
-   like crap.
+  like crap.
+
 * ``cmake-lint`` can check your listfiles for problems
 
 ------------
@@ -290,6 +292,9 @@ pleasant way.
     # Options affecting the linter
     # ----------------------------
     with section("linter"):
+      # a list of lint codes to disable
+      disabled_codes = []
+
       # regular expression pattern describing valid function names
       function_pattern = '[0-9a-z_]+'
 
