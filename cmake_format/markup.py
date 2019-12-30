@@ -67,8 +67,8 @@ def parse(lines, config=None):
     fence_re = FENCE_REGEX
     ruler_re = RULER_REGEX
   else:
-    fence_re = re.compile(config.fence_pattern)
-    ruler_re = re.compile(config.ruler_pattern)
+    fence_re = re.compile(config.markup.fence_pattern)
+    ruler_re = re.compile(config.markup.ruler_pattern)
 
   for line in lines:
     fence_match = fence_re.match(line)
@@ -200,7 +200,7 @@ def format_item(config, line_width, item):
     return ['~~~']
   if item.kind == CommentType.VERBATIM:
     return [line.rstrip() for line in item.lines]
-  if is_hashruler(item) and config.canonicalize_hashrulers:
+  if is_hashruler(item) and config.markup.canonicalize_hashrulers:
     return ['#' * line_width]
   if item.kind in (CommentType.PARAGRAPH, CommentType.NOTE, CommentType.RULER):
     wrapper = textwrap.TextWrapper(width=line_width,
@@ -219,7 +219,7 @@ def format_item(config, line_width, item):
                                    drop_whitespace=True)
     for line in item.lines:
       increment_lines = common.stable_wrap(wrapper, line.strip())
-      outlines.append(config.bullet_char + ' ' + increment_lines[0])
+      outlines.append(config.markup.bullet_char + ' ' + increment_lines[0])
       outlines.extend('  ' + iline for iline in increment_lines[1:])
     return outlines
 
@@ -232,7 +232,7 @@ def format_item(config, line_width, item):
                                    drop_whitespace=True)
 
     digits = int(math.ceil(math.log(len(item.lines), 10)))
-    fmt = '{:%dd}%s ' % (digits, config.enum_char)
+    fmt = '{:%dd}%s ' % (digits, config.markup.enum_char)
     indent = ' ' * (digits + 2)
 
     for idx, line in enumerate(item.lines):

@@ -58,17 +58,17 @@ def check_basics(cfg, local_ctx, infile_content):
   lines = infile_content.split("\n")
 
   for lineno, line in enumerate(lines):
-    if len(line) > cfg.line_width:
+    if len(line) > cfg.format.line_width:
       local_ctx.record_lint(
-          "C0301", len(line), cfg.line_width, location=(lineno,))
+          "C0301", len(line), cfg.format.line_width, location=(lineno,))
 
     if line.endswith("\r"):
-      if cfg.line_ending == "unix":
+      if cfg.format.line_ending == "unix":
         local_ctx.record_lint(
             "C0327", "windows", location=(lineno,))
       line = line[:-1]
     else:
-      if cfg.line_ending == "windows":
+      if cfg.format.line_ending == "windows":
         local_ctx.record_lint(
             "C0327", "unix", location=(lineno,))
 
@@ -113,7 +113,7 @@ def check_for_custom_parse_logic(cfg, local_ctx, stmt_node):
         if tokens[0].spelling == loopvar.spelling:
           if tokens[1].spelling in ("STREQUAL", "MATCHES"):
             conditional_count += 1
-      if conditional_count > cfg.linter.max_conditionals_custom_parser:
+      if conditional_count > cfg.lint.max_conditionals_custom_parser:
         local_ctx.record_lint("C0201", location=loop_stmt.get_location())
         return
 
@@ -149,14 +149,14 @@ def check_argument_names(cfg, local_ctx, defn_node):
       elif token.spelling.lower() in uncase_names:
         local_ctx.record_lint(
             "C0202", token.spelling, location=token.get_location())
-      elif not re.match(cfg.linter.local_var_pattern, token.spelling):
+      elif not re.match(cfg.lint.local_var_pattern, token.spelling):
         local_ctx.record_lint(
             "C0103", "argument", token.spelling, location=token.get_location())
       seen_names.add(token.spelling)
       uncase_names.add(token.spelling.lower())
 
-  if len(tokens) > cfg.linter.max_arguments:
-    local_ctx.record_lint("R0913", len(tokens), cfg.linter.max_arguments,
+  if len(tokens) > cfg.lint.max_arguments:
+    local_ctx.record_lint("R0913", len(tokens), cfg.lint.max_arguments,
                           location=defn_node.get_location())
 
 
@@ -169,32 +169,32 @@ def check_defn(cfg, local_ctx, defn_node, name_pattern):
   block = defn_node.parent.get_block_with(defn_node)
   return_count = sum(
       1 for _ in find_statements_in_subtree(block.body, ("return",)))
-  if return_count > cfg.linter.max_returns:
-    local_ctx.record_lint("R0911", return_count, cfg.linter.max_returns,
+  if return_count > cfg.lint.max_returns:
+    local_ctx.record_lint("R0911", return_count, cfg.lint.max_returns,
                           location=defn_node.get_location())
 
   branch_count = sum(
       1 for _ in find_statements_in_subtree(
           block.body, ("if", "elseif", "else")))
-  if branch_count > cfg.linter.max_branches:
-    local_ctx.record_lint("R0912", branch_count, cfg.linter.max_branches,
+  if branch_count > cfg.lint.max_branches:
+    local_ctx.record_lint("R0912", branch_count, cfg.lint.max_branches,
                           location=defn_node.get_location())
 
   stmt_count = sum(
       1 for _ in find_nodes_in_subtree(block.body, StatementNode))
-  if stmt_count > cfg.linter.max_statements:
-    local_ctx.record_lint("R0915", stmt_count, cfg.linter.max_statements,
+  if stmt_count > cfg.lint.max_statements:
+    local_ctx.record_lint("R0915", stmt_count, cfg.lint.max_statements,
                           location=defn_node.get_location())
 
 
 def check_fundef(cfg, local_ctx, node):
   """Perform checks on a function definition"""
-  check_defn(cfg, local_ctx, node, cfg.linter.function_pattern)
+  check_defn(cfg, local_ctx, node, cfg.lint.function_pattern)
 
 
 def check_macrodef(cfg, local_ctx, node):
   """Perform checks on a macro definition"""
-  check_defn(cfg, local_ctx, node, cfg.linter.macro_pattern)
+  check_defn(cfg, local_ctx, node, cfg.lint.macro_pattern)
 
 
 def check_foreach(cfg, local_ctx, node):
@@ -204,7 +204,7 @@ def check_foreach(cfg, local_ctx, node):
   tokens.pop(0)  # lparen
 
   token = tokens.pop(0)  # loopvaraible
-  if not re.match(cfg.linter.local_var_pattern, token.spelling):
+  if not re.match(cfg.lint.local_var_pattern, token.spelling):
     local_ctx.record_lint(
         "C0103", "loopvar", token.spelling, location=token.get_location())
 
@@ -341,10 +341,10 @@ def check_body(cfg, local_ctx, node):
         local_ctx.record_lint("C0321", location=child.get_location())
       elif prevchild[0].count_newlines() < 1:
         local_ctx.record_lint("C0321", location=child.get_location())
-      elif prevchild[0].count_newlines() < cfg.linter.min_statement_spacing:
+      elif prevchild[0].count_newlines() < cfg.lint.min_statement_spacing:
         local_ctx.record_lint(
             "C0305", "not enough", location=child.get_location())
-      elif prevchild[0].count_newlines() > cfg.linter.max_statement_spacing:
+      elif prevchild[0].count_newlines() > cfg.lint.max_statement_spacing:
         local_ctx.record_lint(
             "C0305", "too many", location=child.get_location())
 
@@ -454,14 +454,14 @@ def check_assignment(cfg, local_ctx, set_node):
 
   if scope is Scope.CACHE:
     # variable is global scope and public
-    pattern = cfg.linter.global_var_pattern
+    pattern = cfg.lint.global_var_pattern
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
           "C0103", "CACHE variable", varname.spelling,
           location=varname.get_location())
   elif scope is Scope.INTERNAL:
     # variable is global scope but private
-    pattern = cfg.linter.internal_var_pattern
+    pattern = cfg.lint.internal_var_pattern
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
           "C0103", "INTERNAL variable", varname.spelling,
@@ -469,9 +469,9 @@ def check_assignment(cfg, local_ctx, set_node):
   elif scope is Scope.PARENT:
     # indeterminate scope, but it's not global
     pattern = "|".join([
-        cfg.linter.public_var_pattern,
-        cfg.linter.private_var_pattern,
-        cfg.linter.local_var_pattern,
+        cfg.lint.public_var_pattern,
+        cfg.lint.private_var_pattern,
+        cfg.lint.local_var_pattern,
     ])
 
     if not re.match(pattern, varname.spelling):
@@ -479,7 +479,7 @@ def check_assignment(cfg, local_ctx, set_node):
           "C0103", "PARENT_SCOPE variable", varname.spelling,
           location=varname.get_location())
   elif scope is Scope.LOCAL:
-    if not re.match(cfg.linter.local_var_pattern, varname.spelling):
+    if not re.match(cfg.lint.local_var_pattern, varname.spelling):
       local_ctx.record_lint(
           "C0103", "local variable", varname.spelling,
           location=varname.get_location())
@@ -487,8 +487,8 @@ def check_assignment(cfg, local_ctx, set_node):
     # We cannot tell by assignment whether it's meant to be public or private,
     # but it must match one of these patterns
     pattern = "|".join([
-        cfg.linter.public_var_pattern,
-        cfg.linter.private_var_pattern,
+        cfg.lint.public_var_pattern,
+        cfg.lint.private_var_pattern,
     ])
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(

@@ -1,6 +1,5 @@
 # test: single_argument_a
 #[=[
-max_subargs_per_line = 100
 expect_parse = [
 (NodeType.BODY, [
   (NodeType.STATEMENT, [

@@ -9,6 +9,33 @@ v0.6 series
 ===========
 
 ------
+v0.6.6
+------
+
+The configuration datastructures have been overhauled and configuration options
+are now separated into different groupings based on which part of the
+processing pipeline they are relevent to. Legacy configuration files (without
+sections) are still supported, though they may be deprecated in the future.
+`cmake-format` can update your configuration file for you with the following
+command:
+
+.. :code:
+
+  cmake-format --config-file <your-config> --dump-config <your-format> \
+    --no-help --no-defaults
+
+There is a new configuration option `explicit_trailing_pattern` which can be
+used to define a particular character sequence used by comments that are
+explicitly matched as trailing comments of an argument or statement. See
+`the docs`__ for more information.
+
+.. __: https://cmake-format.readthedocs.io/en/latest/configopts.html
+
+Configuration files can now include additional configuration files. This
+might help keep configurations organized if you are maintaining a database
+of custom command definitions.
+
+------
 v0.6.5
 ------
 

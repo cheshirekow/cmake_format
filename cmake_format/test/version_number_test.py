@@ -59,7 +59,10 @@ class TestVersionNumber(unittest.TestCase):
       data = json.load(infile)
 
     self.assertIn("version", data)
-    self.assertEqual(data["version"], self.init_version)
+    json_version = data["version"]
+    if "-" in json_version:
+      json_version = json_version.split("-", 1)[0]
+    self.assertEqual(json_version, self.init_version)
 
   def test_vscode_packagelock_json(self):
     filepath = os.path.join(
@@ -68,7 +71,10 @@ class TestVersionNumber(unittest.TestCase):
       data = json.load(infile)
 
     self.assertIn("version", data)
-    self.assertEqual(data["version"], self.init_version)
+    json_version = data["version"]
+    if "-" in json_version:
+      json_version = json_version.split("-", 1)[0]
+    self.assertEqual(json_version, self.init_version)
 
   def test_changelog(self):
     """

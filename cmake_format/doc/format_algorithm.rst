@@ -145,7 +145,7 @@ For top-level nodes in the layout tree (i.e. ``COMMENT``, ``STATEMENT``,
 ``BODY``, ``FLOW_CONTROL``, etc...) the positioning is straight forward and
 these nodes are laid out in a single pass. Each child is positioned on the
 first line after the output cursor of it's predecessor, and at a column
-``config.tab_size`` to the right of it's parent.
+``config.format.tab_size`` to the right of it's parent.
 
 ``STATEMENTS`` however, are laid out over several passes until the
 text for that subtree is accepted. Each pass is governed by a

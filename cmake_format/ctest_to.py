@@ -98,6 +98,7 @@ class ParseContext(object):
     self.dirqueue = []
     self.tests = {}
 
+  # pylint: disable=W0613
   def parse_add_test(self, tokens, _breakstack):
     """Parse an add_test() statement. This statement contains the test name
        and the command for the test.
@@ -243,6 +244,7 @@ def setup_argparse(argparser):
 
 
 def main():
+  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
   argparser = argparse.ArgumentParser(prog="ctest-to", description=__doc__)
   setup_argparse(argparser)
   args = argparser.parse_args()
@@ -268,5 +270,4 @@ def main():
 
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
   main()

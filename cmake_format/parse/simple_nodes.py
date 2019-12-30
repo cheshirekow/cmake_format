@@ -8,7 +8,9 @@ import logging
 from cmake_format import lexer
 from cmake_format.parse.util import (
     COMMENT_TOKENS, WHITESPACE_TOKENS,
-    are_column_aligned, next_is_trailing_comment, is_valid_trailing_comment
+    are_column_aligned, next_is_trailing_comment,
+    next_is_explicit_trailing_comment,
+    is_valid_trailing_comment
 )
 from cmake_format.parse.common import NodeType, TreeNode
 
@@ -39,6 +41,17 @@ class CommentNode(TreeNode):
 
   def __init__(self):
     super(CommentNode, self).__init__(NodeType.COMMENT)
+    self.is_explicit_trailing = False
+    self.is_implicit_trailing = False
+
+  def __repr__(self):
+    base = super(CommentNode, self).__repr__()
+    if self.is_explicit_trailing:
+      return base + "(explicit trailing)"
+    if self.is_implicit_trailing:
+      return base + "(implicit trailing)"
+
+    return base
 
   @classmethod
   def consume(cls, ctx, tokens):
@@ -88,18 +101,34 @@ class CommentNode(TreeNode):
     return node
 
   @classmethod
-  def consume_trailing(cls, ctx, tokens, parent):
+  def consume_explicit_trailing(cls, ctx, tokens, parent):
     """
     Consume sequential comment lines, removing tokens from the input list and
     appending the resulting node as a child to the provided parent
     """
-    if not next_is_trailing_comment(tokens):
-      return
+
+    while tokens and tokens[0].type in (lexer.TokenType.WHITESPACE,
+                                        lexer.TokenType.NEWLINE):
+      parent.children.append(tokens.pop(0))
+
+    node = cls()
+    node.is_explicit_trailing = True
+    parent.children.append(node)
+    while tokens and next_is_explicit_trailing_comment(ctx.config, tokens):
+      node.children.append(tokens.pop(0))
+
+  @classmethod
+  def consume_implicit_trailing(cls, ctx, tokens, parent):
+    """
+    Consume sequential comment lines, removing tokens from the input list and
+    appending the resulting node as a child to the provided parent
+    """
 
     if tokens[0].type == lexer.TokenType.WHITESPACE:
       parent.children.append(tokens.pop(0))
 
-    node = TreeNode(NodeType.COMMENT)
+    node = cls()
+    node.is_implicit_trailing = True
     parent.children.append(node)
     comment_tokens = node.children
 
@@ -131,6 +160,20 @@ class CommentNode(TreeNode):
         node.children.append(tokens.pop(0))
         node.children.append(tokens.pop(0))
 
+  @classmethod
+  def consume_trailing(cls, ctx, tokens, parent):
+    """
+    Consume sequential comment lines, removing tokens from the input list and
+    appending the resulting node as a child to the provided parent
+    """
+    if not next_is_trailing_comment(ctx.config, tokens):
+      return None
+
+    if next_is_explicit_trailing_comment(ctx.config, tokens):
+      return cls.consume_explicit_trailing(ctx, tokens, parent)
+
+    return cls.consume_implicit_trailing(ctx, tokens, parent)
+
 
 class OnOffNode(TreeNode):
   """Stores a single comment token signifying cmake-format should enable or
@@ -151,7 +194,7 @@ class OnOffNode(TreeNode):
     return node
 
 
-def consume_whitespace_and_comments(tokens, tree):
+def consume_whitespace_and_comments(ctx, tokens, tree):
   """Consume any whitespace or comments that occur at the current depth
   """
   # If it is a whitespace token then put it directly in the parse tree at
@@ -167,8 +210,7 @@ def consume_whitespace_and_comments(tokens, tree):
     # directly into the parse tree at the current depth
     if tokens[0].type in (lexer.TokenType.COMMENT,
                           lexer.TokenType.BRACKET_COMMENT):
-      child = TreeNode(NodeType.COMMENT)
+      child = CommentNode.consume(ctx, tokens)
       tree.children.append(child)
-      child.children.append(tokens.pop(0))
       continue
     break

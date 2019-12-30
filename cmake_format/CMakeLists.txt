@@ -1,6 +1,7 @@
 format_and_lint(
   cmake_format
   # cmake-format: sort
+  CMakeLists.txt
   __init__.py
   __main__.py
   annotate.py
@@ -13,12 +14,16 @@ format_and_lint(
   command_tests/CMakeLists.txt
   command_tests/misc_tests.py
   common.py
+  config_util.py
   configuration.py
   contrib/__init__.py
+  contrib/CMakeLists.txt
   contrib/sign_ca.py
   contrib/validate_database.py
   contrib/validate_pullrequest.py
+  ctest_to.py
   doc/__init__.py
+  doc/CMakeLists.txt
   doc/conf.py
   doc/docsources_test.py
   doc/gendoc_sources.py
@@ -42,11 +47,15 @@ format_and_lint(
   parse_funs/add_executable.py
   parse_funs/add_library.py
   parse_funs/add_xxx.py
+  parse_funs/break.py
+  parse_funs/deprecated.py
   parse_funs/external_project.py
   parse_funs/fetch_content.py
   parse_funs/file.py
   parse_funs/foreach.py
   parse_funs/install.py
+  parse_funs/miscellaneous.py
+  parse_funs/random.py
   parse_funs/set.py
   parse_funs/set_target_properties.py
   parser_tests.py
@@ -59,6 +68,9 @@ format_and_lint(
   test/screw_users_test.py
   test/version_number_test.py
   tests.py
+  tools/__init__.py
+  tools/bump_version.py
+  tools/generate_missing_parsers.py
   tools/parse_cmake_help.py
   tools/usage_lexer.py
   tools/usage_parser.py)
@@ -86,3 +98,11 @@ add_subdirectory(command_tests)
 add_subdirectory(contrib)
 add_subdirectory(doc)
 add_subdirectory(test)
+
+add_test(
+  NAME cmake_format-check-lint-manifest
+  COMMAND
+    python -Bm cmake.validate_lint_manifest #
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} #
+    --exclude "command_tests/" "test/.*" ".*\\.jinja.py$"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

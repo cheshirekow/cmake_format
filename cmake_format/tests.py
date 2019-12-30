@@ -37,6 +37,8 @@ from cmake_format.test.version_number_test \
     import TestVersionNumber
 from cmake_format.test.command_db_test \
     import TestCommandDatabase
+from cmake_format.test.config_include_test \
+    import TestConfigInclude
 
 if __name__ == '__main__':
   unittest.main()

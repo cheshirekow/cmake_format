@@ -32,14 +32,14 @@ def annotate_file(config, infile, outfile, outfmt=None):
   """
 
   infile_content = infile.read()
-  if config.line_ending == 'auto':
+  if config.format.line_ending == 'auto':
     detected = __main__.detect_line_endings(infile_content)
     config = config.clone()
-    config.set_line_ending(detected)
+    config.format.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
+  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db)
   parse_tree = parse.parse(tokens, ctx)
 
@@ -81,10 +81,7 @@ def setup_argparser(arg_parser):
                           help='path to configuration file')
   arg_parser.add_argument('infilepaths', nargs='*')
 
-  optgroup = arg_parser.add_argument_group(
-      title='Formatter Configuration',
-      description='Override configfile options')
-  __main__.add_config_options(optgroup)
+  configuration.Configuration().add_to_argparser(arg_parser)
 
 
 def main():
@@ -114,6 +111,9 @@ def main():
     assert args.outfile_path == '-', \
         "If stdin is the input file, then stdout must be the output file"
 
+  argdict = __main__.get_argdict(args)
+  output_format = argdict.pop("format")
+
   for infile_path in args.infilepaths:
     # NOTE(josh): have to load config once for every file, because we may pick
     # up a new config file location for each path
@@ -121,11 +121,7 @@ def main():
       config_dict = __main__.get_config(os.getcwd(), args.config_file)
     else:
       config_dict = __main__.get_config(infile_path, args.config_file)
-
-    for key, value in vars(args).items():
-      if (key in configuration.Configuration.get_field_names()
-          and value is not None):
-        config_dict[key] = value
+    config_dict.update(argdict)
 
     cfg = configuration.Configuration(**config_dict)
     if args.outfile_path == '-':
@@ -135,21 +131,24 @@ def main():
       # it does not take byte arrays. io.StreamWriter will write to
       # it with byte arrays (assuming it was opened with 'wb'). So we use
       # io.open instead of open in this case
-      outfile = io.open(os.dup(sys.stdout.fileno()),
-                        mode='w', encoding=cfg.output_encoding, newline='')
+      outfile = io.open(
+          os.dup(sys.stdout.fileno()),
+          mode='w', encoding=cfg.encode.output_encoding, newline='')
     else:
-      outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
-                        newline='')
+      outfile = io.open(
+          args.outfile_path, 'w', encoding=cfg.encode.output_encoding,
+          newline='')
 
     if infile_path == '-':
-      infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding=cfg.input_encoding, newline='')
+      infile = io.open(
+          os.dup(sys.stdin.fileno()),
+          mode='r', encoding=cfg.encode.input_encoding, newline='')
     else:
-      infile = io.open(infile_path, 'r', encoding=cfg.input_encoding)
+      infile = io.open(infile_path, 'r', encoding=cfg.encode.input_encoding)
 
     try:
       with infile:
-        annotate_file(cfg, infile, outfile, args.format)
+        annotate_file(cfg, infile, outfile, output_format)
     except:
       sys.stderr.write('While processing {}\n'.format(infile_path))
       raise

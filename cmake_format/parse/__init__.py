@@ -3,6 +3,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from cmake_format import configuration
 from cmake_format.parse.body_nodes import BodyNode
 
 
@@ -21,7 +22,7 @@ class MockEverything(object):
 class ParseContext(object):
   """Global context passed through every function in the parse stack."""
 
-  def __init__(self, parse_db=None, lint_ctx=None):
+  def __init__(self, parse_db=None, lint_ctx=None, config=None):
     if parse_db is None:
       from cmake_format import parse_funs
       parse_db = parse_funs.get_parse_db()
@@ -30,6 +31,10 @@ class ParseContext(object):
     if lint_ctx is None:
       lint_ctx = MockEverything()
     self.lint_ctx = lint_ctx
+
+    if config is None:
+      config = configuration.Configuration()
+    self.config = config
 
 
 def parse(tokens, ctx=None):

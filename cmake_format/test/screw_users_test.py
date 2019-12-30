@@ -150,9 +150,7 @@ class DontScrewUsers(unittest.TestCase):
 
   def test_thisrepo(self):
     thisdir = os.path.realpath(os.path.dirname(__file__))
-    head, _ = os.path.split(thisdir)
-    head, _ = os.path.split(thisdir)
-    self.repository = head
+    self.repository = os.sep.join(thisdir.split(os.sep)[:-2])
     self.configpath = ".cmake-format.py"
     self.last_known_good = "efb0d6256fcbc4a3cfad9f5ebdaa34172d230ea2"
     self.exclude_patterns += [

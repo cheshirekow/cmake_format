@@ -35,6 +35,10 @@ Usage
                             If specified, print the default configuration to
                             stdout and exit
       --dump {lex,parse,layout,markup}
+      --no-help             When used with --dump-config, will omit helptext
+                            comments in the output
+      --no-default          When used with --dump-config, will omit any unmodified
+                            configuration value.
       -i, --in-place
       --check               Exit with status code 0 if formatting would not change
                             file contents, or status code 1 if it would
@@ -43,15 +47,16 @@ Usage
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 
-    Formatter Configuration:
-      Override configfile options affecting general formatting
+    Various configuration options/parameters for formatting:
 
+
+    Options effecting formatting.:
       --line-width LINE_WIDTH
                             How wide to allow formatted cmake files
       --tab-size TAB_SIZE   How many spaces to tab for indent
       --max-subgroups-hwrap MAX_SUBGROUPS_HWRAP
                             If an argument group contains more than this many sub-
-                            groups (parg or kwarg groups), then force it to a
+                            groups (parg or kwarg groups) then force it to a
                             vertical layout.
       --max-pargs-hwrap MAX_PARGS_HWRAP
                             If a positional argument group contains more than this
@@ -105,16 +110,12 @@ Usage
                             flag is True, however, cmake-format will print error,
                             exit with non-zero status code, and write-out nothing
 
-    Comment Formatting:
-      Override config options affecting comment formatting
-
+    Options affecting comment reflow and formatting.:
       --bullet-char BULLET_CHAR
                             What character to use for bulleted lists
       --enum-char ENUM_CHAR
                             What character to use as punctuation after numerals in
                             an enumerated list
-      --enable-markup [ENABLE_MARKUP]
-                            enable comment markup parsing and reflow
       --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
                             If comment markup is enabled, don't reflow the first
                             comment block in each listfile. Use this to preserve
@@ -129,6 +130,10 @@ Usage
       --ruler-pattern RULER_PATTERN
                             Regular expression to match rulers in comments
                             default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
+      --explicit-trailing-pattern EXPLICIT_TRAILING_PATTERN
+                            If a comment line matches starts with this pattern
+                            then it is explicitly a trailing comment for the
+                            preceeding argument. Default is '#<'
       --hashruler-min-length HASHRULER_MIN_LENGTH
                             If a comment line starts with at least this many
                             consecutive hash characters, then don't lstrip() them
@@ -138,16 +143,58 @@ Usage
                             If true, then insert a space between the first hash
                             char and remaining hash chars in a hash ruler, and
                             normalize its length to fill the column
+      --enable-markup [ENABLE_MARKUP]
+                            enable comment markup parsing and reflow
 
-    Misc Options:
-      Override miscellaneous config options
+    Options affecting the linter:
+      --disabled-codes [DISABLED_CODES [DISABLED_CODES ...]]
+                            a list of lint codes to disable
+      --function-pattern FUNCTION_PATTERN
+                            regular expression pattern describing valid function
+                            names
+      --macro-pattern MACRO_PATTERN
+                            regular expression pattern describing valid macro
+                            names
+      --global-var-pattern GLOBAL_VAR_PATTERN
+                            regular expression pattern describing valid names for
+                            variables with global scope
+      --internal-var-pattern INTERNAL_VAR_PATTERN
+                            regular expression pattern describing valid names for
+                            variables with global scope (but internal semantic)
+      --local-var-pattern LOCAL_VAR_PATTERN
+                            regular expression pattern describing valid names for
+                            variables with local scope
+      --private-var-pattern PRIVATE_VAR_PATTERN
+                            regular expression pattern describing valid names for
+                            privatedirectory variables
+      --public-var-pattern PUBLIC_VAR_PATTERN
+                            regular expression pattern describing valid names for
+                            publicdirectory variables
+      --keyword-pattern KEYWORD_PATTERN
+                            regular expression pattern describing valid names for
+                            keywords used in functions or macros
+      --max-conditionals-custom-parser MAX_CONDITIONALS_CUSTOM_PARSER
+                            In the heuristic for C0201, how many conditionals to
+                            match within a loop in before considering the loop a
+                            parser.
+      --min-statement-spacing MIN_STATEMENT_SPACING
+                            Require at least this many newlines between statements
+      --max-statement-spacing MAX_STATEMENT_SPACING
+                            Require no more than this many newlines between
+                            statements
+      --max-returns MAX_RETURNS
+      --max-branches MAX_BRANCHES
+      --max-arguments MAX_ARGUMENTS
+      --max-localvars MAX_LOCALVARS
+      --max-statements MAX_STATEMENTS
 
+    Options effecting file encoding:
       --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
                             If true, emit the unicode byte-order mark (BOM) at the
                             start of the file
       --input-encoding INPUT_ENCODING
                             Specify the encoding of the input file. Defaults to
-                            utf-8.
+                            utf-8
       --output-encoding OUTPUT_ENCODING
                             Specify the encoding of the output file. Defaults to
                             utf-8. Note that cmake only claims to support utf-8 so

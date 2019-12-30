@@ -62,7 +62,7 @@ class FileContext(object):
       self._supressions.discard(idstr)
 
   def record_lint(self, idstr, *args, **kwargs):
-    if idstr in self.config.linter.disabled_codes:
+    if idstr in self.config.lint.disabled_codes:
       self._supressed_count[idstr] += 1
       return
 

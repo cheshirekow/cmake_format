@@ -141,7 +141,7 @@ def tokenize(contents):
       (r"(?<![^\s\(])'[^'\\]*(?:\\.[^'\\]*)*'(?![^\s\)])",
        lambda s, t: (TokenType.QUOTED_LITERAL, t)),
       # bracket argument
-      (r"(?<![^\s\(])\[(=*)\[.*\]\1\](?![^\s\)])",
+      (r"(?<![^\s\(])\[(=*)\[.*?\]\1\](?![^\s\)])",
        lambda s, t: (TokenType.BRACKET_ARGUMENT, t)),
       (r"(?<![^\s\(])-?[0-9]+(?![^\s\)\(])",
        lambda s, t: (TokenType.NUMBER, t)),
@@ -171,7 +171,7 @@ def tokenize(contents):
       (r"#\s*(cmake-format|cmf): on[^\n]*",
        lambda s, t: (TokenType.FORMAT_ON, t)),
       # bracket comment
-      (r"#\[(=*)\[.*\]\1\]", lambda s, t: (TokenType.BRACKET_COMMENT, t)),
+      (r"#\[(=*)\[.*?\]\1\]", lambda s, t: (TokenType.BRACKET_COMMENT, t)),
       # line comment
       (r"#[^\n]*", lambda s, t: (TokenType.COMMENT, t)),
       # Catch-all for literals which are compound statements.
@@ -191,6 +191,10 @@ def tokenize(contents):
 
   tokens, remainder = scanner.scan(contents)
   assert not remainder, "Unparsed tokens: {}".format(remainder)
+  if remainder:
+    raise common.UserError(
+        "Lexer Error: failed to tokenize input starting at: \n {}"
+        .format(remainder))
 
   # Now add line, column, and serial number to token objects. We get lineno
   # by maintaining a running count of newline characters encountered among

@@ -27,7 +27,7 @@ def process_file(config, local_ctx, infile_content):
   Parse the input cmake file, re-format it, and print to the output file.
   """
 
-  if config.line_ending == 'auto':
+  if config.format.line_ending == 'auto':
     detected = __main__.detect_line_endings(infile_content)
     config = config.clone()
     config.set_line_ending(detected)
@@ -36,8 +36,8 @@ def process_file(config, local_ctx, infile_content):
   tokens = lexer.tokenize(infile_content)
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
-  ctx = parse.ParseContext(parse_db, local_ctx)
+  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
+  ctx = parse.ParseContext(parse_db, local_ctx, config)
   parse_tree = parse.parse(tokens, ctx)
   parse_tree.build_ancestry()
   basic_checker.check_tree(config, local_ctx, parse_tree)
@@ -63,7 +63,8 @@ def setup_argparse(argparser):
       '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
   argparser.add_argument('infilepaths', nargs='*')
-  __main__.add_config_options(argparser)
+
+  configuration.Configuration().add_to_argparser(argparser)
 
 
 USAGE_STRING = """
@@ -76,6 +77,7 @@ cmake-lint [-h]
 
 def main():
   """Parse arguments, open files, start work."""
+  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
   argparser = argparse.ArgumentParser(
       description=__doc__,
@@ -106,6 +108,8 @@ def main():
 
   global_ctx = lint_util.GlobalContext(outfile)
   returncode = 0
+  argdict = __main__.get_argdict(args)
+
   for infile_path in args.infilepaths:
     # NOTE(josh): have to load config once for every file, because we may pick
     # up a new config file location for each path
@@ -113,11 +117,7 @@ def main():
       config_dict = __main__.get_config(os.getcwd(), args.config_files)
     else:
       config_dict = __main__.get_config(infile_path, args.config_files)
-
-    for key, value in vars(args).items():
-      if (key in configuration.Configuration.get_field_names()
-          and value is not None):
-        config_dict[key] = value
+    config_dict.update(argdict)
 
     cfg = configuration.Configuration(**config_dict)
     if infile_path == '-':
@@ -125,7 +125,7 @@ def main():
 
     try:
       infile = io.open(
-          infile_path, mode='r', encoding=cfg.input_encoding, newline='')
+          infile_path, mode='r', encoding=cfg.encode.input_encoding, newline='')
     except (IOError, OSError):
       logger.error("Failed to open %s for read", infile_path)
       returncode = 1
@@ -134,7 +134,8 @@ def main():
       with infile:
         intext = infile.read()
     except UnicodeDecodeError:
-      logger.error("Unable to read %s as %s", infile_path, cfg.input_encoding)
+      logger.error(
+          "Unable to read %s as %s", infile_path, cfg.encode.input_encoding)
 
     try:
       local_ctx = global_ctx.get_file_ctx(infile_path, cfg)
@@ -154,5 +155,4 @@ def main():
 
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
   sys.exit(main())

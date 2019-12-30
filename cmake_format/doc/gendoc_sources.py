@@ -257,8 +257,8 @@ def main():
   parser.add_argument("--verify", action="store_true")
   args = parser.parse_args()
 
-  if args.verify and sys.version_info < (3, 5, 0):
-    print("Skipping verification on python < 3.5")
+  if args.verify and sys.version_info < (3, 6, 0):
+    print("Skipping verification on python < 3.6")
     sys.exit(0)
 
   generate_docsources(args.verify)

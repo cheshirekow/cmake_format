@@ -4,6 +4,13 @@
 Configuration Options
 =====================
 
+include
+=======
+
+``include`` specifies a list of additional configuration files to load.
+Configurations are merged and individual variables follow a latest-wins
+semantic.
+
 --------------------------
 General Formatting Options
 --------------------------
@@ -445,9 +452,42 @@ This is the big on/off switch for comment reflow and formatting. If this is
 features are enabled. If ``false``, then comments are generally preserved,
 but trailing whitespace will still be removed.
 
----------------------
-Miscellaneous Options
----------------------
+explicit_trailing_pattern
+=========================
+
+If ``cmake-format`` encountes a comment within or at the very end of a
+statement it will try to determine whether or not that comment refers to
+a particular argument, and will format it accordingly. For example:
+
+.. code::
+
+  cmake_parse_arguments(
+    ARG
+    "FOO BAR" # optional keywords
+    "BAZ" # one value keywords
+    "BOZ" # multi value keywords
+    ${ARGN})
+
+The rules for associating a comment with the preceeding argument depend on
+how much (and what kinds) of whitespace separate them. Alternatively, if
+the comments match the ``explicit_trailing_pattern``, then they are associated
+with the preceeding argument regardless of the whitespace separating them.
+The format for this variable is a python regular expression matching prefix
+characters for such explicit trailing comments. The default value is ``#<``,
+such that the above example using explicit trailing comments would  be:
+
+.. code::
+
+  cmake_parse_arguments(
+    ARG
+    "FOO BAR" #< optional keywords
+    "BAZ" #< one value keywords
+    "BOZ" #< multi value keywords
+    ${ARGN})
+
+--------------------------
+Options Effecting Encoding
+--------------------------
 
 emit_byteorder_mark
 ===================

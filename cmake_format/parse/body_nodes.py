@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import collections
 import logging
 
+from cmake_format.common import InternalError
 from cmake_format import lexer
 from cmake_format.parse.util import (
     COMMENT_TOKENS, ONOFF_TOKENS, WHITESPACE_TOKENS
@@ -65,9 +66,10 @@ class BodyNode(TreeNode):
       elif token.type == lexer.TokenType.BYTEORDER_MARK:
         tokens.pop(0)
       else:
-        assert False, ("Unexpected {} token at {}:{}"
-                       .format(tokens[0].type.name,
-                               tokens[0].begin.line, tokens[0].begin.col))
+        raise InternalError(
+            "Unexpected {} token at {}:{}"
+            .format(tokens[0].type.name,
+                    tokens[0].begin.line, tokens[0].begin.col))
 
     return tree
 

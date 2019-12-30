@@ -20,7 +20,17 @@ export function activate(context: vscode.ExtensionContext) {
                 var path = require('path')
                 var config = vscode.workspace.getConfiguration('cmakeFormat');
                 var exePath = config.get("exePath");
-                var args = config.get<string[]>("args", []).concat(["-"]);
+
+                var args = config.get<string[]>("args", [])
+                // NOTE(josh): in case the final user-supplied argument is a
+                // nargs="*", we need to tell argparse that the next argument
+                // ("-") is a positional argument. We do that by adding "--"
+                // after the last user-supplied argument and before the "-"
+                if(args[args.length-1] != "--"){
+                  args = args.concat(["--"]);
+                }
+                args = args.concat(["-"]);
+
                 var opts: any = {
                     input: document.getText(),
                     encoding: 'utf-8'
@@ -70,6 +80,10 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 const cp = require('child_process')
+
+                // NOTE(josh): execFileSync will throw an Error if the
+                // subprocess exits with non-zero status. The vscode GUI will
+                // display the stacktrace in the corner.
                 var replacementText = cp.execFileSync(exePath, args, opts);
                 var firstLine = document.lineAt(0);
                 var lastLine = document.lineAt(document.lineCount - 1);

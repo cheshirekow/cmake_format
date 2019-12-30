@@ -214,7 +214,7 @@ class ConfigTestCase(TestBase):
   """
 
   def test_disabled_codes(self):
-    self.config.linter.disabled_codes = ["E1120"]
+    self.config.lint.disabled_codes = ["E1120"]
     test_body = "set(VARNAME varvalue CACHE STRING)\n"
     self.execute_test("test_disabled_code", test_body, [])
 

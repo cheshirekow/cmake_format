@@ -14,7 +14,7 @@ from cmake_format.parse.util import (
     should_break
 )
 
-logger = logging.getLogger("cmake-format")
+logger = logging.getLogger(__name__)
 
 
 def parse_add_library_standard(ctx, tokens, breakstack, sortable):

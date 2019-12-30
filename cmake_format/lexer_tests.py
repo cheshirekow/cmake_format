@@ -37,6 +37,17 @@ class TestSpecificLexings(unittest.TestCase):
       """, [TokenType.WHITESPACE, TokenType.BRACKET_COMMENT, TokenType.NEWLINE,
             TokenType.WHITESPACE])
 
+    self.assert_tok_types("""\
+      #[[First bracket comment]]
+      # intervening comment
+      #[[Second bracket comment]]
+      """, [
+          TokenType.WHITESPACE, TokenType.BRACKET_COMMENT,
+          TokenType.NEWLINE, TokenType.WHITESPACE,
+          TokenType.COMMENT, TokenType.NEWLINE, TokenType.WHITESPACE,
+          TokenType.BRACKET_COMMENT, TokenType.NEWLINE, TokenType.WHITESPACE
+      ])
+
   def test_string(self):
     self.assert_tok_types("""\
       foo(bar "this is a string")

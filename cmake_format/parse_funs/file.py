@@ -13,7 +13,7 @@ from cmake_format.parse.common import TreeNode
 from cmake_format.parse.util import get_first_semantic_token
 from cmake_format.parse.simple_nodes import consume_whitespace_and_comments
 
-logger = logging.getLogger("cmake-format")
+logger = logging.getLogger(__name__)
 
 
 def parse_file_read(ctx, tokens, breakstack):
@@ -130,11 +130,11 @@ def parse_file_write(ctx, tokens, breakstack):
   :see: https://cmake.org/cmake/help/v3.14/command/file.html#writing
   """
   tree = TreeNode(NodeType.ARGGROUP)
-  consume_whitespace_and_comments(tokens, tree)
+  consume_whitespace_and_comments(ctx, tokens, tree)
   tree.children.append(
       PositionalGroupNode.parse(
           ctx, tokens, 2, ["WRITE", "APPEND"], breakstack))
-  consume_whitespace_and_comments(tokens, tree)
+  consume_whitespace_and_comments(ctx, tokens, tree)
   tree.children.append(
       PositionalGroupNode.parse(ctx, tokens, '+', [], breakstack))
 

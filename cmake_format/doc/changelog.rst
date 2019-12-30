@@ -6,6 +6,26 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.6
+------
+
+* Fix greedy match for bracket comments
+* Implement some more readable error messages
+* Add source support for sidecar tests
+* Overhaul the configuration data structures, dividing configuration up
+  among different classes.
+* Remove configuration fields from config object __init__
+* Add dump-config options to exclude helptext or defaults
+* Implement explicit trailing comments
+* Implement "include" from config files
+* Move logging init into main() functions
+
+* Closes `#156`_: Linter exception when parsing certain multiline comments
+* Closes: 19baaf5, 200a6ed, 3435d8a, 4e6ca84, 6397d42, 9fbebee, b7fb891,
+          f097478
+
+.. _#156: https://github.com/cheshirekow/cmake_format/issues/154
+
 v0.6.5
 ------
 

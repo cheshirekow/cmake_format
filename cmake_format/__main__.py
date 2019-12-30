@@ -29,6 +29,7 @@ import sys
 
 import cmake_format
 from cmake_format import commands
+from cmake_format import common
 from cmake_format import configuration
 from cmake_format import config_util
 from cmake_format import formatter
@@ -106,10 +107,10 @@ def process_file(config, infile_content, dump=None):
   """
 
   outfile = io.StringIO(newline='')
-  if config.line_ending == 'auto':
+  if config.format.line_ending == 'auto':
     detected = detect_line_endings(infile_content)
     config = config.clone()
-    config.set_line_ending(detected)
+    config.format.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
   if dump == "lex":
     for token in tokens:
@@ -117,8 +118,8 @@ def process_file(config, infile_content, dump=None):
     return outfile.getvalue(), True
   config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.fn_spec).kwargs)
-  ctx = parse.ParseContext(parse_db)
+  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
+  ctx = parse.ParseContext(parse_db, config=config)
   parse_tree = parse.parse(tokens, ctx)
   if dump == "parse":
     dump_parse([parse_tree], outfile)
@@ -133,7 +134,7 @@ def process_file(config, infile_content, dump=None):
     return outfile.getvalue(), True
 
   outstr = formatter.write_tree(box_tree, config, infile_content)
-  if config.emit_byteorder_mark:
+  if config.encode.emit_byteorder_mark:
     outstr = "\ufeff" + outstr
 
   return (outstr, box_tree.reflow_valid)
@@ -188,6 +189,7 @@ def exec_pyconfig(configfile_path):
   with io.open(configfile_path, 'r', encoding='utf-8') as infile:
     # pylint: disable=exec-used
     exec(infile.read(), _global)
+  _global.pop("__builtins__", None)
   return _global
 
 
@@ -219,7 +221,7 @@ def try_get_configdict(configfile_path):
                      .format(configfile_path))
 
 
-def get_config_dict(configfile_path):
+def get_one_config_dict(configfile_path):
   """
   Return a dictionary of configuration options read from the given file path.
   If the filepath has a known extension then we parse it according to that
@@ -237,6 +239,22 @@ def get_config_dict(configfile_path):
     return exec_pyconfig(configfile_path)
 
   return try_get_configdict(configfile_path)
+
+
+def get_configdict(configfile_paths):
+  include_queue = list(configfile_paths)
+  config_dict = {}
+  while include_queue:
+    configfile_path = include_queue.pop(0)
+    configfile_path = os.path.expanduser(configfile_path)
+    increment_dict = get_one_config_dict(configfile_path)
+    for include_path in increment_dict.pop("include", []):
+      if not os.path.isabs(include_path):
+        include_path = os.path.join(
+            os.path.dirname(configfile_path), include_path)
+      include_queue.append(include_path)
+    map_merge(config_dict, increment_dict)
+  return config_dict
 
 
 def map_merge(output_map, increment_map):
@@ -275,13 +293,7 @@ def get_config(infile_path, configfile_paths):
       return {}
     configfile_paths = [inferred_configpath]
 
-  config_dict = {}
-  for configfile_path in configfile_paths:
-    configfile_path = os.path.expanduser(configfile_path)
-    increment_dict = get_config_dict(configfile_path)
-    map_merge(config_dict, increment_dict)
-
-  return config_dict
+  return get_configdict(configfile_paths)
 
 
 def yaml_odict_handler(dumper, value):
@@ -304,30 +316,27 @@ def dump_config(args, config_dict, outfile):
   """
 
   outfmt = args.dump_config
-
-  for key, value in vars(args).items():
-    if (key in configuration.Configuration.get_field_names()
-        and value is not None):
-      config_dict[key] = value
-
+  config_dict.update(get_argdict(args))
   cfg = configuration.Configuration(**config_dict)
   # Don't dump default per-command configs
   for key in commands.get_default_config():
-    cfg.per_command.pop(key, None)
+    cfg.misc.per_command.pop(key, None)
 
   if outfmt == 'yaml':
     import yaml
     yaml_register_odict(yaml.SafeDumper)
     yaml_register_odict(yaml.Dumper)
-    yaml.dump(cfg.as_odict(), outfile, indent=2,
+    yaml.dump(cfg.as_odict(args.with_help, args.with_defaults),
+              outfile, indent=2,
               default_flow_style=False, sort_keys=False)
     return
   if outfmt == 'json':
-    json.dump(cfg.as_odict(), outfile, indent=2)
+    json.dump(cfg.as_odict(args.with_help, args.with_defaults),
+              outfile, indent=2)
     outfile.write('\n')
     return
 
-  cfg.dump(outfile)
+  cfg.dump(outfile, with_help=args.with_help, with_defaults=args.with_defaults)
 
 
 USAGE_STRING = """
@@ -338,78 +347,17 @@ cmake-format [-h]
 """
 
 
-def add_config_options(arg_parser):
-  """
-  Add configuration options as flags to the argument parser
-  """
-  format_group = arg_parser.add_argument_group(
-      title="Formatter Configuration",
-      description="Override configfile options affecting general formatting")
-
-  comment_group = arg_parser.add_argument_group(
-      title="Comment Formatting",
-      description="Override config options affecting comment formatting")
-
-  misc_group = arg_parser.add_argument_group(
-      title="Misc Options",
-      description="Override miscellaneous config options")
-
-  default_config = configuration.Configuration().as_dict()
-  if sys.version_info[0] >= 3:
-    value_types = (str, int, float)
-  else:
-    value_types = (str, unicode, int, float)
-
-  for key in configuration.Configuration.get_field_names():
-    if key in configuration.COMMENT_GROUP:
-      optgroup = comment_group
-    elif key in configuration.MISC_GROUP:
-      optgroup = misc_group
-    else:
-      optgroup = format_group
-
-    value = default_config[key]
-    helptext = configuration.VARDOCS.get(key, None)
-    # NOTE(josh): argparse store_true isn't what we want here because we want
-    # to distinguish between "not specified" = "default" and "specified"
-    if key == 'additional_commands':
-      continue
-    elif isinstance(value, bool):
-      optgroup.add_argument('--' + key.replace('_', '-'), nargs='?',
-                            default=None, const=(not value),
-                            type=config_util.parse_bool, help=helptext)
-    elif isinstance(value, value_types):
-      optgroup.add_argument('--' + key.replace('_', '-'), type=type(value),
-                            help=helptext,
-                            choices=configuration.VARCHOICES.get(key, None))
-    elif value is None:
-      # If the value is None then we can't really tell what it's supposed to
-      # be. I guess let's assume string in this case.
-      optgroup.add_argument('--' + key.replace('_', '-'), help=helptext,
-                            choices=configuration.VARCHOICES.get(key, None))
-    # NOTE(josh): argparse behavior is that if the flag is not specified on
-    # the command line the value will be None, whereas if it's specified with
-    # no arguments then the value will be an empty list. This exactly what we
-    # want since we can ignore `None` values.
-    elif isinstance(value, (list, tuple)):
-      typearg = None
-      if value:
-        typearg = type(value[0])
-      optgroup.add_argument('--' + key.replace('_', '-'), nargs='*',
-                            type=typearg, help=helptext)
-
-
-def setup_argparser(arg_parser):
+def setup_argparser(argparser):
   """
   Add argparse options to the parser.
   """
-  arg_parser.add_argument('-v', '--version', action='version',
-                          version=cmake_format.VERSION)
-  arg_parser.add_argument(
+  argparser.add_argument('-v', '--version', action='version',
+                         version=cmake_format.VERSION)
+  argparser.add_argument(
       '-l', '--log-level', default="info",
       choices=["error", "warning", "info", "debug"])
 
-  mutex = arg_parser.add_mutually_exclusive_group()
+  mutex = argparser.add_mutually_exclusive_group()
   mutex.add_argument('--dump-config', choices=['yaml', 'json', 'python'],
                      default=None, const='python', nargs='?',
                      help='If specified, print the default configuration to '
@@ -417,7 +365,18 @@ def setup_argparser(arg_parser):
   mutex.add_argument('--dump', choices=['lex', 'parse', 'layout', 'markup'],
                      default=None)
 
-  mutex = arg_parser.add_mutually_exclusive_group()
+  argparser.add_argument(
+      "--no-help", action="store_false", dest="with_help",
+      help="When used with --dump-config, will omit helptext comments in the"
+           " output"
+  )
+  argparser.add_argument(
+      "--no-default", action="store_false", dest="with_defaults",
+      help="When used with --dump-config, will omit any unmodified "
+           "configuration value."
+  )
+
+  mutex = argparser.add_mutually_exclusive_group()
   mutex.add_argument('-i', '--in-place', action='store_true')
   mutex.add_argument(
       '--check', action='store_true',
@@ -427,14 +386,42 @@ def setup_argparser(arg_parser):
                      help='Where to write the formatted file. '
                           'Default is stdout.')
 
-  arg_parser.add_argument(
+  argparser.add_argument(
       '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
-  arg_parser.add_argument('infilepaths', nargs='*')
-  add_config_options(arg_parser)
+  argparser.add_argument('infilepaths', nargs='*')
+
+  configuration.Configuration().add_to_argparser(argparser)
 
 
-def main():
+def get_argdict(args):
+  """Return a dictionary representation of the argparser `namespace` object
+     returned from parse_args(). The returned dictionary will be suitable
+     as a configuration kwargs dict. Any command line options that aren't
+     configuration options are removed."""
+  out = {}
+  for key, value in vars(args).items():
+    if key.startswith("_"):
+      continue
+    if hasattr(configuration.Configuration, key):
+      continue
+    # Remove common command line arguments
+    if key in ["log_level", "outfile_path", "infilepaths"]:
+      continue
+    # Remove --dump-config command line arguments
+    if key in ["dump_config", "with_help", "with_defaults"]:
+      continue
+    # Remove cmake-format command line arguments
+    if key in ["in_place", "check"]:
+      continue
+    if value is None:
+      continue
+    out[key] = value
+
+  return out
+
+
+def inner_main():
   """Parse arguments, open files, start work."""
 
   arg_parser = argparse.ArgumentParser(
@@ -471,6 +458,8 @@ def main():
     assert args.outfile_path == '-', \
         "If stdin is the input file, then stdout must be the output file"
 
+  argparse_dict = get_argdict(args)
+
   returncode = 0
   for infile_path in args.infilepaths:
     # NOTE(josh): have to load config once for every file, because we may pick
@@ -480,24 +469,20 @@ def main():
     else:
       config_dict = get_config(infile_path, args.config_files)
 
-    for key, value in vars(args).items():
-      if (key in configuration.Configuration.get_field_names()
-          and value is not None):
-        config_dict[key] = value
-
     cfg = configuration.Configuration(**config_dict)
+    cfg.legacy_consume(argparse_dict)
     if infile_path == '-':
       infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding=cfg.input_encoding, newline='')
+                       mode='r', encoding=cfg.encode.input_encoding, newline='')
     else:
       infile = io.open(
-          infile_path, 'r', encoding=cfg.input_encoding, newline='')
+          infile_path, 'r', encoding=cfg.encode.input_encoding, newline='')
     with infile:
       intext = infile.read()
 
     try:
       outtext, reflow_valid = process_file(cfg, intext, args.dump)
-      if cfg.require_valid_layout and not reflow_valid:
+      if cfg.format.require_valid_layout and not reflow_valid:
         logger.error("Failed to format %s", infile_path)
         returncode = 1
         continue
@@ -515,8 +500,8 @@ def main():
         logger.debug("No delta for %s", infile_path)
         continue
       tempfile_path = infile_path + ".cmf-temp"
-      outfile = io.open(tempfile_path, 'w', encoding=cfg.output_encoding,
-                        newline='')
+      outfile = io.open(
+          tempfile_path, 'w', encoding=cfg.encode.output_encoding, newline='')
     else:
       if args.outfile_path == '-':
         # NOTE(josh): The behavior of sys.stdout is different in python2 and
@@ -525,11 +510,13 @@ def main():
         # it does not take byte arrays. io.StreamWriter will write to
         # it with byte arrays (assuming it was opened with 'wb'). So we use
         # io.open instead of open in this case
-        outfile = io.open(os.dup(sys.stdout.fileno()),
-                          mode='w', encoding=cfg.output_encoding, newline='')
+        outfile = io.open(
+            os.dup(sys.stdout.fileno()),
+            mode='w', encoding=cfg.encode.output_encoding, newline='')
       else:
-        outfile = io.open(args.outfile_path, 'w', encoding=cfg.output_encoding,
-                          newline='')
+        outfile = io.open(
+            args.outfile_path, 'w', encoding=cfg.encode.output_encoding,
+            newline='')
 
     with outfile:
       outfile.write(outtext)
@@ -541,7 +528,7 @@ def main():
   return returncode
 
 
-if __name__ == '__main__':
+def main():
   # set up main logger, which logs everything. We'll leave this one logging
   # to the console
   format_str = '%(levelname)-4s %(filename)s:%(lineno)-3s: %(message)s'
@@ -549,4 +536,20 @@ if __name__ == '__main__':
                       format=format_str,
                       filemode='w')
 
+  try:
+    return inner_main()
+  except common.UserError as ex:
+    logger.fatal(ex.msg)
+    return 1
+  except common.InternalError as ex:
+    logger.execption(ex.msg)
+    return 1
+  except AssertionError as ex:
+    logger.exception(
+        "An internal error occured. Please consider filing a bug report at "
+        "github.com/cheshirekow/cmake_format/issues")
+    return 1
+
+
+if __name__ == '__main__':
   sys.exit(main())

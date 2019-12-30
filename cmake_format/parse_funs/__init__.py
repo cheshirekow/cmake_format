@@ -22,7 +22,7 @@ from cmake_format.parse.util import (
     should_break,
 )
 
-logger = logging.getLogger("cmake_format")
+logger = logging.getLogger(__name__)
 
 
 def split_legacy_spec(cmdspec):

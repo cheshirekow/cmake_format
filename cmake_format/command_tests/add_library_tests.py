@@ -42,7 +42,7 @@ add_library(foo STATIC EXCLUDE_FROM_ALL foo.cc bar.cc
     ]
 
   def test_sort_arguments(self):
-    self.config.autosort = True
+    self.config.format.autosort = True
     self.source_str = """\
 add_library(foobar STATIC sourcefile_04.cc
   sourcefile_03.cc sourcefile_01.cc sourcefile_02.cc)

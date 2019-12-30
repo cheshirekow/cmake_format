@@ -17,7 +17,7 @@ from cmake_format.parse.util import (
     get_normalized_kwarg,
     should_break)
 
-logger = logging.getLogger("cmake-format")
+logger = logging.getLogger(__name__)
 
 
 def parse_add_custom_command_events(ctx, tokens, breakstack):

@@ -123,7 +123,7 @@ class StandardArgTree(ArgGroupNode):
             ctx, tokens, npargs, flags, positional_breakstack)
         tree.parg_groups.append(subtree)
 
-      assert len(tokens) < ntokens
+      assert len(tokens) < ntokens, "parsed an empty subtree"
       tree.children.append(subtree)
     return tree
 
@@ -178,7 +178,8 @@ class KeywordGroupNode(TreeNode):
     """
     Parse a standard `KWARG arg1 arg2 arg3...` style keyword argument list.
     """
-    assert tokens[0].spelling.upper() == word.upper()
+    assert tokens[0].spelling.upper() == word.upper(), \
+        "somehow dispatched wrong kwarg parse"
 
     tree = cls()
     keyword = KeywordNode.parse(ctx, tokens)
@@ -444,7 +445,7 @@ class ConditionalGroupNode(ArgGroupNode):
       if word in kwargs:
         subtree = KeywordGroupNode.parse(
             ctx, tokens, word, kwargs[word], child_breakstack)
-        assert len(tokens) < ntokens
+        assert len(tokens) < ntokens, "parsed an empty subtree"
         tree.children.append(subtree)
         continue
 

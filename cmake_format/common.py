@@ -93,3 +93,21 @@ def stable_wrap(wrapper, paragraph_text):
   assert False, ("textwrap failed to converge on:\n\n {}"
                  .format('\n\n'.join(history)))
   return []
+
+
+class UserError(Exception):
+  """Raised when we encounter a fatal problem with usage: e.g. parse error,
+     config error, input error, etc."""
+
+  def __init__(self, msg=None):
+    super(UserError, self).__init__()
+    self.msg = msg
+
+
+class InternalError(Exception):
+  """Raised when we encounter something we do not expect, indicating a problem
+     with the code itself."""
+
+  def __init__(self, msg=None):
+    super(InternalError, self).__init__()
+    self.msg = msg

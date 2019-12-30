@@ -87,7 +87,7 @@ class TestCanonicalParse(unittest.TestCase):
     self.parse_ctx = parse.ParseContext(parse_db)
 
   def setUp(self):
-    self.config.fn_spec.add(
+    self.config.parse.fn_spec.add(
         'foo',
         flags=['BAR', 'BAZ'],
         kwargs={
@@ -97,7 +97,7 @@ class TestCanonicalParse(unittest.TestCase):
         })
 
     self.parse_ctx.parse_db.update(
-        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
+        parse_funs.get_legacy_parse(self.config.parse.fn_spec).kwargs)
 
   def do_type_test(self, input_str, expect_tree):
     """

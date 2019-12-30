@@ -56,5 +56,6 @@ def main():
     for command in missing_commands:
       outfile.write('  parse_db["{0}"] = parse_{0}\n'.format(command))
 
+
 if __name__ == "__main__":
   main()

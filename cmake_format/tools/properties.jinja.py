@@ -1,3 +1,4 @@
+# pylint: skip-file
 """
 Database of known property names
 """

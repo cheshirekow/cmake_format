@@ -158,4 +158,14 @@ function(format_and_lint module)
       WARNING "The following files will not be linted/formatted because their"
               " extension is not recognized: \n  ${filelist_}")
   endif()
+
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${module}.lint-manifest "")
+  foreach(listname_ cmake_files_ cc_files_ py_files_ js_files_)
+    if(${listname_})
+      string(REPLACE ";" "\n" filenames_ "${${listname_}}")
+      file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${module}.lint-manifest
+          "${filenames_}\n")
+    endif()
+  endforeach()
+
 endfunction()

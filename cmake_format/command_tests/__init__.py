@@ -8,10 +8,10 @@ import functools
 import inspect
 import io
 import os
+import re
 import sys
 import unittest
 
-import re
 import six
 
 from cmake_format import __main__
@@ -242,27 +242,29 @@ def assert_format(test, input_str, output_str=None, strip_len=0):
     raise AssertionError(message)
 
 
-def exec_sidecar(test, body, meta):
+def exec_sidecar(test, body, meta, input_str):
   """
   Assert a formatting and, optionally, a lex, parse, or layout tree.
   """
+  if input_str is None:
+    input_str = body
   expect_lex = meta.pop("expect_lex", None)
   if expect_lex is not None:
     with test.subTest(phase="lex"):
-      assert_lex(test, body, expect_lex)
+      assert_lex(test, input_str, expect_lex)
   expect_parse = meta.pop("expect_parse", None)
   if expect_parse is not None:
     with test.subTest(phase="parse"):
-      assert_parse(test, body, expect_parse)
+      assert_parse(test, input_str, expect_parse)
   expect_layout = meta.pop("expect_layout", None)
   if expect_layout is not None:
     with test.subTest(phase="layout"):
-      assert_layout(test, body, expect_layout)
+      assert_layout(test, input_str, expect_layout)
 
   test.config = configuration.Configuration(**meta)
   # TODO(josh): just move this into the configuration for the one test where
   # it's needed.
-  test.config.fn_spec.add(
+  test.config.parse.fn_spec.add(
       'foo',
       flags=['BAR', 'BAZ'],
       kwargs={
@@ -272,7 +274,7 @@ def exec_sidecar(test, body, meta):
       })
 
   with test.subTest(phase="format"):
-    assert_format(test, body, body)
+    assert_format(test, input_str, body)
 
 
 class WrapTestWithRunFun(object):
@@ -293,13 +295,13 @@ class WrapTestWithRunFun(object):
     self.test_object.assertExpectations()
 
 
-def consume_bracket_contents(lineiter):
+def consume_bracket_contents(lineiter, terminator):
   """
   Consume the content of a multiline bracket comment
   """
   linebuf = []
   for _, line in lineiter:
-    if line == "]=]":
+    if line == terminator:
       break
     linebuf.append(line)
   return "\n".join(linebuf)
@@ -321,9 +323,9 @@ class SidecarMeta(type):
     return subcls
 
 
-def make_test_fun(test_name, test_body, test_meta):
+def make_test_fun(test_name, test_body, test_meta, input_str):
   def test_fun(self):
-    return exec_sidecar(self, test_body, test_meta)
+    return exec_sidecar(self, test_body, test_meta, input_str)
   if sys.version_info < (3, 0, 0):
     # In python 2.7 test_name is a unicode object. We need to convert it to
     # a string.
@@ -342,7 +344,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
   kExpectNumSidecarTests = 0
 
   @classmethod
-  def append_sidecar_test(cls, test_name, line_buffer, meta_str):
+  def append_sidecar_test(cls, test_name, line_buffer, meta_str, input_str):
     """
     Add a new test loaded from the cmake sidecar file
     """
@@ -359,7 +361,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
       meta.pop("NodeType")
 
     body = "\n".join(line_buffer) + "\n"
-    closure = make_test_fun(test_name, body, meta)
+    closure = make_test_fun(test_name, body, meta, input_str)
     setattr(cls, "test_" + test_name, closure)
     cls.kNumSidecarTests += 1
 
@@ -374,29 +376,34 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
     test_name = None
     line_buffer = []
     meta_str = None
+    input_str = None
     lineiter = enumerate(lines)
     for lineno, line in lineiter:
       if line.startswith("# test: "):
         if line_buffer:
-          cls.append_sidecar_test(test_name, line_buffer, meta_str)
+          cls.append_sidecar_test(test_name, line_buffer, meta_str, input_str)
         test_name = line[8:]
         line_buffer = []
         meta_str = None
+        input_str = None
       elif line == "#[=[" and test_name and not line_buffer:
-        meta_str = consume_bracket_contents(lineiter)
+        meta_str = consume_bracket_contents(lineiter, "]=]")
+      elif line == "#[==[" and test_name and not line_buffer:
+        input_str = consume_bracket_contents(lineiter, "]==]")
       elif line.endswith("# end-test"):
         if test_name is None:
           raise ValueError(
               "Malformed sidecar {}:{}".format(cmake_sidecar, lineno))
-        cls.append_sidecar_test(test_name, line_buffer, meta_str)
+        cls.append_sidecar_test(test_name, line_buffer, meta_str, input_str)
         test_name = None
         line_buffer = []
         meta_str = None
+        input_str = None
       else:
         line_buffer.append(line)
 
     if line_buffer:
-      cls.append_sidecar_test(test_name, line_buffer, meta_str)
+      cls.append_sidecar_test(test_name, line_buffer, meta_str, input_str)
 
   def test_numsidecar(self):
     """
@@ -425,7 +432,10 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
         setattr(self, name, WrapTestWithRunFun(self, value))
 
   def setUp(self):
-    self.config.fn_spec.add(
+    self.config = configuration.Configuration()
+    parse_db = parse_funs.get_parse_db()
+    self.parse_ctx = parse.ParseContext(parse_db)
+    self.config.parse.fn_spec.add(
         'foo',
         flags=['BAR', 'BAZ'],
         kwargs={
@@ -435,7 +445,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
         })
 
     self.parse_ctx.parse_db.update(
-        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
+        parse_funs.get_legacy_parse(self.config.parse.fn_spec).kwargs)
 
   @contextlib.contextmanager
   def subTest(self, msg=None, **params):

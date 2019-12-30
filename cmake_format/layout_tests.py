@@ -102,7 +102,7 @@ class TestCanonicalLayout(unittest.TestCase):
     self.parse_ctx = parse.ParseContext(parse_db)
 
   def setUp(self):
-    self.config.fn_spec.add(
+    self.config.parse.fn_spec.add(
         'foo',
         flags=['BAR', 'BAZ'],
         kwargs={
@@ -112,7 +112,7 @@ class TestCanonicalLayout(unittest.TestCase):
         })
 
     self.parse_ctx.parse_db.update(
-        parse_funs.get_legacy_parse(self.config.fn_spec).kwargs)
+        parse_funs.get_legacy_parse(self.config.parse.fn_spec).kwargs)
 
   def tearDown(self):
     pass
@@ -288,7 +288,7 @@ class TestCanonicalLayout(unittest.TestCase):
       ])
 
   def test_complex_nested_stuff(self):
-    self.config.autosort = False
+    self.config.format.autosort = False
     self.do_layout_test("""\
       if(foo)
       if(sbar)
@@ -795,7 +795,6 @@ class TestCanonicalLayout(unittest.TestCase):
       ])
 
   def test_sortable_set(self):
-    self.config.max_subargs_per_line = 6
     self.do_layout_test("""\
       set(SOURCES #[[cmf:sortable]] foo.cc bar.cc baz.cc)
       """, [

@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import logging
 
 from cmake_format import lexer
+from cmake_format.common import UserError
 from cmake_format.parse.util import COMMENT_TOKENS, WHITESPACE_TOKENS
 from cmake_format.parse.common import NodeType, ParenBreaker, TreeNode
 from cmake_format.parse.printer import tree_string
@@ -96,18 +97,21 @@ class StatementNode(TreeNode):
         node.children.append(cnode)
         continue
 
-      raise ValueError(
+      raise UserError(
           "Unexpected {} token at {}, expecting r-paren, got {}"
           .format(tokens[0].type.name, tokens[0].get_location(),
                   repr(tokens[0].content)))
 
-    assert tokens, (
-        "Unexpected end of token stream while parsing statement:\n {}"
-        .format(tree_string([node])))
-    assert tokens[0].type == lexer.TokenType.RIGHT_PAREN, (
-        "Unexpected {} token at {}, expecting r-paren, got {}"
-        .format(tokens[0].type.name, tokens[0].get_location(),
-                repr(tokens[0].content)))
+    if not tokens:
+      raise UserError(
+          "Unexpected end of token stream while parsing statement:\n {}"
+          .format(tree_string([node])))
+
+    if tokens[0].type != lexer.TokenType.RIGHT_PAREN:
+      raise UserError(
+          "Unexpected {} token at {}, expecting r-paren, got {}"
+          .format(tokens[0].type.name, tokens[0].get_location(),
+                  repr(tokens[0].content)))
 
     rparen = TreeNode(NodeType.RPAREN)
     rparen.children.append(tokens.pop(0))

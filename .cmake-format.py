@@ -1,8 +1,8 @@
-additional_commands = {
-  "pkg_find": {
-    "kwargs": {
-      "PKG": "*"
+with section("parse"):
+  additional_commands = {
+    "pkg_find": {
+      "kwargs": {
+        "PKG": "*"
+      }
     }
   }
-}
-

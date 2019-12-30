@@ -12,7 +12,7 @@ class TestAddExecutableCommand(TestBase):
   kExpectNumSidecarTests = 6
 
   def test_sort_arguments(self):
-    self.config.autosort = True
+    self.config.format.autosort = True
     self.source_str = """\
 add_executable(foobar WIN32 sourcefile_04.cc sourcefile_02.cc sourcefile_03.cc
                             sourcefile_01.cc)

@@ -73,6 +73,28 @@ def is_valid_trailing_comment(token):
           not comment_is_tag(token))
 
 
+def is_comment_matching_pattern(token, regex):
+  """
+  Return true if the token is an explicit trailing comment
+  """
+  if token.type is not lexer.TokenType.COMMENT:
+    return False
+
+  return bool(regex.match(token.spelling))
+
+
+def next_is_explicit_trailing_comment(config, tokens):
+  """
+  Return true if the next comment is an explicit trailing comment, false
+  otherwise
+  """
+
+  regex = re.compile("^" + config.markup.explicit_trailing_pattern + ".*")
+  for token in iter_syntactic_tokens(tokens):
+    return is_comment_matching_pattern(token, regex)
+  return False
+
+
 def are_column_aligned(token_a, token_b):
   """
   Return true if both tokens are on the same column.
@@ -80,13 +102,17 @@ def are_column_aligned(token_a, token_b):
   return token_a.begin.col == token_b.begin.col
 
 
-def next_is_trailing_comment(tokens):
+def next_is_trailing_comment(config, tokens):
   """
   Return true if there is a trailing comment in the token stream
   """
 
   if not tokens:
     return False
+
+  # If the next token is
+  if next_is_explicit_trailing_comment(config, tokens):
+    return True
 
   if is_valid_trailing_comment(tokens[0]):
     return True

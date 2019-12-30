@@ -31,9 +31,8 @@ bazel-*
 # node package manager
 node_modules
 
-# bazel sucks... 
+# bazel sucks...
 WORKSPACE
 
 # Temp/backup files
 *~
-

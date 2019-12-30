@@ -5,10 +5,15 @@ from cmake_format import __main__
 from cmake_format import markup
 
 
-class MockConfig(object):
-  def __init__(self, fence_pattern=None, ruler_pattern=None):
+class MockMarkupConfig(object):
+  def __init__(self, fence_pattern, ruler_pattern):
     self.fence_pattern = fence_pattern
     self.ruler_pattern = ruler_pattern
+
+
+class MockRootConfig(object):
+  def __init__(self, fence_pattern, ruler_pattern):
+    self.markup = MockMarkupConfig(fence_pattern, ruler_pattern)
 
 
 class TestSpecificParses(unittest.TestCase):
@@ -130,7 +135,7 @@ class TestSpecificParses(unittest.TestCase):
       """, [markup.CommentType.PARAGRAPH,
             markup.CommentType.SEPARATOR])
 
-    config = MockConfig(
+    config = MockRootConfig(
         fence_pattern=r'^\s*([#`~]{3}[#`~]*)(.*)$',
         ruler_pattern=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$')
     self.assert_item_types(

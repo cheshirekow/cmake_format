@@ -15,6 +15,7 @@ from cmake_format import markup
 from cmake_format.lexer import TokenType
 from cmake_format.parse.common import FlowType, NodeType, TreeNode
 from cmake_format.parse.util import comment_is_tag
+from cmake_format.parse import simple_nodes
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +44,21 @@ def get_comment_lines(config, node):
   of textual lines."""
   inlines = []
   for token in node.children:
-    assert isinstance(token, lexer.Token)
+    assert isinstance(token, lexer.Token), (
+        "Unexpected object as child of comment node")
     if token.type == TokenType.COMMENT:
       inline = token.spelling.strip()
 
-      if not config.enable_markup:
+      if (isinstance(node, simple_nodes.CommentNode) and
+          node.is_explicit_trailing):
+        inlines.append(inline[len(config.markup.explicit_trailing_pattern):])
+        continue
+
+      if not config.markup.enable_markup:
         # If markup processing is disabled, preserve the entire line regardless
         # of content
         inlines.append(inline[1:])
-      elif inline.startswith('#' * config.hashruler_min_length):
+      elif inline.startswith('#' * config.markup.hashruler_min_length):
         # If the comment starts with multiple hash chars and it is long enough
         # then treat it as a ruler and preserve it.
         inlines.append(inline[1:])
@@ -68,22 +75,27 @@ def format_comment_lines(node, config, line_width):
   """
   inlines = get_comment_lines(config, node)
 
-  if not config.enable_markup:
-    return ["#" + line.rstrip() for line in inlines]
+  if (isinstance(node, simple_nodes.CommentNode) and node.is_explicit_trailing):
+    prefix = config.markup.explicit_trailing_pattern
+  else:
+    prefix = "#"
 
-  if config.literal_comment_pattern is not None:
-    literal_comment_regex = re.compile(config.literal_comment_pattern)
+  if not config.markup.enable_markup:
+    return [prefix + line.rstrip() for line in inlines]
+
+  if config.markup.literal_comment_pattern is not None:
+    literal_comment_regex = re.compile(config.markup.literal_comment_pattern)
     if literal_comment_regex.match('\n'.join(inlines)):
-      return ["#" + line.rstrip() for line in inlines]
+      return [prefix + line.rstrip() for line in inlines]
 
   if node.children[0] is config.first_token and (
-      config.first_comment_is_literal
+      config.markup.first_comment_is_literal
       or config.first_token.spelling.startswith("#!")):
-    return ["#" + line.rstrip() for line in inlines]
+    return [prefix + line.rstrip() for line in inlines]
 
   items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
-  return ["#" + (" " * len(line[:1])) + line for line in markup_lines]
+  return [prefix + (" " * len(line[:1])) + line for line in markup_lines]
 
 
 def normalize_line_endings(instr):
@@ -103,13 +115,13 @@ def need_paren_space(spelling, config):
   upper = spelling.upper()
 
   if FlowType.get(upper) is not None:
-    return config.separate_ctrl_name_with_space
+    return config.format.separate_ctrl_name_with_space
   if upper.startswith('END') and FlowType.get(upper[3:]) is not None:
-    return config.separate_ctrl_name_with_space
+    return config.format.separate_ctrl_name_with_space
   if upper in ["ELSE", "ELSEIF"]:
-    return config.separate_ctrl_name_with_space
+    return config.format.separate_ctrl_name_with_space
 
-  return config.separate_fn_name_with_space
+  return config.format.separate_fn_name_with_space
 
 
 def is_line_comment(node):
@@ -211,6 +223,19 @@ class StackContext(object):
     self.node_path.pop(-1)
 
 
+class AssertTypeDescriptor(object):
+  def __init__(self, assert_type, hidden_name):
+    self._assert_type = assert_type
+    self._hidden_name = hidden_name
+
+  def __get__(self, obj, objtype):
+    return getattr(obj, self._hidden_name, None)
+
+  def __set__(self, obj, value):
+    assert isinstance(value, self._assert_type)
+    setattr(obj, self._hidden_name, value)
+
+
 class LayoutNode(object):
   """
   An element in the format/layout tree. The structure of the layout tree
@@ -218,6 +243,9 @@ class LayoutNode(object):
   parse tree itself but it's a little cleaner to keep the functionality
   separate I think.
   """
+
+  _position = AssertTypeDescriptor(Cursor, "__position")
+  _size = AssertTypeDescriptor(Cursor, "__size")
 
   def __init__(self, pnode):
     self.pnode = pnode
@@ -388,7 +416,7 @@ class LayoutNode(object):
 
     # If the bounding box overflows the column limit then the layout is
     # automatically voided
-    if end_extent[1] > config.linewidth:
+    if end_extent[1] > config.format.linewidth:
       return False
 
     size = end_extent - start_extent
@@ -398,13 +426,13 @@ class LayoutNode(object):
       # exceeds the configured maximum number of lines we must reject it
       # TODO(josh): figure out how to subtract out any terminal comment
       # contributions to the size, as noted in the algorithm doc.
-      if size[0] > config.max_lines_hwrap:
+      if size[0] > config.format.max_lines_hwrap:
         if not isinstance(self, (BodyNode, CommentNode, FlowControlNode)):
           return False
 
       # Or if this nodepath is marked to always be vertical layout
       pathstr = "/".join(node.name for node in stack_context.node_path)
-      if pathstr in config.always_wrap:
+      if pathstr in config.format.always_wrap:
         return False
 
     return True
@@ -421,7 +449,7 @@ class LayoutNode(object):
     outcursor = None
 
     layout_passes = \
-        stack_context.config.layout_passes.get(
+        stack_context.config.format.layout_passes.get(
             self.__class__.__name__, self._layout_passes)
 
     with stack_context.push_node(self):
@@ -573,7 +601,8 @@ class ScalarNode(LayoutNode):
 
     spelling = normalize_line_endings(token.spelling)
     if self.node_type == NodeType.FUNNAME:
-      command_case = config.resolve_for_command(token.spelling, "command_case")
+      command_case = config.resolve_for_command(
+          token.spelling, "format.command_case")
       if command_case in ("lower", "upper"):
         spelling = getattr(token.spelling, command_case)()
       elif command_case == "canonical":
@@ -583,8 +612,8 @@ class ScalarNode(LayoutNode):
         assert command_case == "unchanged", (
             "Unrecognized command case {}".format(command_case))
     elif (self.node_type in (NodeType.KEYWORD, NodeType.FLAG)
-          and config.keyword_case in ("lower", "upper")):
-      spelling = getattr(token.spelling, config.keyword_case)()
+          and config.format.keyword_case in ("lower", "upper")):
+      spelling = getattr(token.spelling, config.format.keyword_case)()
 
     ctx.outfile.write_at(self.position, spelling)
     children = list(self.children)
@@ -691,7 +720,7 @@ class StatementNode(LayoutNode):
 
     # If the bounding box overflows the column limit then the layout is
     # automatically voided
-    if end_extent[1] > config.linewidth:
+    if end_extent[1] > config.format.linewidth:
       return False
 
     size = end_extent - start_extent
@@ -700,7 +729,7 @@ class StatementNode(LayoutNode):
       # the content is forced to wrap, then we require the statement content to
       # nest.
       if (size[0] > 1 and
-          self.get_prefix_width(config) > config.max_prefix_chars):
+          self.get_prefix_width(config) > config.format.max_prefix_chars):
         return False
     return True
 
@@ -728,7 +757,7 @@ class StatementNode(LayoutNode):
     if need_paren_space(token.spelling.lower(), config):
       cursor[1] += 1
 
-    if self.get_prefix_width(config) <= config.min_prefix_chars:
+    if self.get_prefix_width(config) <= config.format.min_prefix_chars:
       # If the statement or keyword spelling is too short, then nesting doesn't
       # make sense because (nest + tab-width) will take us right back to the
       # same column as without nesting.
@@ -742,7 +771,7 @@ class StatementNode(LayoutNode):
     self._colextent = max(self._colextent, child.colextent)
 
     if self._wrap:
-      column_cursor = start_cursor + (1, config.tab_size)
+      column_cursor = start_cursor + (1, config.format.tab_size)
       cursor = Cursor(*column_cursor)
     else:
       column_cursor = cursor.clone()
@@ -774,11 +803,11 @@ class StatementNode(LayoutNode):
     # NOTE(josh): dangle parens if it wont fit on the current line or
     # if the user has requested us to always do so
     dangle_parens = False
-    if config.dangle_parens and cursor[0] > start_cursor[0]:
+    if config.format.dangle_parens and cursor[0] > start_cursor[0]:
       # If the configuration requests dangling parentheses, then honor that
       # request so long as the statement doesn't fit on a single line
       dangle_parens = True
-    elif cursor[1] >= config.linewidth:
+    elif cursor[1] >= config.format.linewidth:
       # If the child reflow was unable to reserve a column for us to place our
       # parenthesis, then we must dangle it
       dangle_parens = True
@@ -791,16 +820,17 @@ class StatementNode(LayoutNode):
       dangle_parens = True
 
     column_cursor[0] += 1
-    if config.dangle_align == "prefix":
+    if config.format.dangle_align == "prefix":
       dangle_cursor = Cursor(column_cursor[0], start_cursor[1])
-    elif config.dangle_align == "prefix-indent":
+    elif config.format.dangle_align == "prefix-indent":
       dangle_cursor = Cursor(
-          column_cursor[0], start_cursor[1] + config.tab_size)
-    elif config.dangle_align == "child":
+          column_cursor[0], start_cursor[1] + config.format.tab_size)
+    elif config.format.dangle_align == "child":
       dangle_cursor = Cursor(*column_cursor)
     else:
       raise ValueError(
-          "Unexpected config.dangle_align: {}".format(config.dangle_align))
+          "Unexpected config.format.dangle_align: {}"
+          .format(config.format.dangle_align))
 
     if dangle_parens:
       cursor = dangle_cursor.clone()
@@ -824,7 +854,7 @@ class StatementNode(LayoutNode):
 
       # If the statement trailing comment does not fit in the column after the
       # rparen, then dangle the rparen and try again.
-      if not dangle_parens and child.colextent > config.linewidth:
+      if not dangle_parens and child.colextent > config.format.linewidth:
         cursor = rparen.reflow(stack_context, dangle_cursor, passno)
         self._reflow_valid &= rparen.reflow_valid
         # NOTE(josh): don't max rparen.colextent here, since we may reverse our
@@ -834,13 +864,13 @@ class StatementNode(LayoutNode):
 
       # If the statement trailing comment still does not fit in the current
       # column then just move it to the next line.
-      if child.colextent > config.linewidth:
+      if child.colextent > config.format.linewidth:
         # NOTE(josh): potentially undangle the paren: if the only reason to
         # dangle it was due to the oversized comment line, then we need to
         # undangle it since the oversized comment didn't fit anyway.
         cursor = rparen.reflow(stack_context, initial_rparen_cursor, passno)
         cursor = child.reflow(
-            stack_context, (savecursor[0] + 1, start_cursor[1]),
+            stack_context, Cursor(savecursor[0] + 1, start_cursor[1]),
             passno)
 
       self._reflow_valid &= child.reflow_valid
@@ -886,7 +916,7 @@ class KwargGroupNode(LayoutNode):
 
     # If the bounding box overflows the column limit then the layout is
     # automatically voided
-    if end_extent[1] > config.linewidth:
+    if end_extent[1] > config.format.linewidth:
       return False
 
     size = end_extent - start_extent
@@ -894,7 +924,7 @@ class KwargGroupNode(LayoutNode):
       # If the statement spelling is very long and there is enough content that
       # the content is forced to wrap, then we require the statement content to
       # nest.
-      if size[0] > 1 and len(self.name) > config.max_prefix_chars:
+      if size[0] > 1 and len(self.name) > config.format.max_prefix_chars:
         return False
     return True
 
@@ -915,7 +945,7 @@ class KwargGroupNode(LayoutNode):
     child = self.children[0]
     assert child.node_type == NodeType.KEYWORD
 
-    if len(self.name) <= config.min_prefix_chars:
+    if len(self.name) <= config.format.min_prefix_chars:
       # If the statement or keyword spelling is too short, then nesting doesn't
       # make sense because (nest + tab-width) will take us right back to the
       # same column as without nesting.
@@ -933,7 +963,8 @@ class KwargGroupNode(LayoutNode):
 
     # keyword = get_normalized_kwarg(child.pnode.children[0])
     if self._wrap:
-      column_cursor = Cursor(cursor[0] + 1, start_cursor[1] + config.tab_size)
+      column_cursor = Cursor(
+          cursor[0] + 1, start_cursor[1] + config.format.tab_size)
     else:
       column_cursor = cursor + (0, 1)
 
@@ -956,6 +987,29 @@ def filename_node_key(layout_node):
   case-insensitive spelling of the first token in the node.
   """
   return layout_node.pnode.children[0].spelling.lower()
+
+
+def sort_arguments(children):
+  argument_nodes = []
+  for child in children:
+    if child.pnode.node_type is NodeType.ARGUMENT:
+      argument_nodes.append(child)
+  argument_nodes = sorted(argument_nodes, key=filename_node_key)
+  nodemap = {
+      id(node): idx + 1 for idx, node in enumerate(argument_nodes)
+  }
+  sortlist = []
+
+  keyidx = 0
+  posidx = 0
+  for child in children:
+    if id(child) in nodemap:
+      keyidx = nodemap[id(child)]
+      posidx = 0
+
+    sortlist.append((keyidx, posidx, child))
+    posidx += 1
+  return [child for _, _, child in sorted(sortlist)]
 
 
 def count_arguments(children):
@@ -995,27 +1049,8 @@ class PargGroupNode(LayoutNode):
     return self.children[-1].has_terminal_comment()
 
   def lock(self, config, stmt_depth=0):
-    if config.autosort and self.pnode.sortable:
-      argument_nodes = []
-      for child in self._children:
-        if child.pnode.node_type is NodeType.ARGUMENT:
-          argument_nodes.append(child)
-      argument_nodes = sorted(argument_nodes, key=filename_node_key)
-      nodemap = {
-          id(node): idx + 1 for idx, node in enumerate(argument_nodes)
-      }
-      sortlist = []
-
-      keyidx = 0
-      posidx = 0
-      for child in self._children:
-        if id(child) in nodemap:
-          keyidx = nodemap[id(child)]
-          posidx = 0
-
-        sortlist.append((keyidx, posidx, child))
-        posidx += 1
-      self._children = [child for _, _, child in sorted(sortlist)]
+    if config.format.autosort and self.pnode.sortable:
+      self._children = sort_arguments(self._children)
 
     super(PargGroupNode, self).lock(config, stmt_depth)
 
@@ -1065,7 +1100,7 @@ class PargGroupNode(LayoutNode):
         # The obvious case is overflow:
         # If the realized extent overflows the column limit then we need to
         # insert a newline and try again
-        if child.colextent > config.linewidth:
+        if child.colextent > config.format.linewidth:
           needs_wrap = True
 
         # If this is the last node before the closing parenthesis of the
@@ -1073,7 +1108,7 @@ class PargGroupNode(LayoutNode):
         # on the last line. If we overlow that extra character slot, then
         # wrap to a new line
         if self.statement_terminal:
-          if cursor[1] + 1 > config.linewidth:
+          if cursor[1] + 1 > config.format.linewidth:
             needs_wrap = True
 
         # If the current node is a comment, then we must have parsed it as a
@@ -1103,7 +1138,7 @@ class PargGroupNode(LayoutNode):
     # the start of this function, the parent Statement wont nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
-    if numpargs > config.max_pargs_hwrap:
+    if numpargs > config.format.max_pargs_hwrap:
       self._reflow_valid &= self._wrap
 
     return cursor
@@ -1197,10 +1232,10 @@ class ArgGroupNode(LayoutNode):
         if child.statement_terminal:
           # If this is the last node before the parenthesis then we need to
           # account for one extra character (the closing parenthesis)
-          if cursor[1] + 1 > config.linewidth:
+          if cursor[1] + 1 > config.format.linewidth:
             needs_wrap = True
 
-        if child.colextent > config.linewidth:
+        if child.colextent > config.format.linewidth:
           # If the realized extent overflows the column limit then we need to
           # insert a newline and try again
           needs_wrap = True
@@ -1230,7 +1265,7 @@ class ArgGroupNode(LayoutNode):
     # the start of this function, the parent Statement wont nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
-    if numgroups > config.max_subgroups_hwrap:
+    if numgroups > config.format.max_subgroups_hwrap:
       self._reflow_valid &= self._wrap
 
     return cursor
@@ -1322,10 +1357,10 @@ class ParenGroupNode(LayoutNode):
         if child.statement_terminal:
           # If this is the last node before the parenthesis then we need to
           # account for one extra character (the closing parenthesis)
-          if cursor[1] + 1 > config.linewidth:
+          if cursor[1] + 1 > config.format.linewidth:
             needs_wrap = True
 
-        if child.colextent > config.linewidth:
+        if child.colextent > config.format.linewidth:
           # If the realized extent overflows the column limit then we need to
           # insert a newline and try again
           needs_wrap = True
@@ -1397,7 +1432,7 @@ class FlowControlNode(LayoutNode):
     child = children.pop(0)
     assert child.node_type == NodeType.BODY
     cursor = child.reflow(
-        stack_context, column_cursor + (0, config.tab_size), passno)
+        stack_context, column_cursor + (0, config.format.tab_size), passno)
     self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
     column_cursor[0] = cursor[0] + 1
@@ -1416,7 +1451,7 @@ class FlowControlNode(LayoutNode):
       child = children.pop(0)
       assert child.node_type == NodeType.BODY
       cursor = child.reflow(stack_context, column_cursor +
-                            (0, config.tab_size), passno)
+                            (0, config.format.tab_size), passno)
       self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
       column_cursor[0] = cursor[0] + 1
@@ -1459,7 +1494,7 @@ class CommentNode(LayoutNode):
         self._colextent = max(self._colextent, cursor[1])
       return cursor
 
-    allocation = config.linewidth - cursor[1]
+    allocation = config.format.linewidth - cursor[1]
     lines = list(format_comment_lines(self.pnode, config, allocation))
     self._colextent = cursor[1] + max(len(line) for line in lines)
 
@@ -1476,7 +1511,7 @@ class CommentNode(LayoutNode):
       content = normalize_line_endings(self.pnode.children[0].spelling)
       ctx.outfile.write_at(self.position, content)
     else:
-      allocation = config.linewidth - self.position[1]
+      allocation = config.format.linewidth - self.position[1]
       lines = list(format_comment_lines(self.pnode, config, allocation))
       for idx, line in enumerate(lines):
         ctx.outfile.write_at(self.position + (idx, 0), line)
@@ -1538,7 +1573,7 @@ def layout_tree(parsetree_root, config, linewidth=None):
   """
 
   if linewidth is None:
-    linewidth = config.line_width
+    linewidth = config.format.linewidth
 
   root_box = create_box_tree(parsetree_root)
   root_box.lock(config)
@@ -1709,7 +1744,7 @@ class CursorFile(object):
 
     rows = (cursor[0] - self._cursor[0])
     if rows:
-      self._fobj.write(self._config.endl * rows)
+      self._fobj.write(self._config.format.endl * rows)
       self._cursor[0] += rows
       self._cursor[1] = 0
 
@@ -1724,7 +1759,7 @@ class CursorFile(object):
     self._cursor[1] += len(line)
 
     while lines:
-      self._fobj.write(self._config.endl)
+      self._fobj.write(self._config.format.endl)
       self._cursor[0] += 1
       self._cursor[1] = 0
       line = lines.pop(0)
@@ -1743,7 +1778,7 @@ class CursorFile(object):
       self._cursor[1] = len(copy_text.split('\n')[-1])
 
   def getvalue(self):
-    return self._fobj.getvalue() + self._config.endl
+    return self._fobj.getvalue() + self._config.format.endl
 
 
 class WriteContext(object):
