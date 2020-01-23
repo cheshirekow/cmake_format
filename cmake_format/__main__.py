@@ -406,13 +406,13 @@ def get_argdict(args):
     if hasattr(configuration.Configuration, key):
       continue
     # Remove common command line arguments
-    if key in ["log_level", "outfile_path", "infilepaths"]:
+    if key in ["log_level", "outfile_path", "infilepaths", "config_files"]:
       continue
     # Remove --dump-config command line arguments
     if key in ["dump_config", "with_help", "with_defaults"]:
       continue
     # Remove cmake-format command line arguments
-    if key in ["in_place", "check"]:
+    if key in ["dump", "check", "in_place"]:
       continue
     if value is None:
       continue

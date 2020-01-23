@@ -113,9 +113,9 @@ class TestBase(unittest.TestCase):
         if expect_loc:
           raise AssertionError(
               "Missing expected lint {} at {}".format(expect_id, expect_loc))
-        else:
-          raise AssertionError(
-              "Missing expected lint {}".format(expect_id))
+
+        raise AssertionError(
+            "Missing expected lint {}".format(expect_id))
 
       if expect_id != actual.spec.idstr:
         raise AssertionError(

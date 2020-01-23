@@ -488,6 +488,13 @@ class TestConditional(TestBase):
   kExpectNumSidecarTests = 5
 
 
+class TestCustomCommand(TestBase):
+  """
+  Test some custom command usages
+  """
+  kExpectNumSidecarTests = 6
+
+
 class TestExport(TestBase):
   """
   Test various examples of export()

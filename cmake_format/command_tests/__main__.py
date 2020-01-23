@@ -4,10 +4,11 @@ import unittest
 from cmake_format.command_tests import (
     TestAddCustomCommand,
     TestConditional,
+    TestCustomCommand,
     TestExport,
     TestExternalProject,
-    TestForeach,
     TestFile,
+    TestForeach,
     TestInstall,
     TestSetTargetProperties,
     TestSet,)

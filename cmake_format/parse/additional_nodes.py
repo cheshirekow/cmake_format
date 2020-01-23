@@ -35,7 +35,7 @@ class TupleGroupNode(PositionalGroupNode):
     * "+": one or more
     """
 
-    tree = TreeNode(NodeType.PARGGROUP)
+    tree = cls()
     subtree = None
     active_depth = tree
 
@@ -66,13 +66,13 @@ class TupleGroupNode(PositionalGroupNode):
       # directly into the parse tree at the current depth
       if token.type in (lexer.TokenType.COMMENT,
                         lexer.TokenType.BRACKET_COMMENT):
-        child = TreeNode(NodeType.COMMENT)
+        child = CommentNode()
         tree.children.append(child)
         child.children.append(token)
         continue
 
       if subtree is None:
-        subtree = TreeNode(NodeType.PARGGROUP)
+        subtree = PositionalGroupNode()
         tree.children.append(subtree)
         ntup_consumed = 0
 
@@ -126,8 +126,11 @@ class ShellCommandNode(StandardArgTree):
     The parser acts very similar to a standard parser where `--xxx` is treated
     as a keyword argument and `-x` is treated as a flag.
     """
-    return super(ShellCommandNode, cls).parse(
-        ctx, tokens, '*', {}, [], breakstack)
+    tree = super(ShellCommandNode, cls).parse(
+        ctx, tokens, '+', {}, [], breakstack)
+    for pgroup in tree.parg_groups:
+      pgroup.tags.append("cmdline")
+    return tree
 
 
 class PatternNode(StandardArgTree):

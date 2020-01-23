@@ -79,7 +79,7 @@ def parse_add_library_standard(ctx, tokens, breakstack, sortable):
 
     if state_ is parsing_name:
       token = tokens.pop(0)
-      parg_group = TreeNode(NodeType.PARGGROUP)
+      parg_group = PositionalGroupNode()
       active_depth = parg_group
       tree.children.append(parg_group)
       child = TreeNode(NodeType.ARGUMENT)
@@ -103,7 +103,7 @@ def parse_add_library_standard(ctx, tokens, breakstack, sortable):
         CommentNode.consume_trailing(ctx, tokens, child)
         parg_group.children.append(child)
       state_ += 1
-      src_group = TreeNode(NodeType.PARGGROUP, sortable=sortable)
+      src_group = PositionalGroupNode(sortable=sortable, tags=["file-list"])
       active_depth = src_group
       tree.children.append(src_group)
     elif state_ is parsing_sources:

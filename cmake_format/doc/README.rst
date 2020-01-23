@@ -98,6 +98,10 @@ Usage
       --max-pargs-hwrap MAX_PARGS_HWRAP
                             If a positional argument group contains more than this
                             many arguments, then force it to a vertical layout.
+      --max-rows-cmdline MAX_ROWS_CMDLINE
+                            If a cmdline positional group consumes more than this
+                            many lines without nesting, then invalidate the layout
+                            (and nest)
       --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
                             If true, separate flow control names from their
                             parentheses with a space
@@ -278,6 +282,10 @@ pleasant way.
       # If a positional argument group contains more than this many arguments, then
       # force it to a vertical layout.
       max_pargs_hwrap = 6
+
+      # If a cmdline positional group consumes more than this many lines without
+      # nesting, then invalidate the layout (and nest)
+      max_rows_cmdline = 2
 
       # If true, separate flow control names from their parentheses with a space
       separate_ctrl_name_with_space = False
@@ -659,24 +667,8 @@ Currently, you can do this by adding your command specifications to the
     }
 
 The format is a nested dictionary mapping statement names (dictionary keys)
-to argument specifications. The argument specification is composed of three
-fields:
-
-* ``pargs``: an integer indicating the number of positional arguments expected,
-  or one of the sentinel strings ``?`` (zero or one), ``*`` (zero or more),
-  ``+`` (one or more).
-* ``flags``: a list of flag arguments: sentinel strings which are parsed as
-  positional arguments but have special meaning. In particular, if one of these
-  strings is encountered after a ``kwarg`` it will not be associated with the
-  ``kwarg`` but with the statement.
-* ``kwargs``: a dictionary mapping keywords to sub-specifications. A
-  sub-specification may be a complete dictionary of ``pargs``, ``flags``, and
-  ``kwargs`` (nested, all the way down). Or, if the keyword argument accepts
-  only positionals, then it can be simply the ``pargs`` specification (as in
-  the example above).
-
-For the example specification above, the custom command would look something
-like this:
+to `argument specifications`__. For the example specification above, the
+custom command would look something like this:
 
 .. code::
 
@@ -685,6 +677,9 @@ like this:
        SOURCES a.cc b.cc c.cc d.cc
        DEPENDS flub buzz bizz
        BAR BAZ)
+
+
+.. __: https://cmake-format.rtfd.io/custom_parsers
 
 .. dynamic: features-end
 

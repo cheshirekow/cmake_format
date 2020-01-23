@@ -13,6 +13,7 @@ from cmake_format.parser_tests import *
 from cmake_format.command_tests import (
     TestAddCustomCommand,
     TestConditional,
+    TestCustomCommand,
     TestExport,
     TestExternalProject,
     TestForeach,

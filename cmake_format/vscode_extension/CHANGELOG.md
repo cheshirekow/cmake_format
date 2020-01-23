@@ -3,6 +3,13 @@
 Note that the vscode extension release version matches the
 cmake-format release version on [pypi][2].
 
+### 0.6.6
+
+`--` is automatically appended to the argument vector used to call
+`cmake-format` (if it does not already end with `--`) so that any user-config
+command line options are propertly terminated before the automatic positional
+arguments are appended.
+
 ### 0.6.0
 
 No functional changes, just documentation update.

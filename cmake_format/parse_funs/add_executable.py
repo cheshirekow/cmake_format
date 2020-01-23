@@ -1,9 +1,11 @@
 import logging
 
 from cmake_format import lexer
-from cmake_format.parse.argument_nodes import StandardArgTree
+from cmake_format.parse.argument_nodes import (
+    PositionalGroupNode, StandardArgTree)
 from cmake_format.parse.common import NodeType, TreeNode
 from cmake_format.parse.simple_nodes import CommentNode
+
 from cmake_format.parse.util import (
     WHITESPACE_TOKENS,
     get_tag,
@@ -103,7 +105,7 @@ def parse_add_executable_standard(ctx, tokens, breakstack, sortable):
 
     if state_ is parsing_name:
       token = tokens.pop(0)
-      parg_group = TreeNode(NodeType.PARGGROUP)
+      parg_group = PositionalGroupNode()
       active_depth = parg_group
       tree.children.append(parg_group)
       child = TreeNode(NodeType.ARGUMENT)
@@ -121,7 +123,7 @@ def parse_add_executable_standard(ctx, tokens, breakstack, sortable):
         parg_group.children.append(child)
       else:
         state_ += 1
-        src_group = TreeNode(NodeType.PARGGROUP, sortable=sortable)
+        src_group = PositionalGroupNode(sortable=sortable, tags=["file-list"])
         active_depth = src_group
         tree.children.append(src_group)
     elif state_ is parsing_sources:

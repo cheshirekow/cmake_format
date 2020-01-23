@@ -45,12 +45,13 @@ setup(
             'cmake-annotate=cmake_format.annotate:main',
             'cmake-format=cmake_format.__main__:main',
             'cmake-lint=cmake_lint.__main__:main',
+            'cmake-genparsers=cmake_format.genparsers:main',
             'ctest-to=cmake_format.ctest_to:main'
         ],
     },
     extras_require={
-        'YAML': ["pyyaml"],
-        'html-gen': ["jinja2"]
+        'YAML': ["pyyaml==5.3"],
+        'html-gen': ["jinja2==2.10.3"]
     },
-    install_requires=[]
+    install_requires=["six==1.14.0"]
 )

@@ -270,7 +270,7 @@ class TestCanonicalParse(unittest.TestCase):
   def test_shellcommand_parse(self):
     self.do_type_test("""\
       add_test(NAME foo-test
-               COMMAND command -Bm -h --hello foo bar --world baz buck
+               COMMAND cmdname -Bm -h --hello foo bar --world baz buck
                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
       """, [
           (NodeType.BODY, [
@@ -289,11 +289,9 @@ class TestCanonicalParse(unittest.TestCase):
                       ]),
                       (NodeType.KWARGGROUP, [
                           (NodeType.KEYWORD, []),
-                      ]),
-                      (NodeType.KWARGGROUP, [
-                          (NodeType.KEYWORD, []),
                           (NodeType.ARGGROUP, [
                               (NodeType.PARGGROUP, [
+                                  (NodeType.ARGUMENT, []),
                                   (NodeType.ARGUMENT, []),
                                   (NodeType.ARGUMENT, []),
                                   (NodeType.ARGUMENT, []),

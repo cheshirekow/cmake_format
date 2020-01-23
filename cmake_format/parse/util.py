@@ -4,6 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+from operator import itemgetter as _itemgetter
 import re
 import sys
 
@@ -36,6 +37,35 @@ ALL_COMMENT_TOKENS = (
 )
 
 NON_SEMANTIC_TOKENS = ALL_COMMENT_TOKENS + WHITESPACE_TOKENS
+
+
+class PositionalSpec(tuple):
+  """
+  Encapsulates the parse specification for a positional argument group.
+  NOTE(josh): this is a named tuple with default arguments and some init
+  processing. If it wasn't for the init processing, we could just do:
+
+  PositionalSpec = collections.namedtuple(
+    "PositionalSpec", ["nargs", ...])
+  PositionalSpec.__new__.__defaults__ = (False, None, None, False)
+
+  But we don't want to self.tags and self.flags to point to a mutable global
+  variable...
+  """
+
+  def __new__(cls, nargs, sortable=False, tags=None, flags=None, legacy=False):
+    if not tags:
+      tags = []
+    if not flags:
+      flags = []
+    return tuple.__new__(cls, (nargs, sortable, tags, flags, legacy))
+
+  nargs = property(_itemgetter(0))
+  npargs = property(_itemgetter(0))
+  sortable = property(_itemgetter(1))
+  tags = property(_itemgetter(2))
+  flags = property(_itemgetter(3))
+  legacy = property(_itemgetter(4))
 
 
 def is_whitespace_token(token):
@@ -244,10 +274,11 @@ def only_comments_and_whitespace_remain(tokens, breakstack):
   for token in tokens:
     if token.type in skip_tokens:
       continue
-    elif should_break(token, breakstack):
+
+    if should_break(token, breakstack):
       return True
-    else:
-      return False
+
+    return False
   return True
 
 

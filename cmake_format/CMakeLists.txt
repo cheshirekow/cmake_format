@@ -28,6 +28,7 @@ format_and_lint(
   doc/docsources_test.py
   doc/gendoc_sources.py
   formatter.py
+  genparsers.py
   invocation_tests.py
   layout_tests.py
   lexer.py
@@ -54,6 +55,7 @@ format_and_lint(
   parse_funs/file.py
   parse_funs/foreach.py
   parse_funs/install.py
+  parse_funs/list.py
   parse_funs/miscellaneous.py
   parse_funs/random.py
   parse_funs/set.py

@@ -13,6 +13,7 @@ from cmake_format import lexer
 from cmake_format import markup
 
 from cmake_format.lexer import TokenType
+from cmake_format.parse.argument_nodes import PositionalGroupNode
 from cmake_format.parse.common import FlowType, NodeType, TreeNode
 from cmake_format.parse.util import comment_is_tag
 from cmake_format.parse import simple_nodes
@@ -1021,8 +1022,8 @@ def count_arguments(children):
   for child in children:
     if child.node_type is NodeType.COMMENT:
       continue
-    else:
-      count += 1
+
+    count += 1
   return count
 
 
@@ -1049,7 +1050,9 @@ class PargGroupNode(LayoutNode):
     return self.children[-1].has_terminal_comment()
 
   def lock(self, config, stmt_depth=0):
-    if config.format.autosort and self.pnode.sortable:
+    if (config.format.autosort and
+        isinstance(self.pnode, PositionalGroupNode) and
+        self.pnode.sortable):
       self._children = sort_arguments(self._children)
 
     super(PargGroupNode, self).lock(config, stmt_depth)
@@ -1066,9 +1069,11 @@ class PargGroupNode(LayoutNode):
 
     # "COMMAND" arguments are never columnized, since there is no way for us
     # to make that look good
-    if stack_context.node_path[-3].name == "COMMAND":
+    is_cmdline = "cmdline" in self.pnode.tags
+    if is_cmdline:
       self._wrap = False
 
+    rowcount = 0
     while children:
       prev = child
       child = children.pop(0)
@@ -1077,12 +1082,13 @@ class PargGroupNode(LayoutNode):
       if prev is None:
         # This is the first child of the arg group so the cursor is already
         # at the right location and theres nothing for us to update
-        pass
+        rowcount = 1
       elif (is_line_comment(prev)
             or prev.has_terminal_comment()
             or self._wrap):
         column_cursor[0] = cursor[0] + 1
         cursor = Cursor(*column_cursor)
+        rowcount += 1
       else:
         cursor_is_at_column = False
         cursor[1] += 1
@@ -1122,6 +1128,7 @@ class PargGroupNode(LayoutNode):
           needs_wrap = True
 
         if needs_wrap:
+          rowcount += 1
           column_cursor[0] = cursor[0] + 1
           cursor = Cursor(*column_cursor)
           cursor = child.reflow(stack_context, cursor, passno)
@@ -1138,7 +1145,9 @@ class PargGroupNode(LayoutNode):
     # the start of this function, the parent Statement wont nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
-    if numpargs > config.format.max_pargs_hwrap:
+    if is_cmdline:
+      self._reflow_valid &= (rowcount <= config.format.max_rows_cmdline)
+    elif numpargs > config.format.max_pargs_hwrap:
       self._reflow_valid &= self._wrap
 
     return cursor

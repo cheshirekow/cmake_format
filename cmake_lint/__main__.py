@@ -2,6 +2,7 @@
 """
 Check cmake listfile for lint
 """
+from __future__ import unicode_literals
 
 import argparse
 import io

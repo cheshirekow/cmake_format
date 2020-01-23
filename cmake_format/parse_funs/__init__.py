@@ -10,7 +10,7 @@ from cmake_format import commands
 from cmake_format import lexer
 from cmake_format.parse.additional_nodes import ShellCommandNode
 from cmake_format.parse.argument_nodes import (
-    ConditionalGroupNode, StandardParser
+    ConditionalGroupNode, StandardParser, StandardParser2
 )
 from cmake_format.parse.common import NodeType, KwargBreaker, TreeNode
 from cmake_format.parse.util import (
@@ -30,15 +30,11 @@ def split_legacy_spec(cmdspec):
   Split a legacy specification object into pargs, kwargs, and flags
   """
   kwargs = {}
-  for kwarg, subspec in cmdspec.items():
-    if kwarg in cmdspec.flags:
-      continue
+  for kwarg, subspec in cmdspec.kwargs.items():
     if kwarg in ("if", "elseif", "while"):
       subparser = ConditionalGroupNode.parse
     elif kwarg == "COMMAND":
       subparser = ShellCommandNode.parse
-    elif isinstance(subspec, IMPLICIT_PARG_TYPES):
-      subparser = StandardParser(subspec)
     elif isinstance(subspec, (commands.CommandSpec)):
       subparser = get_legacy_parse(subspec)
     else:
@@ -46,15 +42,15 @@ def split_legacy_spec(cmdspec):
                        .format(type(subspec)))
     kwargs[kwarg] = subparser
 
-  return cmdspec.pargs, kwargs, cmdspec.flags
+  return cmdspec.pargs, kwargs
 
 
 def get_legacy_parse(cmdspec):
   """
   Construct a parse tree from a legacy command specification
   """
-  pargs, kwargs, flags = split_legacy_spec(cmdspec)
-  return StandardParser(pargs, kwargs, flags)
+  pspec, kwargs = split_legacy_spec(cmdspec)
+  return StandardParser2(pspec, kwargs)
 
 
 SUBMODULE_NAMES = [
@@ -68,6 +64,7 @@ SUBMODULE_NAMES = [
     "foreach",
     "file",
     "install",
+    "list",
     "miscellaneous",
     "random",
     "set",
@@ -88,8 +85,13 @@ def get_parse_db():
     submodule.populate_db(parse_db)
 
   for key in (
-      "if", "else", "elseif", "endif", "while", "endwhile",
-      "function", "endfunction", "macro", "endmacro"):
+      "if", "else", "elseif", "endif", "while", "endwhile"):
     parse_db[key] = ConditionalGroupNode.parse
+
+  for key in ("function", "macro"):
+    parse_db[key] = StandardParser("1+")
+
+  for key in ("endfunction", "endmacro"):
+    parse_db[key] = StandardParser("?")
 
   return parse_db

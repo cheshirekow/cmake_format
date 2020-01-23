@@ -65,6 +65,10 @@ help-text. Some detailed examples can be found at :ref:`configopts`.
       # force it to a vertical layout.
       max_pargs_hwrap = 6
 
+      # If a cmdline positional group consumes more than this many lines without
+      # nesting, then invalidate the layout (and nest)
+      max_rows_cmdline = 2
+
       # If true, separate flow control names from their parentheses with a space
       separate_ctrl_name_with_space = False
 

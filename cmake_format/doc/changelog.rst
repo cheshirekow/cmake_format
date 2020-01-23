@@ -6,6 +6,29 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.7
+------
+
+* Add missing dependency on six
+* Update pylint, flake8 used in CI
+* Remove spurious config warning for some unfiltered command line options
+* Add tags field to positional argument groups. Assign "file-list" tag to
+  file lists from add_library and add_executable
+* Remove "sortable" flag from root TreeNode class
+* Custom commands can specify if a positional group is a command line
+* Custom commands can specify multiple positional groups
+* ``max_pargs_hwrap`` does not apply to ``cmdline`` groups
+* Remove stale members from ``TreeNode``
+* Format extension.ts with two spaces
+* Create a tool to generate parsers from ``cmake_parse_args``
+
+* Closes `#139`_: Disable wrap for custom functions
+* Closes `#159`_: Missing dependency on six
+* Closes: 6ef7d0d, cf7ac49, cfa3c02, eefbde3, e75513a, f704714
+
+.. _#139: https://github.com/cheshirekow/cmake_format/issues/139
+.. _#159: https://github.com/cheshirekow/cmake_format/issues/159
+
 v0.6.6
 ------
 
@@ -24,7 +47,7 @@ v0.6.6
 * Closes: 19baaf5, 200a6ed, 3435d8a, 4e6ca84, 6397d42, 9fbebee, b7fb891,
           f097478
 
-.. _#156: https://github.com/cheshirekow/cmake_format/issues/154
+.. _#156: https://github.com/cheshirekow/cmake_format/issues/156
 
 v0.6.5
 ------

@@ -3,9 +3,6 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from cmake_format import configuration
-from cmake_format.parse.body_nodes import BodyNode
-
 
 class MockEverything(object):
   """Dummy object which implements any interface by mocking all functions
@@ -33,6 +30,7 @@ class ParseContext(object):
     self.lint_ctx = lint_ctx
 
     if config is None:
+      from cmake_format import configuration
       config = configuration.Configuration()
     self.config = config
 
@@ -43,4 +41,5 @@ def parse(tokens, ctx=None):
   """
   if ctx is None:
     ctx = ParseContext()
+  from cmake_format.parse.body_nodes import BodyNode
   return BodyNode.consume(ctx, tokens)

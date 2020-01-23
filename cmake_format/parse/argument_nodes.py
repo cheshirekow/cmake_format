@@ -3,13 +3,12 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
 import logging
 
 from cmake_format import lexer
 from cmake_format.parse.util import (
     WHITESPACE_TOKENS, get_normalized_kwarg, get_tag, npargs_is_exact,
-    pargs_are_full, should_break
+    pargs_are_full, should_break, PositionalSpec, IMPLICIT_PARG_TYPES
 )
 from cmake_format.parse.common import (
     NodeType, ParenBreaker, KwargBreaker, TreeNode
@@ -17,6 +16,9 @@ from cmake_format.parse.common import (
 from cmake_format.parse.simple_nodes import CommentNode
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_PSPEC = PositionalSpec("*")
 
 
 class ArgGroupNode(TreeNode):
@@ -61,7 +63,7 @@ class StandardArgTree(ArgGroupNode):
         lint_ctx.record_lint(lintid, word, location=location)
 
   @classmethod
-  def parse(cls, ctx, tokens, npargs, kwargs, flags, breakstack):
+  def parse2(cls, ctx, tokens, pargspecs, kwargs, breakstack):
     """
     Standard parser for the commands in the form of::
 
@@ -84,9 +86,19 @@ class StandardArgTree(ArgGroupNode):
       tree.children.append(tokens.pop(0))
       continue
 
-    flags = [flag.upper() for flag in flags]
-    kwarg_breakstack = breakstack + [KwargBreaker(list(kwargs.keys()) + flags)]
-    positional_breakstack = breakstack + [KwargBreaker(list(kwargs.keys()))]
+    # NOTE(josh): if there is only one legacy specification then we reuse that
+    # specification for any additional positional arguments that we pick up.
+    # This is to maintain the current/legacy behavior of simple positional
+    # argument specifications
+    default_spec = DEFAULT_PSPEC
+    if len(pargspecs) == 1 and pargspecs[0].legacy:
+      default_spec = pargspecs.pop(0)
+
+    all_flags = list(default_spec.flags)
+    for pspec in pargspecs:
+      all_flags.extend(pspec.flags)
+    kwarg_breakstack = breakstack + [
+        KwargBreaker(list(kwargs.keys()) + all_flags)]
 
     while tokens:
       # Break if the next token belongs to a parent parser, i.e. if it
@@ -110,22 +122,63 @@ class StandardArgTree(ArgGroupNode):
         continue
 
       ntokens = len(tokens)
-      # NOTE(josh): each flag is also stored in kwargs as with a positional
-      # parser of size zero. This is a legacy thing that should be removed, but
-      # for now just make sure we check flags first.
       word = get_normalized_kwarg(tokens[0])
       if word in kwargs:
         subtree = KeywordGroupNode.parse(
             ctx, tokens, word, kwargs[word], kwarg_breakstack)
         tree.kwarg_groups.append(subtree)
       else:
+        if pargspecs:
+          pspec = pargspecs.pop(0)
+        else:
+          pspec = default_spec
+
+        other_flags = []
+        for otherspec in pargspecs:
+          for flag in otherspec.flags:
+            if flag in pspec.flags:
+              continue
+            other_flags.append(flag)
+        positional_breakstack = breakstack + [
+            KwargBreaker(list(kwargs.keys()) + other_flags)]
+
         subtree = PositionalGroupNode.parse(
-            ctx, tokens, npargs, flags, positional_breakstack)
+            ctx, tokens, pspec.nargs, pspec.flags, positional_breakstack)
+        subtree.tags.extend(pspec.tags)
         tree.parg_groups.append(subtree)
 
       assert len(tokens) < ntokens, "parsed an empty subtree"
       tree.children.append(subtree)
     return tree
+
+  @classmethod
+  def parse(cls, ctx, tokens, npargs, kwargs, flags, breakstack):
+    """
+    Standard parser for the commands in the form of::
+
+        command_name(parg1 parg2 parg3...
+                    KEYWORD1 kwarg1 kwarg2...
+                    KEYWORD2 kwarg3 kwarg4...
+                    FLAG1 FLAG2 FLAG3)
+
+    The parser starts off as a positional parser. If a keyword or flag is
+    encountered the positional parser is popped off the parse stack. If it was
+    a keyword then the keyword parser is pushed on the parse stack. If it was
+    a flag than a new flag parser is pushed onto the stack.
+    """
+
+    if isinstance(npargs, IMPLICIT_PARG_TYPES):
+      pargspecs = [PositionalSpec(npargs, flags=flags, legacy=True)]
+    else:
+      assert isinstance(npargs, (list, tuple)), (
+          "Invalid positional group specification of type {}"
+          .format(type(npargs).__name__))
+      assert flags is None, (
+          "Invalid usage of old-style 'flags' parameter with new style"
+          " positional group specifications")
+      pargspecs = npargs
+
+    return cls.parse2(ctx, tokens, pargspecs, kwargs, breakstack)
 
 
 class StandardParser(object):
@@ -145,6 +198,22 @@ class StandardParser(object):
   def __call__(self, ctx, tokens, breakstack):
     return StandardArgTree.parse(
         ctx, tokens, self.npargs, self.kwargs, self.flags, breakstack)
+
+
+class StandardParser2(object):
+  def __init__(self, pspec=None, kwargs=None, doc=None):
+    if pspec is None:
+      pspec = PositionalSpec("*")
+    if kwargs is None:
+      kwargs = {}
+
+    self.pspec = pspec
+    self.kwargs = kwargs
+    self.doc = doc
+
+  def __call__(self, ctx, tokens, breakstack):
+    return StandardArgTree.parse2(
+        ctx, tokens, self.pspec, self.kwargs, breakstack)
 
 
 class KeywordNode(TreeNode):
@@ -199,20 +268,19 @@ class KeywordGroupNode(TreeNode):
     return tree
 
 
-PositionalSpec = collections.namedtuple(
-    "PositionalSpec", ["npargs", "flags"])
-
-
 class PositionalGroupNode(TreeNode):
   """Argument subtree for one or more single positional argument tokens."""
 
-  def __init__(self, sortable=False):
+  def __init__(self, sortable=False, tags=None):
     super(PositionalGroupNode, self).__init__(NodeType.PARGGROUP)
     self.sortable = sortable
     self.spec = None
+    self.tags = []
+    if tags is not None:
+      self.tags.extend(tags)
 
   @classmethod
-  def parse(cls, ctx, tokens, npargs, flags, breakstack, sortable=False):
+  def parse2(cls, ctx, tokens, spec, breakstack):
     """
     Parse a continuous sequence of `npargs` positional arguments. If npargs is
     an integer we will consume exactly that many arguments. If it is not an
@@ -223,8 +291,8 @@ class PositionalGroupNode(TreeNode):
     * "+": one or more
     """
 
-    tree = cls(sortable=sortable)
-    tree.spec = PositionalSpec(npargs, flags)
+    tree = cls(sortable=spec.sortable, tags=spec.tags)
+    tree.spec = spec
     nconsumed = 0
 
     # Strip off any preceeding whitespace (note that in most cases this has
@@ -242,14 +310,14 @@ class PositionalGroupNode(TreeNode):
 
     while tokens:
       # Break if we have consumed   enough positional arguments
-      if pargs_are_full(npargs, nconsumed):
+      if pargs_are_full(spec.nargs, nconsumed):
         break
 
       # Break if the next token belongs to a parent parser, i.e. if it
       # matches a keyword argument of something higher in the stack, or if
       # it closes a parent group.
       if should_break(tokens[0], breakstack):
-        # NOTE(josh): if npargs is an exact number of arguments, then we
+        # NOTE(josh): if spec.nargs is an exact number of arguments, then we
         # shouldn't break on kwarg match from a parent parser. Instead, we
         # should consume the token. This is a hack to deal with
         # ```install(RUNTIME COMPONENT runtime)``. In this case the second
@@ -259,7 +327,7 @@ class PositionalGroupNode(TreeNode):
         # parser to consume a right parenthesis and will lead to parse errors
         # in the event of a missing positional argument. Such errors will be
         # difficult to debug for the user.
-        if not npargs_is_exact(npargs):
+        if not npargs_is_exact(spec.nargs):
           break
 
         if tokens[0].type == lexer.TokenType.RIGHT_PAREN:
@@ -291,7 +359,7 @@ class PositionalGroupNode(TreeNode):
         continue
 
       # Otherwise is it is a positional argument, so add it to the tree as such
-      if get_normalized_kwarg(tokens[0]) in flags:
+      if get_normalized_kwarg(tokens[0]) in spec.flags:
         child = TreeNode(NodeType.FLAG)
       else:
         child = TreeNode(NodeType.ARGUMENT)
@@ -302,6 +370,22 @@ class PositionalGroupNode(TreeNode):
       nconsumed += 1
 
     return tree
+
+  @classmethod
+  def parse(cls, ctx, tokens, npargs, flags, breakstack, sortable=False,
+            tags=None):
+    """
+    Parse a continuous sequence of `npargs` positional arguments. If npargs is
+    an integer we will consume exactly that many arguments. If it is not an
+    integer then it is a string meaning:
+
+    * "?": zero or one
+    * "*": zero or more
+    * "+": one or more
+    """
+
+    spec = PositionalSpec(npargs, sortable, tags, flags)
+    return cls.parse2(ctx, tokens, spec, breakstack)
 
 
 class PositionalParser(object):

@@ -34,7 +34,8 @@ def parse(tokens):
   for token in tokens:
     if token.type is TokenType.WHITESPACE:
       continue
-    elif token.type is TokenType.LPAREN:
+
+    if token.type is TokenType.LPAREN:
       next_group = ChoiceNode(required=True)
       parse_stack[-1][-1].append(next_group)
       parse_stack.append(next_group)

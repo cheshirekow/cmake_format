@@ -31,6 +31,8 @@ for ``cmake``:
    cmake-format
    cmake-lint
    ctest-to
+   configopts
+   custom_parsers
    contributing
 
    release_notes

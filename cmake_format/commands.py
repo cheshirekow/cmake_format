@@ -5,6 +5,9 @@ Command specifications for cmake built-in commands.
 from __future__ import unicode_literals
 import sys
 
+from cmake_format.common import UserError
+from cmake_format.parse.util import PositionalSpec
+
 ZERO_OR_MORE = '*'
 ONE_OR_MORE = '+'
 
@@ -72,7 +75,56 @@ def make_conditional_spec(name=None):
                      kwargs={'AND': spec, 'OR': spec})
 
 
-class CommandSpec(dict):
+def parse_pspec(pargs, flags):
+  """
+  Parse a positional argument specification.
+  """
+  out = []
+
+  # Default pargs is "*"
+  if pargs is None:
+    pargs = ZERO_OR_MORE
+
+  # If we only have one scalar specification, return a legacy specification
+  if isinstance(pargs, STRING_TYPES + (int,)):
+    return [PositionalSpec(pargs, flags=flags, legacy=True)]
+
+  if flags:
+    raise UserError(
+        "Illegal use of top-level 'flags' keyword with new-style positional"
+        " argument declaration")
+
+  # If we only have one dictionary specification, then put it in a dictionary
+  # so that we can do the rest consistently
+  if isinstance(pargs, dict):
+    pargs = [pargs]
+
+  for pargdecl in pargs:
+    if isinstance(pargdecl, STRING_TYPES + (int,)):
+      # A scalar declaration is interpreted as npargs
+      out.append(PositionalSpec(pargdecl))
+      continue
+
+    if isinstance(pargdecl, dict):
+        # A dictionary is interpreted as init kwargs
+      if "npargs" not in pargdecl:
+        pargdecl = dict(pargdecl)
+        pargdecl["nargs"] = ZERO_OR_MORE
+      out.append(PositionalSpec(**pargdecl))
+      continue
+
+    if isinstance(pargdecl, (list, tuple)):
+        # A list or tuple is interpreted as (*args, [kwargs])
+      args = list(pargdecl)
+      kwargs = {}
+      if isinstance(args[-1], dict):
+        kwargs = args.pop(-1)
+      out.append(PositionalSpec(*args, **kwargs))
+
+  return out
+
+
+class CommandSpec(object):
   """
   A command specification is primarily a dictionary mapping keyword arguments
   to command specifications. It also includes a command name and number of
@@ -81,47 +133,41 @@ class CommandSpec(dict):
 
   def __init__(self, name, pargs=None, flags=None, kwargs=None):
     super(CommandSpec, self).__init__()
-    if sys.version_info[0] < 3:
-      scalar_types = (int,) + STRING_TYPES
-    else:
-      scalar_types = (int, str)
-
-    if pargs is None:
-      pargs = ZERO_OR_MORE
-
-    if flags is None:
-      flags = []
+    scalar_types = (int,) + STRING_TYPES
 
     self.name = name
-    self.pargs = pargs
 
-    for flagname in flags:
-      self[flagname] = 0
+    try:
+      self.pargs = parse_pspec(pargs, flags)
+    except (TypeError, UserError) as ex:
+      message = (
+          "Invalid user-supplied specification for positional arguments of "
+          "{}:\n{}".format(name, ex))
+      raise UserError(message)
 
-    self.flags = list(flags)
+    self.kwargs = {}
 
     if kwargs is not None:
       if isinstance(kwargs, dict):
         items = kwargs.items()
       elif isinstance(kwargs, (list, tuple)):
         items = list(kwargs)
-
       for keyword, spec in items:
         if isinstance(spec, scalar_types):
-          self[keyword] = spec
+          self.kwargs[keyword] = CommandSpec(name=keyword, pargs=spec)
         elif isinstance(spec, CommandSpec):
-          self[keyword] = spec
+          self.kwargs[keyword] = spec
         elif isinstance(spec, dict):
-          self[keyword] = CommandSpec(name=keyword, **spec)
+          self.kwargs[keyword] = CommandSpec(name=keyword, **spec)
         else:
           raise ValueError("Unexpected type '{}' for kwargs"
                            .format(type(kwargs)))
 
   def is_flag(self, key):
-    return self.get(key, None) == 0
+    return self.kwargs.get(key, None) == 0
 
   def is_kwarg(self, key):
-    subspec = self.get(key, None)
+    subspec = self.kwargs.get(key, None)
     if subspec is None:
       return False
     if isinstance(subspec, int):
@@ -132,10 +178,10 @@ class CommandSpec(dict):
                      .format(key, type(subspec)))
 
   def add(self, name, pargs=None, flags=None, kwargs=None):
-    self[name.lower()] = CommandSpec(name, pargs, flags, kwargs)
+    self.kwargs[name.lower()] = CommandSpec(name, pargs, flags, kwargs)
 
   def add_conditional(self, name):
-    self[name.lower()] = make_conditional_spec(name)
+    self.kwargs[name.lower()] = make_conditional_spec(name)
 
 
 def get_fn_spec():
@@ -320,20 +366,6 @@ def get_fn_spec():
   fn_spec.add(
       "include_directories",
       flags=["AFTER", "BEFORE", "SYSTEM"], kwargs={})
-
-  fn_spec.add(
-      "list", flags=[], kwargs={
-          "APPEND": ZERO_OR_MORE,
-          "FIND": ZERO_OR_MORE,
-          "GET": ZERO_OR_MORE,
-          "INSERT": ZERO_OR_MORE,
-          "LENGTH": ZERO_OR_MORE,
-          "REMOVE_AT": ZERO_OR_MORE,
-          "REMOVE_DUPLICATES": ZERO_OR_MORE,
-          "REMOVE_ITEM": ZERO_OR_MORE,
-          "REVERSE": ZERO_OR_MORE,
-          "SORT": ZERO_OR_MORE
-      })
 
   fn_spec.add(
       "mark_as_advanced", flags=["CLEAR", "FORCE"], kwargs={})

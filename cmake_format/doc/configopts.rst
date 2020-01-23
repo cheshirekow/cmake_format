@@ -11,6 +11,12 @@ include
 Configurations are merged and individual variables follow a latest-wins
 semantic.
 
+additional_commands
+===================
+
+Use this variable to specify how to parse custom cmake functions.
+See :ref:`additional-cmd`.
+
 --------------------------
 General Formatting Options
 --------------------------
@@ -151,6 +157,13 @@ Consider the following two examples:
       filename_five.cc
       filename_six.cc
       filename_seven.cc)
+
+max_rows_cmdline
+================
+
+``max_pargs_hwrap`` does not apply to positional argument groups for shell
+commands. These are never columnized and always hwrapped. However, if the
+wrapped format exceeds this many lines, then the group will also be nested.
 
 separate_xxx_with_space
 =======================

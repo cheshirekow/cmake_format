@@ -211,6 +211,11 @@ class FormattingConfig(ConfigObject):
       "If a positional argument group contains more than this many"
       " arguments, then force it to a vertical layout. "
   )
+  max_rows_cmdline = FieldDescriptor(
+      2,
+      "If a cmdline positional group consumes more than this many lines"
+      " without nesting, then invalidate the layout (and nest)"
+  )
   separate_ctrl_name_with_space = FieldDescriptor(
       False,
       "If true, separate flow control names from their parentheses with a"

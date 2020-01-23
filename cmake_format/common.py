@@ -103,6 +103,9 @@ class UserError(Exception):
     super(UserError, self).__init__()
     self.msg = msg
 
+  def __repr__(self):
+    return self.msg
+
 
 class InternalError(Exception):
   """Raised when we encounter something we do not expect, indicating a problem
@@ -111,3 +114,6 @@ class InternalError(Exception):
   def __init__(self, msg=None):
     super(InternalError, self).__init__()
     self.msg = msg
+
+  def __repr__(self):
+    return self.msg

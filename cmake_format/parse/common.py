@@ -63,11 +63,9 @@ class TreeNode(object):
   A node in the full-syntax-tree.
   """
 
-  def __init__(self, node_type, sortable=False, default_wrapping=None):
+  def __init__(self, node_type):
     self.node_type = node_type
     self.children = []
-    self.sortable = sortable
-    self.default_wrapping = default_wrapping
     self.parent = None
 
   def build_ancestry(self):
@@ -94,10 +92,6 @@ class TreeNode(object):
     return newline_count
 
   def __repr__(self):
-    if self.sortable:
-      return ('{}: {}, sortable'
-              .format(self.node_type.name, self.get_location()))
-
     return '{}: {}'.format(self.node_type.name, self.get_location())
 
   def get_tokens(self, out=None, kind=None):

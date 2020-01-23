@@ -15,6 +15,4 @@ like crap.
    parser_algorithm
    format_algorithm
    case_studies
-   configopts
    automatic_parsers
-

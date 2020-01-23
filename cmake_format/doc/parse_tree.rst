@@ -299,7 +299,7 @@ You can inspect the parse tree of a listfile by ``cmake-format`` with
         │   │   │   │   │   ├─ ARGUMENT: 5:14
         │   │   │   │   │   │   └─ Token(type=WORD, content='hello', line=5, col=14)
         │   │   │   │   │   └─ Token(type=WHITESPACE, content=' ', line=5, col=19)
-        │   │   │   │   └─ PARGGROUP: 5:20, sortable
+        │   │   │   │   └─ PARGGROUP: 5:20
         │   │   │   │       └─ ARGUMENT: 5:20
         │   │   │   │           └─ Token(type=UNQUOTED_LITERAL, content='hello.cc', line=5, col=20)
         │   │   │   └─ RPAREN: 5:28

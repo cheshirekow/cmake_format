@@ -49,6 +49,7 @@ disable=
     duplicate-code,
     file-ignored,
     fixme,
+    import-outside-toplevel,
     locally-disabled,
     logging-format-interpolation,
     missing-docstring,

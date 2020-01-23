@@ -9,6 +9,24 @@ v0.6 series
 ===========
 
 ------
+v0.6.7
+------
+
+With this release, the `specification`__ format for custom
+commands has been updated to enable a number of new features. Positional
+argument groups now support "tags" which can be used to influence the
+formatting for some special cases. The format now also supports multiple
+positional argument groups. Lastly, there is a new **experimental** tool
+``cmake-genparsers`` which can automatically generate parser specifications
+from your custom commands that use the standard ``cmake_parse_arguments``.
+
+.. __: https://cmake-format.readthedocs.io/en/latest/custom_parsers.html
+
+There is a new configuration option ``max_rows_cmdline`` which applies only
+to shell commands and determines when a shell command should nest under it's
+keyword argument.
+
+------
 v0.6.6
 ------
 
@@ -22,7 +40,7 @@ command:
 .. :code:
 
   cmake-format --config-file <your-config> --dump-config <your-format> \
-    --no-help --no-defaults
+    --no-help --no-default
 
 There is a new configuration option `explicit_trailing_pattern` which can be
 used to define a particular character sequence used by comments that are

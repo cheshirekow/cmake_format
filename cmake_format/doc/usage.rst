@@ -61,6 +61,10 @@ Usage
       --max-pargs-hwrap MAX_PARGS_HWRAP
                             If a positional argument group contains more than this
                             many arguments, then force it to a vertical layout.
+      --max-rows-cmdline MAX_ROWS_CMDLINE
+                            If a cmdline positional group consumes more than this
+                            many lines without nesting, then invalidate the layout
+                            (and nest)
       --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
                             If true, separate flow control names from their
                             parentheses with a space
