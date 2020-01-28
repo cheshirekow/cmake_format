@@ -376,7 +376,7 @@ def check_arggroup(cfg, local_ctx, node):
 
 
 def check_positional_group(cfg, local_ctx, node):
-  """Perform checks on a positinal group node."""
+  """Perform checks on a positional group node."""
   min_npargs = get_min_npargs(node.spec.npargs)
   semantic_tokens = node.get_semantic_tokens()
   if len(semantic_tokens) < min_npargs:
