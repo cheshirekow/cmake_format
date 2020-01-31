@@ -23,10 +23,10 @@ format_and_lint(
   contrib/validate_pullrequest.py
   ctest_to.py
   doc/__init__.py
+  doc/bits/dump-example.cmake
   doc/CMakeLists.txt
   doc/conf.py
-  doc/docsources_test.py
-  doc/gendoc_sources.py
+  doc/gendoc.py
   formatter.py
   genparsers.py
   invocation_tests.py
@@ -41,9 +41,11 @@ format_and_lint(
   parse/body_nodes.py
   parse/common.py
   parse/printer.py
+  parse/properties.py
   parse/simple_nodes.py
   parse/statement_node.py
   parse/util.py
+  parse/variables.py
   parse_funs/__init__.py
   parse_funs/add_executable.py
   parse_funs/add_library.py
@@ -72,8 +74,12 @@ format_and_lint(
   tests.py
   tools/__init__.py
   tools/bump_version.py
+  tools/create_pseudorelease_tag.py
+  tools/gen_rtd_requirements.py
   tools/generate_missing_parsers.py
+  tools/get_release_notes.py
   tools/parse_cmake_help.py
+  tools/push_github_release.py
   tools/usage_lexer.py
   tools/usage_parser.py)
 
@@ -96,15 +102,114 @@ if(NOT IS_TRAVIS_CI)
   endforeach()
 endif()
 
-add_subdirectory(command_tests)
-add_subdirectory(contrib)
-add_subdirectory(doc)
-add_subdirectory(test)
-
 add_test(
   NAME cmake_format-check-lint-manifest
   COMMAND
     python -Bm cmake.validate_lint_manifest #
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} #
-    --exclude "command_tests/" "test/.*" ".*\\.jinja.py$"
+    --exclude "command_tests/" "doc/stage" "test/.*" ".*\\.jinja.py$"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+set(_genfiles)
+
+add_custom_command(
+  OUTPUT cmake_format/parse/variables.py
+  COMMAND python -Bm cmake_format.tools.parse_cmake_help --outfile
+          cmake_format/parse/variables.py variables
+  DEPENDS tools/parse_cmake_help.py tools/variables.jinja.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Generating variables.py")
+list(APPEND _genfiles cmake_format/parse/variables.py)
+
+
+add_custom_command(
+  OUTPUT cmake_format/parse/properties.py
+  COMMAND python -Bm cmake_format.tools.parse_cmake_help --outfile
+          cmake_format/parse/properties.py properties
+  DEPENDS tools/parse_cmake_help.py tools/properties.jinja.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Generating properties.py")
+list(APPEND _genfiles cmake_format/parse/properties.py)
+
+add_custom_target(
+  gen-cmake_format
+  DEPENDS ${_genfiles})
+add_dependencies(gen gen-cmake_format)
+
+# NOTE(josh): this is just here to induce a dependency on the configure step.
+# If we change the version number in __init__.py we need to re-run cmake so we
+# can get out the version number and create rules for the distribution files.
+configure_file(__init__.py init.stamp COPYONLY)
+
+execute_process(
+  COMMAND python -Bm cmake_format --version
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  RESULT_VARIABLE _resultcode
+  OUTPUT_VARIABLE _version
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT _resultcode EQUAL 0)
+  message(
+    FATAL_ERROR "Failed to get cmake-format version number from __init__.py")
+endif()
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/.egg
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/.egg
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+set(_distdir ${CMAKE_CURRENT_BINARY_DIR}/dist)
+add_custom_command(
+  OUTPUT
+    ${_distdir}/cmake_format-${_version}.tar.gz
+    ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  COMMAND
+    # cmake-format: off
+    python cmake_format/pypi/setup.py
+    build --build-base ${CMAKE_CURRENT_BINARY_DIR}
+    egg_info --egg-base ${CMAKE_CURRENT_BINARY_DIR}/.egg
+    bdist_wheel
+      --bdist-dir ${CMAKE_CURRENT_BINARY_DIR}/bdist
+      --dist-dir ${_distdir}
+    sdist --dist-dir ${_distdir}
+    # cmake-format: on
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/.egg
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  COMMAND python -Bm cmake_format.tools.get_release_notes
+          cmake_format/doc/release_notes.rst \$\${TRAVIS_TAG}
+          -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  DEPENDS doc/release_notes.rst
+          tools/get_release_notes.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+  COMMAND pandoc -s
+          -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+          ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_custom_target(
+  push-github-release
+  COMMAND
+    # cmake-format: off
+    python -Bm cmake_format.tools.push_github_release
+      --message ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+      \$\${TRAVIS_TAG}
+      ${_distdir}/cmake_format-${_version}.tar.gz
+      ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+    # cmake-format: on
+  DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+    ${_distdir}/cmake_format-${_version}.tar.gz
+    ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  COMMENT "Uploading release artifacts"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_subdirectory(command_tests)
+add_subdirectory(contrib)
+add_subdirectory(doc)
+add_subdirectory(test)

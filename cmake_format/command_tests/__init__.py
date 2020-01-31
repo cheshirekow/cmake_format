@@ -481,6 +481,13 @@ class TestAddCustomCommand(TestBase):
   kExpectNumSidecarTests = 4
 
 
+class TestComment(TestBase):
+  """
+  Test various examples involving comments
+  """
+  kExpectNumSidecarTests = 3
+
+
 class TestConditional(TestBase):
   """
   Test various examples of commands that take conditional statements

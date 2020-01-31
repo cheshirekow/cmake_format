@@ -143,4 +143,10 @@ function(foo)
   set(INVALID_LOCAL_NAME "foo")
 endfunction()
 
+set(CMAKE_Cxx_STANDARD "11")
+
+list(APPEND CMAKE_Cxx_STANDARD "11")
+
+message("Using C++ standard ${CMAKE_Cxx_STANDARD}")
+
 # This file is missing a final newline

@@ -13,7 +13,7 @@ from cmake_format.parse.util import (
 from cmake_format.parse.common import (
     NodeType, ParenBreaker, KwargBreaker, TreeNode
 )
-from cmake_format.parse.simple_nodes import CommentNode
+from cmake_format.parse.simple_nodes import CommentNode, OnOffNode
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +116,13 @@ class StandardArgTree(ArgGroupNode):
       # If it's a comment, then add it at the current depth
       if tokens[0].type in (lexer.TokenType.COMMENT,
                             lexer.TokenType.BRACKET_COMMENT):
-        child = TreeNode(NodeType.COMMENT)
-        tree.children.append(child)
-        child.children.append(tokens.pop(0))
+        tree.children.append(CommentNode.consume(ctx, tokens))
+        continue
+
+      # If it's a sentinel comment, then add it at the current depth
+      if tokens[0].type in (lexer.TokenType.FORMAT_OFF,
+                            lexer.TokenType.FORMAT_ON):
+        tree.children.append(OnOffNode.consume(ctx, tokens))
         continue
 
       ntokens = len(tokens)
@@ -351,11 +355,14 @@ class PositionalGroupNode(TreeNode):
       # directly into the parse tree at the current depth
       if tokens[0].type in (lexer.TokenType.COMMENT,
                             lexer.TokenType.BRACKET_COMMENT):
-        before = len(tokens)
         child = CommentNode.consume(ctx, tokens)
-        assert len(tokens) < before, \
-            "consume_comment didn't consume any tokens"
         tree.children.append(child)
+        continue
+
+      # If it's a sentinel comment, then add it at the current depth
+      if tokens[0].type in (lexer.TokenType.FORMAT_OFF,
+                            lexer.TokenType.FORMAT_ON):
+        tree.children.append(OnOffNode.consume(ctx, tokens))
         continue
 
       # Otherwise is it is a positional argument, so add it to the tree as such
@@ -516,6 +523,12 @@ class ConditionalGroupNode(ArgGroupNode):
         child = TreeNode(NodeType.COMMENT)
         tree.children.append(child)
         child.children.append(tokens.pop(0))
+        continue
+
+      # If it's a sentinel comment, then add it at the current depth
+      if tokens[0].type in (lexer.TokenType.FORMAT_OFF,
+                            lexer.TokenType.FORMAT_ON):
+        tree.children.append(OnOffNode.consume(ctx, tokens))
         continue
 
       # If this is the start of a parenthetical group, then parse the group

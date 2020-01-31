@@ -112,9 +112,10 @@ def parse_list(ctx, tokens, breakstack):
       "REMOVE_ITEM": StandardParser("3+", flags=["REMOVE_ITEM"]),
       "REMOVE_AT": StandardParser("3+", flags=["REMOVE_AT"]),
       "REMOVE_DUPLICATES": StandardParser(2, flags=["REMOVE_DUPLICATES"]),
-      "TRANSFORM": StandardParser(2, TRANSFORM_KWARGS),
+      "TRANSFORM": StandardParser(
+          2, flags=["TRANSFORM"], kwargs=TRANSFORM_KWARGS),
       "REVERSE": StandardParser(2, flags=["REVERSE"]),
-      "SORT": StandardParser(2, kwargs=SORT_KWARGS)
+      "SORT": StandardParser(2, flags=["SORT"], kwargs=SORT_KWARGS)
   }
 
   if descriminator not in parsemap:

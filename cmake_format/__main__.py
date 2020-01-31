@@ -116,7 +116,7 @@ def process_file(config, infile_content, dump=None):
     for token in tokens:
       outfile.write("{}\n".format(token))
     return outfile.getvalue(), True
-  config.first_token = lexer.get_first_non_whitespace_token(tokens)
+  first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db, config=config)
@@ -128,7 +128,7 @@ def process_file(config, infile_content, dump=None):
     dump_markup([parse_tree], config, outfile)
     return outfile.getvalue(), True
 
-  box_tree = formatter.layout_tree(parse_tree, config)
+  box_tree = formatter.layout_tree(parse_tree, config, first_token=first_token)
   if dump == "layout":
     formatter.dump_tree([box_tree], outfile)
     return outfile.getvalue(), True
@@ -229,14 +229,32 @@ def get_one_config_dict(configfile_path):
   """
   if configfile_path.endswith('.json'):
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
-      return json.load(config_file)
+      try:
+        return json.load(config_file)
+      except ValueError as ex:
+        message = (
+            "Failed to parse json config file {}: {}"
+            .format(configfile_path, ex))
+        raise common.UserError(message)
 
   if configfile_path.endswith('.yaml'):
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
-      return load_yaml(config_file)
+      try:
+        return load_yaml(config_file)
+      except ValueError as ex:
+        message = (
+            "Failed to parse yaml config file {}: {}"
+            .format(configfile_path, ex))
+        raise common.UserError(message)
 
   if configfile_path.endswith('.py'):
-    return exec_pyconfig(configfile_path)
+    try:
+      return exec_pyconfig(configfile_path)
+    except Exception as ex:
+      message = (
+          "Failed to parse python config file {}: {}"
+          .format(configfile_path, ex))
+      raise common.UserError(message)
 
   return try_get_configdict(configfile_path)
 
@@ -248,6 +266,7 @@ def get_configdict(configfile_paths):
     configfile_path = include_queue.pop(0)
     configfile_path = os.path.expanduser(configfile_path)
     increment_dict = get_one_config_dict(configfile_path)
+
     for include_path in increment_dict.pop("include", []):
       if not os.path.isabs(include_path):
         include_path = os.path.join(

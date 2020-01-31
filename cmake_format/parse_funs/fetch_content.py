@@ -1,6 +1,6 @@
 from cmake_format.parse.additional_nodes import ShellCommandNode
 from cmake_format.parse.argument_nodes import (
-    PositionalParser, StandardArgTree)
+    PositionalParser, StandardArgTree, StandardParser)
 
 
 def parse_fetchcontent_declare(ctx, tokens, breakstack):
@@ -159,4 +159,4 @@ def populate_db(parse_db):
   parse_db["fetchcontent_declare"] = parse_fetchcontent_declare
   parse_db["fetchcontent_populate"] = parse_fetchcontent_populate
   parse_db["fetchcontent_getproperties"] = parse_fetchcontent_getproperties
-  parse_db["fetchcontent_makeavailable"] = PositionalParser('+')
+  parse_db["fetchcontent_makeavailable"] = StandardParser('+')

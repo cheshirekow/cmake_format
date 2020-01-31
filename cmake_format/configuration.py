@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import logging
+import re
 
 from cmake_format import commands
 from cmake_format import markup
@@ -183,8 +184,6 @@ ADDITIONAL_COMMANDS_DEMO = {
             'DEPENDS': '*'
         }
     }
-
-
 }
 
 
@@ -197,39 +196,47 @@ class FormattingConfig(ConfigObject):
       80,
       "How wide to allow formatted cmake files"
   )
+
   tab_size = FieldDescriptor(
       2,
       "How many spaces to tab for indent"
   )
+
   max_subgroups_hwrap = FieldDescriptor(
       2,
       "If an argument group contains more than this many sub-groups "
       "(parg or kwarg groups) then force it to a vertical layout. "
   )
+
   max_pargs_hwrap = FieldDescriptor(
       6,
       "If a positional argument group contains more than this many"
       " arguments, then force it to a vertical layout. "
   )
+
   max_rows_cmdline = FieldDescriptor(
       2,
       "If a cmdline positional group consumes more than this many lines"
       " without nesting, then invalidate the layout (and nest)"
   )
+
   separate_ctrl_name_with_space = FieldDescriptor(
       False,
       "If true, separate flow control names from their parentheses with a"
       " space"
   )
+
   separate_fn_name_with_space = FieldDescriptor(
       False,
       "If true, separate function names from parentheses with a space"
   )
+
   dangle_parens = FieldDescriptor(
       False,
       "If a statement is wrapped to more than one line, than dangle the"
       " closing parenthesis on its own line."
   )
+
   dangle_align = FieldDescriptor(
       "prefix",
       "If the trailing parenthesis must be 'dangled' on its on line, then"
@@ -238,51 +245,61 @@ class FormattingConfig(ConfigObject):
       " level, `child`: align to the column of the arguments",
       ["prefix", "prefix-indent", "child", "off"],
   )
+
   min_prefix_chars = FieldDescriptor(
       4,
       "If the statement spelling length (including space and parenthesis)"
       " is smaller than this amount, then force reject nested layouts."
   )
+
   max_prefix_chars = FieldDescriptor(
       10,
       "If the statement spelling length (including space and parenthesis)"
       " is larger than the tab width by more than this amount, then"
       " force reject un-nested layouts."
   )
+
   max_lines_hwrap = FieldDescriptor(
       2,
       "If a candidate layout is wrapped horizontally but it exceeds this"
       " many lines, then reject the layout."
   )
+
   line_ending = FieldDescriptor(
       "unix",
       "What style line endings to use in the output.",
       ['windows', 'unix', 'auto']
   )
+
   command_case = FieldDescriptor(
       "canonical",
       "Format command names consistently as 'lower' or 'upper' case",
       ['lower', 'upper', 'canonical', 'unchanged']
   )
+
   keyword_case = FieldDescriptor(
       "unchanged",
       "Format keywords consistently as 'lower' or 'upper' case",
       ['lower', 'upper', 'unchanged']
   )
+
   always_wrap = FieldDescriptor(
       [],
       "A list of command names which should always be wrapped"
   )
+
   enable_sort = FieldDescriptor(
       True,
       "If true, the argument lists which are known to be sortable will be "
       "sorted lexicographicall"
   )
+
   autosort = FieldDescriptor(
       False,
       "If true, the parsers may infer whether or not an argument list is"
       " sortable (without annotation)."
   )
+
   require_valid_layout = FieldDescriptor(
       False,
       "By default, if cmake-format cannot successfully fit everything into"
@@ -322,6 +339,15 @@ class FormattingConfig(ConfigObject):
     }[self.line_ending]
 
 
+BUILTIN_VARTAGS = [
+    (".*_COMMAND", ["cmdline"])
+]
+
+BUILTIN_PROPTAGS = [
+    (".*_DIRECTORIES", ["file-list"])
+]
+
+
 class ParseConfig(ConfigObject):
   """Options affecting listfile parsing"""
 
@@ -332,13 +358,25 @@ class ParseConfig(ConfigObject):
       "Specify structure for custom cmake functions"
   )
 
+  vartags = FieldDescriptor([], "Specify variable tags.")
+  proptags = FieldDescriptor([], "Specify property tags.")
+
   def _update_derived(self):
     if self.additional_commands is not None:
       for command_name, spec in self.additional_commands.items():
         self.fn_spec.add(command_name, **spec)
 
+    self.vartags_ = [
+        (re.compile(pattern, re.IGNORECASE), tags) for pattern, tags in
+        BUILTIN_VARTAGS + self.vartags]
+    self.proptags_ = [
+        (re.compile(pattern, re.IGNORECASE), tags) for pattern, tags in
+        BUILTIN_PROPTAGS + self.proptags]
+
   def __init__(self, **kwargs):  # pylint: disable=W0613
     self.fn_spec = commands.get_fn_spec()
+    self.vartags_ = []
+    self.proptags_ = []
     super(ParseConfig, self).__init__(**kwargs)
 
 
@@ -381,14 +419,6 @@ class Configuration(ConfigObject):
   lint = SubtreeDescriptor(LinterConfig)
   encode = SubtreeDescriptor(EncodingConfig)
   misc = SubtreeDescriptor(MiscConfig)
-
-  def __init__(self, **kwargs):  # pylint: disable=W0613
-    super(Configuration, self).__init__(**kwargs)
-
-    # TODO(josh): this does not belong here! We need some global state for
-    # formatting and the only thing we have accessible through the whole format
-    # stack is this config object... so I'm abusing it by adding this field here
-    self.first_token = None
 
   def resolve_for_command(self, command_name, config_key, default_value=None):
     """

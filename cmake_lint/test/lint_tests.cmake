@@ -197,6 +197,18 @@ function(foo)
   set(INVALID_LOCAL_NAME "foo")
 endfunction()
 
+# test: set-wrong-case
+# expect: W0105
+set(CMAKE_Cxx_STANDARD "11")
+
+# test: list-wrong-case
+# expect: W0105
+list(APPEND CMAKE_Cxx_STANDARD "11")
+
+# test: uses-var-wrong-case
+# expect: W0105
+message("Using C++ standard ${CMAKE_Cxx_STANDARD}")
+
 # test: missing-final-newline
 # expect: C0304
 # This file is missing a final newline

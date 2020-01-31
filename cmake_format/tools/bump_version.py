@@ -120,6 +120,8 @@ def main():
     field_idx = fields.index(args.field)
     new_version = list(current_version)
     new_version[field_idx] += 1
+    for idx in range(field_idx + 1, len(new_version)):
+      new_version[idx] = 0
 
   process_init(init_path, new_version)
   process_installation_rst(

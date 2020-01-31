@@ -611,3 +611,30 @@ message
     Use of deprecated command {:s}
 
 
+-----
+W0105
+-----
+
+message
+-------
+
+.. code:: 
+
+    {:s} variable '{:s}' which matches a built-in except for case
+
+
+description
+-----------
+
+
+This warning means that you are using a variable such as,
+for example, `cmake_cxx_standard` which matches a builtin variable
+(`CMAKE_CXX_STANDARD`) except for the case. If this was intentional, then it's
+bad practice as it causes confusion (there are two variables in the namespace
+with identical name except for case), though it was probably not intentional
+and you probably aren't assigning to the correct variable.
+
+This warning may be emitted for assignment (e.g. `set()` or `list()`) as
+well as for variable expansion in an argument (e.g. `"${CMAKE_Cxx_STANDARD}"`).
+
+

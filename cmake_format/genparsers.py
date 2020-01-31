@@ -179,7 +179,6 @@ def process_file(config, infile_content):
     config.set_line_ending(detected)
 
   tokens = lexer.tokenize(infile_content)
-  config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db, config=config)

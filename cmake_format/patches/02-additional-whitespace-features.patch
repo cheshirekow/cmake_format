@@ -1,0 +1,182 @@
+diff --git a/cmake_format/command_tests/__init__.py b/cmake_format/command_tests/__init__.py
+index 8456d03..5923fa4 100644
+--- a/cmake_format/command_tests/__init__.py
++++ b/cmake_format/command_tests/__init__.py
+@@ -547,3 +547,10 @@ class TestSet(TestBase):
+   Test various examples of the set() function
+   """
+   kExpectNumSidecarTests = 8
++
++
++class TestWhitespace(TestBase):
++  """
++  Test various specific cases involving whitespace formatting
++  """
++  kExpectNumSidecarTests = 2
+diff --git a/cmake_format/command_tests/__main__.py b/cmake_format/command_tests/__main__.py
+index f851f39..bec3262 100644
+--- a/cmake_format/command_tests/__main__.py
++++ b/cmake_format/command_tests/__main__.py
+@@ -12,7 +12,8 @@ from cmake_format.command_tests import (
+     TestForeach,
+     TestInstall,
+     TestSetTargetProperties,
+-    TestSet)
++    TestSet,
++    TestWhitespace)
+
+ from cmake_format.command_tests.add_executable_tests \
+     import TestAddExecutableCommand
+diff --git a/cmake_format/command_tests/whitespace_tests.cmake b/cmake_format/command_tests/whitespace_tests.cmake
+new file mode 100644
+index 0000000..7006945
+--- /dev/null
++++ b/cmake_format/command_tests/whitespace_tests.cmake
+@@ -0,0 +1,24 @@
++# test: allow_superfluous_newlines
++#[=[
++allow_superfluous_newlines = 1
++]=]
++# This comment is just here to start the file
++
++
++# This comment has an extra newline before it
++statement(foo bar baz)
++
++
++statement(foo bar baz)
++
++# test: numlines_pre_statement_comment
++#[=[
++numlines_pre_statement_comment = 1
++]=]
++# This comment is just here to start the file
++
++
++# This comment has an extra newline before it
++statement(foo bar baz)
++
++statement(foo bar baz)
+diff --git a/cmake_format/configuration.py b/cmake_format/configuration.py
+index c6334d2..dcf384c 100644
+--- a/cmake_format/configuration.py
++++ b/cmake_format/configuration.py
+@@ -315,6 +315,19 @@ class FormattingConfig(ConfigObject):
+       " the documentation for more information."
+   )
+
++  allow_superfluous_newlines = FieldDescriptor(
++      0,
++      "Allow up to this many superfluous newlines between elements at block"
++      " level. In other words, don't collapse whitespace up to "
++      " (allow_superfluous_newlines + 1) lines long."
++  )
++
++  numlines_pre_statement_comment = FieldDescriptor(
++      0,
++      "Output additional newlines to increase visual separation before a"
++      " statement which is immediately preceeded by a block comment"
++  )
++
+   def __init__(self, **kwargs):
+     super(FormattingConfig, self).__init__(**kwargs)
+     self.endl = None
+diff --git a/cmake_format/doc/README.rst b/cmake_format/doc/README.rst
+index 47dcd19..f42fa8e 100644
+--- a/cmake_format/doc/README.rst
++++ b/cmake_format/doc/README.rst
+@@ -156,6 +156,15 @@ Usage
+                             the last, most agressive attempt that it made. If this
+                             flag is True, however, cmake-format will print error,
+                             exit with non-zero status code, and write-out nothing
++      --allow-superfluous-newlines ALLOW_SUPERFLUOUS_NEWLINES
++                            Allow up to this many superfluous newlines between
++                            elements at block level. In other words, don't
++                            collapse whitespace up to (allow_superfluous_newlines
++                            + 1) lines long.
++      --numlines-pre-statement-comment NUMLINES_PRE_STATEMENT_COMMENT
++                            Output additional newlines to increase visual
++                            separation before a statement which is immediately
++                            preceeded by a block comment
+
+     Options affecting comment reflow and formatting.:
+       --bullet-char BULLET_CHAR
+@@ -358,6 +367,15 @@ pleasant way.
+       # documentation for more information.
+       layout_passes = {}
+
++      # Allow up to this many superfluous newlines between elements at block level.
++      # In other words, don't collapse whitespace up to  (allow_superfluous_newlines
++      # + 1) lines long.
++      allow_superfluous_newlines = 0
++
++      # Output additional newlines to increase visual separation before a statement
++      # which is immediately preceeded by a block comment
++      numlines_pre_statement_comment = 0
++
+     # ------------------------------------------------
+     # Options affecting comment reflow and formatting.
+     # ------------------------------------------------
+diff --git a/cmake_format/doc/changelog.rst b/cmake_format/doc/changelog.rst
+index 68ba1ce..a651535 100644
+--- a/cmake_format/doc/changelog.rst
++++ b/cmake_format/doc/changelog.rst
+@@ -13,6 +13,8 @@ v0.6.8
+ * Add build rules to generate variable and property pattern lists
+ * Implement lint checks on assignment/use of variables that are "close" to
+   builtins except for case.
++* Add configuration options to allow increased whitespace in general or
++  before statement comments in particular
+ * Move first_token from configuration object into format context
+ * Add line, col info to lex error message
+ * Fix wrong root parser for FetchContent_MakeAvailable
+diff --git a/cmake_format/formatter.py b/cmake_format/formatter.py
+index 8015325..8b97cfc 100644
+--- a/cmake_format/formatter.py
++++ b/cmake_format/formatter.py
+@@ -1567,7 +1567,30 @@ class WhitespaceNode(LayoutNode):
+     """
+     Compute the size of a whitespace block
+     """
+-    return cursor.clone()
++    fmtconf = stack_context.config.format
++    self._colextent = 0
++
++    first_sibling = self.next_sibling()
++    if first_sibling is None:
++      second_sibling = None
++    else:
++      second_sibling = first_sibling.next_sibling()
++
++    additional_rows = 0
++    if (isinstance(first_sibling, CommentNode) and
++        isinstance(second_sibling, StatementNode)):
++      additional_rows = fmtconf.numlines_pre_statement_comment
++
++    if fmtconf.allow_superfluous_newlines:
++      # NOTE: whitespace nodes from the parse tree only emit layout
++      # nodes if they contain 2+ newlines, so all layout nodes contain
++      # at least two
++      clamped_input_rows = clamp(
++          self.pnode.count_newlines() - 2, 0,
++          fmtconf.allow_superfluous_newlines)
++      additional_rows = max(additional_rows, clamped_input_rows)
++
++    return cursor + (additional_rows, 0)
+
+   def write(self, config, ctx):
+     return
+diff --git a/cmake_format/tests.py b/cmake_format/tests.py
+index 64e179a..4b29482 100644
+--- a/cmake_format/tests.py
++++ b/cmake_format/tests.py
+@@ -21,7 +21,8 @@ from cmake_format.command_tests import (
+     TestFile,
+     TestInstall,
+     TestSetTargetProperties,
+-    TestSet)
++    TestSet,
++    TestWhitespace)
+
+ from cmake_format.command_tests.add_executable_tests \
+     import TestAddExecutableCommand

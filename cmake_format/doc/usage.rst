@@ -2,7 +2,7 @@
 Usage
 =====
 
-.. dynamic: usage-begin
+.. dynamic: format-usage-begin
 
 .. code:: text
 
@@ -49,6 +49,12 @@ Usage
 
     Various configuration options/parameters for formatting:
 
+
+    Options affecting listfile parsing:
+      --vartags [VARTAGS [VARTAGS ...]]
+                            Specify variable tags.
+      --proptags [PROPTAGS [PROPTAGS ...]]
+                            Specify property tags.
 
     Options effecting formatting.:
       --line-width LINE_WIDTH
@@ -113,6 +119,15 @@ Usage
                             the last, most agressive attempt that it made. If this
                             flag is True, however, cmake-format will print error,
                             exit with non-zero status code, and write-out nothing
+      --allow-superfluous-newlines ALLOW_SUPERFLUOUS_NEWLINES
+                            Allow up to this many superfluous newlines between
+                            elements at block level. In other words, don't
+                            collapse whitespace up to (allow_superfluous_newlines
+                            + 1) lines long.
+      --numlines-pre-statement-comment NUMLINES_PRE_STATEMENT_COMMENT
+                            Output additional newlines to increase visual
+                            separation before a statement which is immediately
+                            preceeded by a block comment
 
     Options affecting comment reflow and formatting.:
       --bullet-char BULLET_CHAR
@@ -204,4 +219,4 @@ Usage
                             utf-8. Note that cmake only claims to support utf-8 so
                             be careful when using anything else
 
-.. dynamic: usage-end
+.. dynamic: format-usage-end

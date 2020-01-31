@@ -3,6 +3,8 @@
 Generate linter documentation page
 """
 
+from __future__ import unicode_literals
+
 import argparse
 import io
 import logging
@@ -11,7 +13,7 @@ import sys
 import textwrap
 
 import cmake_format
-from cmake_format.doc.gendoc_sources import format_directive
+from cmake_format.doc.gendoc import format_directive
 from cmake_lint import lintdb
 
 HEADER = """

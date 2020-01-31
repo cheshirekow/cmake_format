@@ -6,6 +6,35 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.8
+------
+
+* Reduce packaging depependency version numbers
+* Add build rules to generate variable and property pattern lists
+* Implement lint checks on assignment/use of variables that are "close" to
+  builtins except for case.
+* Move first_token from configuration object into format context
+* Add line, col info to lex error message
+* Fix wrong root parser for FetchContent_MakeAvailable
+* Fix missing support for string integer npargs
+* Fix missing spec for derived classes of PositionalGroupNode
+* Fix on/off switch doesn't work inside a statement
+* Fix extraneous whitespace inserted before line comment in some statements
+* Add more helpful error message on failed configfile parse
+* Move documentation build to build time and push documentation artifacts
+  to an artifact repository
+
+* Closes `#162`: cmake-lint crashes when evaluating `math`
+* Closes `#163`: cmake-lint crashes when using `VERBATIM` in
+  `add_custom_target`
+* Closes `#164`: Internal error FetchContent_MakeAvailable
+* Closes: 000bf9a, 6e4ef70, 85a3985, 9a3afa6, cf4570e
+
+.. _#162: https://github.com/cheshirekow/cmake_format/issues/162
+.. _#163: https://github.com/cheshirekow/cmake_format/issues/163
+.. _#164: https://github.com/cheshirekow/cmake_format/issues/164
+
+
 v0.6.7
 ------
 
@@ -24,7 +53,8 @@ v0.6.7
 
 * Closes `#139`_: Disable wrap for custom functions
 * Closes `#159`_: Missing dependency on six
-* Closes: 6ef7d0d, cf7ac49, cfa3c02, eefbde3, e75513a, f704714
+* Closes: 6ef7d0d, 9669d02, cc60267, cf7ac49, cfa3c02, eefbde3, e75513a,
+* Closes: f704714
 
 .. _#139: https://github.com/cheshirekow/cmake_format/issues/139
 .. _#159: https://github.com/cheshirekow/cmake_format/issues/159

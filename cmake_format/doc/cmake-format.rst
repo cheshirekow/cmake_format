@@ -8,11 +8,8 @@ like crap.
 .. toctree::
    :maxdepth: 2
 
-   features
-   usage
-   example
-   parse_tree
-   parser_algorithm
-   format_algorithm
-   case_studies
-   automatic_parsers
+   format-features
+   format-usage
+   format-example
+   format-algorithm
+   format-case_studies

@@ -11,6 +11,7 @@ from cmake_format.parse.body_nodes import FlowControlNode
 from cmake_format.parse.common import NodeType, TreeNode
 from cmake_format.parse.statement_node import StatementNode
 from cmake_format.parse.util import get_min_npargs
+from cmake_format.parse import variables
 
 
 def find_statements_in_subtree(subtree, funnames):
@@ -376,7 +377,7 @@ def check_arggroup(cfg, local_ctx, node):
 
 
 def check_positional_group(cfg, local_ctx, node):
-  """Perform checks on a positinal group node."""
+  """Perform checks on a positional group node."""
   min_npargs = get_min_npargs(node.spec.npargs)
   semantic_tokens = node.get_semantic_tokens()
   if len(semantic_tokens) < min_npargs:
@@ -506,6 +507,40 @@ def check_statement(cfg, local_ctx, node):
     check_tree(cfg, local_ctx, child)
 
 
+def check_varname(cfg, local_ctx, varname, token):
+  """
+  Record lint if the varname is invalid
+  """
+  if (variables.CASE_INSENSITIVE_REGEX.match(varname) and
+      not variables.CASE_SENSITIVE_REGEX.match(varname)):
+    local_ctx.record_lint(
+        "W0105", "Assignment to", varname,
+        location=token.get_location())
+
+
+def check_variable_assignments(cfg, local_ctx, tree):
+  for stmt in find_statements_in_subtree(tree, ["set", "list"]):
+    if stmt.get_funname() == "set":
+      token = stmt.argtree.varname
+    elif stmt.get_funname() == "list":
+      token = stmt.argtree.parg_groups[0].get_tokens(kind="semantic")[1]
+    else:
+      continue
+    check_varname(cfg, local_ctx, token.spelling, token)
+
+
+def check_variable_references(cfg, local_ctx, tree):
+  # TODO(josh): replace with a stateful parser that builds up
+  # global/directory/local namespaces and can check for usage before assignment,
+  # shadowing, etc
+  for token in tree.get_tokens(kind="semantic"):
+    if token.type not in (
+        TokenType.QUOTED_LITERAL, TokenType.DEREF):
+      continue
+    for varname in re.findall(r"\$\{([\w_]+)\}", token.spelling):
+      check_varname(cfg, local_ctx, varname, token)
+
+
 def check_tree(cfg, local_ctx, node):
   if not isinstance(node, TreeNode):
     return
@@ -522,3 +557,9 @@ def check_tree(cfg, local_ctx, node):
   else:
     for child in node.children:
       check_tree(cfg, local_ctx, child)
+
+
+def check_parse_tree(cfg, local_ctx, node):
+  check_variable_assignments(cfg, local_ctx, node)
+  check_variable_references(cfg, local_ctx, node)
+  check_tree(cfg, local_ctx, node)

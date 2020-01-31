@@ -80,9 +80,6 @@ def parse_set(ctx, tokens, breakstack):
 
     ntokens = len(tokens)
 
-    # NOTE(josh): each flag is also stored in kwargs as with a positional parser
-    # of size zero. This is a legacy thing that should be removed, but for now
-    # just make sure we check flags first.
     word = get_normalized_kwarg(tokens[0])
     if word == "CACHE":
       subtree = KeywordGroupNode.parse(
@@ -119,6 +116,9 @@ def parse_set(ctx, tokens, breakstack):
     else:
       subtree = PositionalGroupNode.parse(
           ctx, tokens, '+', [], kwarg_breakstack)
+      for pattern, tags in ctx.config.parse.vartags_:
+        if pattern.match(tree.varname.spelling):
+          subtree.tags.extend(tags)
       tree.value_group = subtree
 
     assert len(tokens) < ntokens

@@ -781,8 +781,6 @@ class TestCanonicalLayout(unittest.TestCase):
         (NodeType.KEYWORD, 0, 2, 2, 12, []),
         (NodeType.ARGGROUP, 4, 2, 13, 53, [
           (NodeType.COMMENT, 0, 2, 13, 53, []),
-          (NodeType.COMMENT, 0, 3, 13, 52, []),
-          (NodeType.COMMENT, 0, 4, 13, 53, []),
           (NodeType.PARGGROUP, 0, 5, 13, 43, [
             (NodeType.ARGUMENT, 0, 5, 13, 43, []),
           ]),

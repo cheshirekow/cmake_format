@@ -26,6 +26,7 @@ WHITESPACE_TOKENS = (lexer.TokenType.WHITESPACE,
 # wont get reflowed within a comment block so there is no reason to parse them
 # as such.
 COMMENT_TOKENS = (lexer.TokenType.COMMENT,)
+
 ONOFF_TOKENS = (lexer.TokenType.FORMAT_ON,
                 lexer.TokenType.FORMAT_OFF)
 
@@ -213,9 +214,18 @@ def get_min_npargs(npargs):
     return 1
 
   if npargs.endswith("+"):
-    return int(npargs[:-1])
+    try:
+      return int(npargs[:-1])
+    except ValueError:
+      pass
 
-  raise ValueError("Unexpected npargs {}".format(npargs))
+  try:
+    return int(npargs)
+  except ValueError:
+    pass
+
+  raise ValueError(
+      "Unexpected npargs {}({})".format(npargs, type(npargs).__name__))
 
 
 LINE_TAG = re.compile(r"#\s*(cmake-format|cmf): ([^\n]*)")

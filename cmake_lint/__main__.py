@@ -35,13 +35,12 @@ def process_file(config, local_ctx, infile_content):
 
   basic_checker.check_basics(config, local_ctx, infile_content)
   tokens = lexer.tokenize(infile_content)
-  config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db, local_ctx, config)
   parse_tree = parse.parse(tokens, ctx)
   parse_tree.build_ancestry()
-  basic_checker.check_tree(config, local_ctx, parse_tree)
+  basic_checker.check_parse_tree(config, local_ctx, parse_tree)
 
 
 def setup_argparse(argparser):

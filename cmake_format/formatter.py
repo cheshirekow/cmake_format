@@ -70,10 +70,11 @@ def get_comment_lines(config, node):
   return inlines
 
 
-def format_comment_lines(node, config, line_width):
+def format_comment_lines(node, stack_context, line_width):
   """
   Reflow comment lines into the given line width, parsing markup as necessary.
   """
+  config = stack_context.config
   inlines = get_comment_lines(config, node)
 
   if (isinstance(node, simple_nodes.CommentNode) and node.is_explicit_trailing):
@@ -89,9 +90,9 @@ def format_comment_lines(node, config, line_width):
     if literal_comment_regex.match('\n'.join(inlines)):
       return [prefix + line.rstrip() for line in inlines]
 
-  if node.children[0] is config.first_token and (
+  if node.children[0] is stack_context.first_token and (
       config.markup.first_comment_is_literal
-      or config.first_token.spelling.startswith("#!")):
+      or stack_context.first_token.spelling.startswith("#!")):
     return [prefix + line.rstrip() for line in inlines]
 
   items = markup.parse(inlines, config)
@@ -209,9 +210,10 @@ class StackContext(object):
   through all of the nested :code:`reflow()` function calls.
   """
 
-  def __init__(self, config):
+  def __init__(self, config, first_token=None):
     self.config = config
     self.node_path = []
+    self.first_token = first_token
 
   @contextlib.contextmanager
   def push_node(self, node):
@@ -262,6 +264,7 @@ class LayoutNode(object):
     # the current depth
     self.statement_terminal = False
 
+    self._parent = None
     self._children = []
     self._passno = -1
 
@@ -269,6 +272,7 @@ class LayoutNode(object):
     # different than just "position" + "size" in the case that the node
     # contains multiline string or bracket arguments
     self._colextent = 0
+    self._rowextent = 0
 
     # Depth of this node in the subtree starting at the statement node.
     # If this node is not in a statement subtree the value is zero.
@@ -292,6 +296,20 @@ class LayoutNode(object):
     self._wrap = False
 
     assert isinstance(pnode, TreeNode)
+
+  def _index_in_parent(self):
+    for idx, child in enumerate(self._parent.children):
+      if child is self:
+        return idx
+    return -1
+
+  def next_sibling(self):
+    if self._parent is None:
+      return None
+    next_idx = self._index_in_parent() + 1
+    if next_idx >= len(self._parent.children):
+      return None
+    return self._parent.children[next_idx]
 
   @property
   def name(self):
@@ -349,13 +367,17 @@ class LayoutNode(object):
     """
     return self._children
 
+  @property
+  def rowextent(self):
+    return self._rowextent
+
   def __repr__(self):
     boolmap = {True: "T", False: "F"}
-    return "{},(passno={},wrap={},ok={}) pos:({},{}) colextent:{}".format(
-        self.node_type.name,
+    return "{}({}),(passno={},wrap={},ok={}) pos:({},{}) ext:({},{})".format(
+        self.__class__.__name__, self.node_type.name,
         self._passno, boolmap[self._wrap], boolmap[self._reflow_valid],
         self.position[0], self.position[1],
-        self.colextent)
+        self.rowextent, self.colextent)
 
   def has_terminal_comment(self):
     """
@@ -389,6 +411,10 @@ class LayoutNode(object):
     self._subtree_depth = self.get_depth()
     self._children = tuple(self._children)
     self._locked = True
+
+    for child in self._children:
+      # pylint: disable=protected-access
+      child._parent = self
 
     if self.node_type == NodeType.STATEMENT:
       nextdepth = 1
@@ -443,6 +469,7 @@ class LayoutNode(object):
     (re-)compute the layout of this node under the assumption that it should
     be placed at the given `cursor` on the current `parent_passno`.
     """
+
     assert self._locked
     assert isinstance(self.pnode, TreeNode)
 
@@ -1096,7 +1123,8 @@ class PargGroupNode(LayoutNode):
       if self.statement_terminal and not children:
         child.statement_terminal = True
 
-      cursor = child.reflow(stack_context, cursor, passno)
+      input_cursor = cursor
+      cursor = child.reflow(stack_context, input_cursor, passno)
 
       if (not cursor_is_at_column) and (not self._wrap):
         # If we are in horizontal wrapping mode, then we need to look at a
@@ -1129,9 +1157,8 @@ class PargGroupNode(LayoutNode):
 
         if needs_wrap:
           rowcount += 1
-          column_cursor[0] = cursor[0] + 1
-          cursor = Cursor(*column_cursor)
-          cursor = child.reflow(stack_context, cursor, passno)
+          column_cursor[0] = input_cursor[0] + 1
+          cursor = child.reflow(stack_context, column_cursor, passno)
 
       # NOTE(josh): we must keep updating the extent after each child because
       # the child might be an argument with a multiline string or a bracket
@@ -1139,6 +1166,7 @@ class PargGroupNode(LayoutNode):
       self._reflow_valid &= child.reflow_valid
       self._colextent = max(self._colextent, child.colextent)
 
+    self._rowextent = rowcount
     # NOTE(josh): there is a subtle distinction between invalidating a reflow
     # and forcing mode=vertical. The difference is whether or not a parent
     # node has to advance it's decision state. If we force to vertical at
@@ -1163,7 +1191,7 @@ def count_subgroups(children):
     if child.node_type in (NodeType.KWARGGROUP, NodeType.PARGGROUP,
                            NodeType.PARENGROUP):
       numgroups += 1
-    elif child.node_type is NodeType.COMMENT:
+    elif child.node_type in (NodeType.COMMENT, NodeType.ONOFFSWITCH):
       continue
     else:
       raise ValueError(
@@ -1475,6 +1503,10 @@ class CommentNode(LayoutNode):
   acts like an argument comment.
   """
 
+  def __init__(self, pnode):
+    super(CommentNode, self).__init__(pnode)
+    self._lines = []
+
   def is_tag(self):
     return comment_is_tag(self.pnode.children[0])
 
@@ -1504,7 +1536,9 @@ class CommentNode(LayoutNode):
       return cursor
 
     allocation = config.format.linewidth - cursor[1]
-    lines = list(format_comment_lines(self.pnode, config, allocation))
+    with stack_context.push_node(self):
+      self._lines = lines = list(
+          format_comment_lines(self.pnode, stack_context, allocation))
     self._colextent = cursor[1] + max(len(line) for line in lines)
 
     increment = (len(lines) - 1, len(lines[-1]))
@@ -1520,9 +1554,7 @@ class CommentNode(LayoutNode):
       content = normalize_line_endings(self.pnode.children[0].spelling)
       ctx.outfile.write_at(self.position, content)
     else:
-      allocation = config.format.linewidth - self.position[1]
-      lines = list(format_comment_lines(self.pnode, config, allocation))
-      for idx, line in enumerate(lines):
+      for idx, line in enumerate(self._lines):
         ctx.outfile.write_at(self.position + (idx, 0), line)
 
 
@@ -1535,8 +1567,7 @@ class WhitespaceNode(LayoutNode):
     """
     Compute the size of a whitespace block
     """
-    self._colextent = 0
-    return cursor
+    return cursor.clone()
 
   def write(self, config, ctx):
     return
@@ -1574,7 +1605,7 @@ def create_box_tree(pnode):
   return layout_root
 
 
-def layout_tree(parsetree_root, config, linewidth=None):
+def layout_tree(parsetree_root, config, linewidth=None, first_token=None):
   """
   Top-level function to construct a layout tree from a parse tree, and then
   iterate through layout passes until the entire tree is satisfactory. Returns
@@ -1586,7 +1617,7 @@ def layout_tree(parsetree_root, config, linewidth=None):
 
   root_box = create_box_tree(parsetree_root)
   root_box.lock(config)
-  stack_context = StackContext(config)
+  stack_context = StackContext(config, first_token)
   root_box.reflow(stack_context, Cursor(0, 0))
 
   return root_box

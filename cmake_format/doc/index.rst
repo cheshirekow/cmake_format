@@ -33,6 +33,9 @@ for ``cmake``:
    ctest-to
    configopts
    custom_parsers
+   parse-tree
+   parse-algorithm
+   parse-automatic
    contributing
 
    release_notes

@@ -26,6 +26,21 @@ from cmake_format import parse_funs
 from cmake_format import render
 
 
+EMBED_TPL = """
+<template id="renderedcontent">
+{{html_content}}
+</template>
+<iframe id="renderframe" style="width:100%;"></iframe>
+<script type="text/javascript">
+  var frame = document.getElementById("renderframe");
+  frame.addEventListener("load", function() {
+    frame.height = frame.contentWindow.document.body.scrollHeight + 30;
+  });
+  frame.srcdoc = document.getElementById("renderedcontent").innerHTML;
+</script>
+"""
+
+
 def annotate_file(config, infile, outfile, outfmt=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
@@ -37,7 +52,6 @@ def annotate_file(config, infile, outfile, outfmt=None):
     config = config.clone()
     config.format.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
-  config.first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db)
@@ -51,6 +65,18 @@ def annotate_file(config, infile, outfile, outfmt=None):
     html_content = render.get_html(parse_tree, fullpage=False)
     outfile.write(html_content)
     return
+  if outfmt == "iframe":
+    html_content = render.get_html(parse_tree, fullpage=True)
+    wrap_lines = EMBED_TPL.split("\n")
+    for line in wrap_lines[:2]:
+      outfile.write(line)
+      outfile.write("\n")
+    outfile.write(html_content)
+    for line in wrap_lines[3:]:
+      outfile.write(line)
+      outfile.write("\n")
+    return
+
   raise ValueError("Invalid output format: {}".format(outfmt))
 
 
@@ -70,7 +96,7 @@ def setup_argparser(arg_parser):
   arg_parser.add_argument('-v', '--version', action='version',
                           version=cmake_format.VERSION)
   arg_parser.add_argument(
-      "-f", "--format", choices=["page", "stub"], default="stub",
+      "-f", "--format", choices=["page", "stub", "iframe"], default="stub",
       help="whether to output a standalone `page` complete with <html></html> "
            "tags, or just the annotated content")
 

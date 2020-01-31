@@ -1,19 +1,17 @@
 set(MODPREFIX cmake_format.command_tests)
 
-set(
-  _testnames
-  TestAddCustomCommand
-  TestAddExecutableCommand
-  TestAddLibraryCommand
-  TestConditional
-  TestExport
-  TestFile
-  TestForeach
-  TestInstall
-  TestMiscFormatting
-  TestSetTargetProperties
-  TestSet
-)
+set(_testnames
+    TestAddCustomCommand
+    TestAddExecutableCommand
+    TestAddLibraryCommand
+    TestConditional
+    TestExport
+    TestFile
+    TestForeach
+    TestInstall
+    TestMiscFormatting
+    TestSetTargetProperties
+    TestSet)
 
 foreach(_testname ${_testnames})
   add_test(

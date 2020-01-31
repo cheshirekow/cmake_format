@@ -39,7 +39,7 @@ Integrations
 Usage
 -----
 
-.. dynamic: usage-begin
+.. dynamic: format-usage-begin
 
 .. code:: text
 
@@ -86,6 +86,12 @@ Usage
 
     Various configuration options/parameters for formatting:
 
+
+    Options affecting listfile parsing:
+      --vartags [VARTAGS [VARTAGS ...]]
+                            Specify variable tags.
+      --proptags [PROPTAGS [PROPTAGS ...]]
+                            Specify property tags.
 
     Options effecting formatting.:
       --line-width LINE_WIDTH
@@ -241,7 +247,7 @@ Usage
                             utf-8. Note that cmake only claims to support utf-8 so
                             be careful when using anything else
 
-.. dynamic: usage-end
+.. dynamic: format-usage-end
 
 -------------
 Configuration
@@ -252,9 +258,9 @@ An example configuration file is given here. Additional flags and additional
 kwargs will help ``cmake-format`` to break up your custom commands in a
 pleasant way.
 
-.. dynamic: configuration-begin
+.. dynamic: configbits-begin
 
-.. code:: text
+.. code:: python
 
     # ----------------------------------
     # Options affecting listfile parsing
@@ -263,6 +269,12 @@ pleasant way.
 
       # Specify structure for custom cmake functions
       additional_commands = {'pkg_find': {'kwargs': {'PKG': '*'}}}
+
+      # Specify variable tags.
+      vartags = []
+
+      # Specify property tags.
+      proptags = []
 
     # -----------------------------
     # Options effecting formatting.
@@ -468,7 +480,7 @@ pleasant way.
       per_command = {}
 
 
-.. dynamic: configuration-end
+.. dynamic: configbits-end
 
 You may specify a path to a configuration file with the ``--config-file``
 command line option. Otherwise, ``cmake-format`` will search the ancestry
@@ -680,7 +692,6 @@ custom command would look something like this:
 
 
 .. __: https://cmake-format.rtfd.io/custom_parsers
-
 .. dynamic: features-end
 
 ---------------------------------

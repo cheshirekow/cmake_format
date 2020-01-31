@@ -11,11 +11,55 @@ include
 Configurations are merged and individual variables follow a latest-wins
 semantic.
 
+--------------
+Parser options
+--------------
+
 additional_commands
 ===================
 
 Use this variable to specify how to parse custom cmake functions.
 See :ref:`additional-cmd`.
+
+vartags
+=======
+
+Specify a mapping of variable patterns (python regular expression) to a list
+of tags. Any time a a variable matching this pattern is encountered the tags
+can be used to affect the parsing/formatting. For example:
+
+.. code::
+
+   vartags = [
+     (".*_COMMAND", ["cmdline"])
+   ]
+
+Specifies that any variable ending in ``_COMMAND`` be tagged as ``cmdline``.
+This will affect the formatting by preventing the arguments from being
+vertically wrapped.
+
+Note: this particular rule is builtin so you do not need to include this in
+your configuration. Use the configuration variable to add new rules.
+
+proptags
+========
+
+Specify a mapping of property patterns (python regular expression) to a list
+of tags. Any time a a property matching this pattern is encountered the tags
+can be used to affect the parsing/formatting. For example:
+
+.. code::
+
+   proptags = [
+     (".*_DIRECTORIES", ["file-list"])
+   ]
+
+Specifies that any property ending in ``_DIRECTORIES`` be tagged as
+``file-list``. In the future this may affect formatting by allowing arguments
+to be sorted (but currently has no effect).
+
+Note: this particular rule is builtin so you do not need to include this in
+your configuration. Use the configuration variable to add new rules.
 
 --------------------------
 General Formatting Options

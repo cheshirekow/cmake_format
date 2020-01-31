@@ -9,27 +9,7 @@ generate a more structured representation of the test spec.
 Usage
 -----
 
-.. dynamic: ctest-to-usage-begin
-
-.. code:: text
-
-    usage: ctest-to [-h] [--log-level {debug,info,warning,error}] [--json | --xml]
-                    [directory]
-
-    Parse ctest testfiles and re-emit the test specification in a more structured
-    format.
-
-    positional arguments:
-      directory
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      --log-level {debug,info,warning,error}
-      --json
-      --xml
-
-.. dynamic: ctest-to-usage-end
-
+.. literalinclude:: bits/ctest-to-usage.txt
 
 -------
 Example

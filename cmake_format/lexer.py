@@ -190,11 +190,6 @@ def tokenize(contents):
     contents = contents[1:]
 
   tokens, remainder = scanner.scan(contents)
-  assert not remainder, "Unparsed tokens: {}".format(remainder)
-  if remainder:
-    raise common.UserError(
-        "Lexer Error: failed to tokenize input starting at: \n {}"
-        .format(remainder))
 
   # Now add line, column, and serial number to token objects. We get lineno
   # by maintaining a running count of newline characters encountered among
@@ -223,6 +218,11 @@ def tokenize(contents):
                                index=tok_index,
                                begin=begin,
                                end=SourceLocation((lineno, col, offset))))
+
+  if remainder:
+    raise common.UserError(
+        "Lexer Error: failed to tokenize input starting at: {}:{} with:\n {}"
+        .format(lineno, col, remainder[:-20]))
 
   return tokens_return
 

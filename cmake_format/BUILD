@@ -28,6 +28,8 @@ py_library(
         "parse/simple_nodes.py",
         "parse/statement_node.py",
         "parse/util.py",
+        "parse/properties.py",
+        "parse/variables.py",
         "parse_funs/__init__.py",
         "parse_funs/add_executable.py",
         "parse_funs/add_library.py",

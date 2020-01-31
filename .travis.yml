@@ -1,13 +1,42 @@
 dist: xenial
 language: python
 python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
+- '2.7'
+- '3.5'
+- '3.6'
+
+before_install:
+- sudo apt-get update
+- sudo apt-get -y install pandoc
 
 install:
-  - pip install -r requirements.txt
+- pip install -r requirements.txt
 
 script:
-  - make better-test
-  - make lint
+- make better-test
+- make lint
+
+env:
+  global:
+    # GITHUB_ACCESS_TOKEN=
+    secure: "e62y3i4FG7KsJ/I8aVKoPk5CG0L7/TW1K4M+BLt5zULsKGyRw6b53I97p5Tc1zcAHqcocFeYL/eC3AucG3VNvyv6LIZuv5Y0upF/MG++tvkfV9Iyok76mP70DXR/ikAJDMgZSdEL/6uTTJ4XfBuH/VvCMMBvj+5ORSL65KIfqXcexj2JWaNtEEfwiVSkDvQZYYbHLRjQdAXzzI7g1xh+8mCmuFAvtn6U1cIZpdQv5u1DNIry8PoQ2asHr+vaCN9iVXvkWcUjoXpJTp96Hd8eO40ts3v3Ja1yJ7GzH09zjbKJS63dcB0LfV5uLjybJCkQ03102ua0V+E5OzPn5VYeIRSRWmdo35e9xZjqqbtNdHqNayOOpew/ik+wf2Nmzva5MCRf154pFfWjBDL4zh0WGBW8FyJ/9NxdYDJsOIznHBPBHCXnQOlrpdInIptuoLnT52V7MOq9XIiuqLlAH8Tr0GzNSJIJfwwhwJuGxgYi2DPDH8PRmkbHbvY/mN2WBxNFfHBSfCQGZJt6kHtEE+xIi0QQXME0h36V/8sOsmQDzArNFl2Um5GCXodtIjZI6Ga3nQhHDRRiQKJz0V/9OsJF4GteGw94xt/l6PkCT0o4D1cmPIELrBTzaEMnXYKRQEOPnvViyV8eJF2RBnaqNk+FqI+hmGtXXUKAdXZWAzyS66I="
+
+jobs:
+  include:
+  - stage: deploy
+    name: deploy-tag
+    if: repo = cheshirekow/cmake_format
+        AND NOT tag IS present
+        AND branch =~ ^((master)|(staging))$
+    python: 3.6
+    script:
+    - make push-github-pseudorelease-tag
+  - name: deploy-artifacts
+    python: 3.6
+    if: repo = cheshirekow/cmake_format
+        AND tag IS present
+        AND (tag =~ ^pseudo-((master)|(staging))$
+             OR tag =~ ^v\d+\.\d+\.\d+)
+    script:
+    - make push-github-release
+    - make push-rtd-repo

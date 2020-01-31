@@ -59,10 +59,14 @@ class CommentNode(TreeNode):
     Consume sequential comment lines, removing tokens from the input list and
     returning a comment Block
     """
+    len_before = len(tokens)
 
     node = cls()
-    if tokens[0].type == lexer.TokenType.BRACKET_COMMENT:
-      # Bracket comments get their own node because they are caapable of
+    if tokens[0].type in (
+        lexer.TokenType.BRACKET_COMMENT,
+        lexer.TokenType.FORMAT_OFF,
+        lexer.TokenType.FORMAT_ON):
+      # Bracket comments get their own node because they are capable of
       # globbing up their newlines. Thus they are their own semantic comment,
       # and are not part of any larger semantic structures.
       node.children.append(tokens.pop(0))
@@ -98,6 +102,8 @@ class CommentNode(TreeNode):
         node.children.append(tokens.pop(0))
         node.children.append(tokens.pop(0))
 
+    assert len(tokens) < len_before, \
+        "CommentNode.consume didn't consume any tokens"
     return node
 
   @classmethod
@@ -212,5 +218,11 @@ def consume_whitespace_and_comments(ctx, tokens, tree):
                           lexer.TokenType.BRACKET_COMMENT):
       child = CommentNode.consume(ctx, tokens)
       tree.children.append(child)
+      continue
+
+    # If it's a sentinel comment, then add it at the current depth
+    if tokens[0].type in (lexer.TokenType.FORMAT_OFF,
+                          lexer.TokenType.FORMAT_ON):
+      tree.children.append(OnOffNode.consume(ctx, tokens))
       continue
     break

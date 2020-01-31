@@ -9,6 +9,26 @@ v0.6 series
 ===========
 
 ------
+v0.6.8
+------
+
+There is now an embeded a database of known variables and properties.
+``cmake-lint`` uses this database to implement checks on assignment/use of
+variables that are likely to be typos of a builtin variable name. There are
+also two new configuration options ``vartags`` and ``proptags`` that can
+be used to affect how the parser and formatter treat certain variables and
+properties.
+
+Line comments within a statement are now consumed the same as line comments at
+block-scope. This means that your multiline mid-statement comments will be
+reflowed whereas they would previously have been left alone.
+
+The CI Build has gotten a little more complicated. Generated documentation
+sources are no longer committed to the repository. Instead, they are pushed to
+a separate staging repository from which the read-the-docs pages are built.
+
+
+------
 v0.6.7
 ------
 

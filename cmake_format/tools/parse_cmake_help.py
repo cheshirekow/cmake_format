@@ -8,6 +8,8 @@ TODO(josh): `cmake --help-commandplist` to get a list of builtin commands
 that we can generate parsers for.
 """
 
+from __future__ import print_function, unicode_literals
+
 import argparse
 import io
 import logging
@@ -25,13 +27,27 @@ def get_abspath(relpath):
   return os.path.abspath(os.path.join(os.path.dirname(__file__), relpath))
 
 
+def sub_callback(match):
+  # NOTE(josh): it would be handly to use named groups in regular expressions,
+  # but since we use | to join them together into a big regex... the names
+  # will collide so we cannot
+  return "(?P<{}>.*)".format(re.sub(r"\W", "_", match.group(1)))
+
+
+GENERIC_LABEL = re.compile(r"<([^>]+)>")
+
+
 def make_pattern(namestr):
   """
   Look for any generic labels within a cmake property or variable name
   (e.g. `<LANG>` in `<LANG>_CPPLINT`) and convert the pattern string to a
   regular expression pattern (e.g. `.*_CPPLINT`)
   """
-  return re.sub("<[^>]+>", ".*", namestr)
+  return GENERIC_LABEL.sub(sub_callback, namestr)
+
+
+def strip_named_groups(pattern):
+  return re.sub(r"\(?P<[\w_]>", "(", pattern)
 
 
 def get_properties(args, jenv):
@@ -125,17 +141,19 @@ def get_usages(helpstr):
   return usage
 
 
-def cmd_get_usages(args, jenv):
+def cmd_get_usages(args, jenv):  # pylint: disable=W0613
   for command_name in get_command_list(args):
     helpstr = get_command_help(args, command_name)
     for usage in get_usages(helpstr):
       print(usage)
 
-def cmd_print_deprecated(args, jenv):
+
+def cmd_print_deprecated(args, jenv):  # pylint: disable=W0613
   for command_name in get_command_list(args):
     helpstr = get_command_help(args, command_name)
     if "Deprecated" in helpstr:
       print(command_name)
+
 
 def setup_argparse(parser):
   """Setup argument parser"""

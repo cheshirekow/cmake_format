@@ -2,8 +2,10 @@
 *.o
 *.so
 
-# unified repo tracking
+# sparse-export stuff
 .gitu
+.sparse-export
+tangent/tooling/sparse-exports
 
 # qt creator
 *.qtc.*

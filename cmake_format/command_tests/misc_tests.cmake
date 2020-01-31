@@ -67,14 +67,6 @@ foo(some_arg some_arg "
     This string is on multiple lines
 ")
 
-# test: format_off_code
-# No, I really want this to look ugly
-# cmake-format: off
-add_library(a b.cc
-  c.cc         d.cc
-          e.cc)
-# cmake-format: on
-
 # test: multiline_statment_comment_idempotent
 set(HELLO hello world!) # TODO(josh): fix this bad code with some change that
                         # takes mutiple lines to explain

@@ -27,6 +27,6 @@ test: all
 	@echo "Bootstraping build system"
 	mkdir -p .build
 	touch .build/CMakeCache.txt
-	cd .build && env cmake -DIS_TRAVIS_CI=True ../
+	cd .build && env cmake ../
 
 PHONY: all doc test
