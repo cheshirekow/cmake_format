@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import collections
 import contextlib
 import inspect
@@ -179,6 +181,8 @@ class SubtreeDescriptor(Descriptor):
   def __set_name__(self, owner, name):
     # pylint: disable=protected-access
     owner._field_registry.append(self)
+    if sys.version_info < (3, 0, 0):
+      name = name.decode("utf-8")
     self.name = name
 
   def consume_value(self, obj, value_dict):
@@ -225,9 +229,15 @@ class FieldDescriptor(Descriptor):
   def __set__(self, obj, value):
     setattr(obj, "_" + self.name, value)
 
+  def unset(self, obj):
+    if self.has_override(obj):
+      delattr(obj, "_" + self.name)
+
   def __set_name__(self, owner, name):
     # pylint: disable=protected-access
     owner._field_registry.append(self)
+    if sys.version_info < (3, 0, 0):
+      name = name.decode("utf-8")
     self.name = name
 
   def consume_value(self, obj, value):

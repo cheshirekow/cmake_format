@@ -107,8 +107,6 @@ def setup_argparser(arg_parser):
                           help='path to configuration file')
   arg_parser.add_argument('infilepaths', nargs='*')
 
-  configuration.Configuration().add_to_argparser(arg_parser)
-
 
 def main():
   """Parse arguments, open files, start work."""

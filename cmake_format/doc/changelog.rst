@@ -6,6 +6,27 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.9
+------
+
+* fix RTD push on Travis if the pseudo-release is already up-to-date
+* added pattern for at-words to the lexer and new token type
+* fix custom parsers didn't set lint spec for PositionalGroupNode
+* don't pedantically error out on empty JSON config file
+* parser can comprehend comments belonging to higher than the current depth
+  in the semantic tree.
+* cleanup README, move some stuff to documentation pointers
+* generate the config options details page rather than hand writing it
+
+* Closes: `#109`_: Formatting of files containing @VARIBLE@ fails
+* Closes: `#122`_: parse_positionals consumes non-related comments after code
+* Closes: `#168`_: cmake-lint crashes on `add_library` function
+* Closes: 031922e, 5bcc447, c07a668, efba824, 7eb2cb6
+
+.. _#109: https://github.com/cheshirekow/cmake_format/issues/109
+.. _#122: https://github.com/cheshirekow/cmake_format/issues/122
+.. _#168: https://github.com/cheshirekow/cmake_format/issues/168
+
 v0.6.8
 ------
 
@@ -24,11 +45,11 @@ v0.6.8
 * Move documentation build to build time and push documentation artifacts
   to an artifact repository
 
-* Closes `#162`: cmake-lint crashes when evaluating `math`
-* Closes `#163`: cmake-lint crashes when using `VERBATIM` in
+* Closes `#162`_: cmake-lint crashes when evaluating `math`
+* Closes `#163`_: cmake-lint crashes when using `VERBATIM` in
   `add_custom_target`
-* Closes `#164`: Internal error FetchContent_MakeAvailable
-* Closes: 000bf9a, 6e4ef70, 85a3985, 9a3afa6, cf4570e
+* Closes `#164`_: Internal error FetchContent_MakeAvailable
+* Closes: 000bf9a, 6e4ef70, 85a3985, 9a3afa6, c297b3d, cf4570e
 
 .. _#162: https://github.com/cheshirekow/cmake_format/issues/162
 .. _#163: https://github.com/cheshirekow/cmake_format/issues/163

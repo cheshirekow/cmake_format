@@ -1,8 +1,8 @@
 .. _configopts:
 
-=====================
-Configuration Options
-=====================
+======
+global
+======
 
 include
 =======
@@ -11,9 +11,9 @@ include
 Configurations are merged and individual variables follow a latest-wins
 semantic.
 
---------------
-Parser options
---------------
+-----
+parse
+-----
 
 additional_commands
 ===================
@@ -61,9 +61,9 @@ to be sorted (but currently has no effect).
 Note: this particular rule is builtin so you do not need to include this in
 your configuration. Use the configuration variable to add new rules.
 
---------------------------
-General Formatting Options
---------------------------
+------
+format
+------
 
 line_width
 ==========
@@ -393,9 +393,9 @@ If this flag is True, however, cmake-format will print error, exit with non-
 zero status code, and write-out nothing
 
 
-------------------------------------
-Options affecting comment formatting
-------------------------------------
+-------
+comment
+-------
 
 bullet_char
 ===========
@@ -542,9 +542,9 @@ such that the above example using explicit trailing comments would  be:
     "BOZ" #< multi value keywords
     ${ARGN})
 
---------------------------
-Options Effecting Encoding
---------------------------
+------
+encode
+------
 
 emit_byteorder_mark
 ===================

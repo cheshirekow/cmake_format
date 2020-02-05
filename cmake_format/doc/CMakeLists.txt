@@ -10,25 +10,35 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/format-usage.txt)
 
+set(_config_deps
+    ../__main__.py #
+    ../configuration.py #
+    ../config_util.py)
+
 add_custom_command(
   OUTPUT ${_stage}/bits/format-usage.txt
   COMMAND python -Bm cmake_format --help > ${_stage}/bits/format-usage.txt
   DEPENDS ${_stage}/bits #
-          ../__main__.py #
-          ../configuration.py #
-          ../config_util.py
+          ${_config_deps}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/format-usage.txt)
+
+add_custom_command(
+  OUTPUT ${_stage}/bits/format-usage-short.txt ${_stage}/bits/common-usage.txt
+  COMMAND
+    python -Bm cmake_format.tools.split_help ${_stage}/bits/format-usage.txt
+    ${_stage}/bits/format-usage-short.txt ${_stage}/bits/common-usage.txt
+  DEPENDS ${_stage}/bits/format-usage.txt ../tools/split_help.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+list(APPEND _genbits ${_stage}/bits/format-usage-short.txt
+     ${_stage}/bits/common-usage.txt)
 
 add_custom_command(
   OUTPUT ${_stage}/bits/annotate-usage.txt
   COMMAND python -Bm cmake_format.annotate --help >
           ${_stage}/bits/annotate-usage.txt
   DEPENDS ${_stage}/bits #
-          ../__main__.py #
-          ../annotate.py #
-          ../configuration.py #
-          ../config_util.py
+          ${_config_deps} ../annotate.py #
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/annotate-usage.txt)
 
@@ -37,10 +47,7 @@ add_custom_command(
   COMMAND python -Bm cmake_format.ctest_to --help >
           ${_stage}/bits/ctest-to-usage.txt
   DEPENDS ${_stage}/bits #
-          ../__main__.py #
-          ../ctest_to.py #
-          ../configuration.py #
-          ../config_util.py
+          ${_config_deps} ../ctest_to.py #
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/ctest-to-usage.txt)
 
@@ -48,21 +55,24 @@ add_custom_command(
   OUTPUT ${_stage}/bits/lint-usage.txt
   COMMAND python -Bm cmake_lint --help > ${_stage}/bits/lint-usage.txt
   DEPENDS ${_stage}/bits #
-          ../../cmake_lint/__main__.py #
-          ../__main__.py #
-          ../ctest_to.py #
-          ../configuration.py #
-          ../config_util.py
+          ${_config_deps} #
+          ../../cmake_lint/__main__.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/lint-usage.txt)
+
+add_custom_command(
+  OUTPUT ${_stage}/bits/lint-usage-short.txt
+  COMMAND python -Bm cmake_format.tools.split_help ${_stage}/bits/lint-usage.txt
+          ${_stage}/bits/lint-usage-short.txt
+  DEPENDS ${_stage}/bits/lint-usage.txt ../tools/split_help.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+list(APPEND _genbits ${_stage}/bits/lint-usage-short.txt)
 
 add_custom_command(
   OUTPUT ${_stage}/bits/configbits.py
   COMMAND python -Bm cmake_format --dump-config > ${_stage}/bits/configbits.py
   DEPENDS ${_stage}/bits #
-          ../__main__.py #
-          ../configuration.py #
-          ../config_util.py
+          ${_config_deps}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/bits/configbits.py)
 
@@ -169,7 +179,7 @@ add_custom_command(
   COMMAND python -Bm cmake_lint.gendocs reference >
           ${_stage}/lint-implemented.rst
   DEPENDS ${_stage}/bits #
-          ../../cmake_lint/lintdb.py
+          ../../cmake_lint/lintdb.py ../../cmake_lint/gendocs.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/lint-implemented.rst)
 
@@ -182,19 +192,27 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/example_rendered.html)
 
+add_custom_command(
+  OUTPUT ${_stage}/configopts.rst
+  COMMAND python -Bm cmake_format.tools.gen_config_details >
+          ${_stage}/configopts.rst
+  DEPENDS ../config_util.py #
+          ../configuration.py #
+          ../tools/gen_config_details.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+list(APPEND _genbits ${_stage}/configopts.rst)
+
 # TODO(josh): remove this iteration for just one file.
 set(_genfiles)
 set(_insource_genfiles README.rst)
 foreach(_genfile ${_insource_genfiles})
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
-    COMMAND
-      python -Bm cmake_format.doc.gendoc --bits ${_stage}/bits
-      ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
-
-    # TODO(josh): not every file depends on every bit, so this is overkill,
-    # but whatever... it's fine for now. We'll need more complicated code if
-    # we want to actually declare which bits each file depends on.
+    COMMAND python -Bm cmake_format.doc.gendoc --bits ${_stage}/bits
+            ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+    # TODO(josh): not every file depends on every bit, so this is overkill, but
+    # whatever... it's fine for now. We'll need more complicated code if we want
+    # to actually declare which bits each file depends on.
     DEPENDS ${_genbits} gendoc.py
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile})
@@ -220,7 +238,6 @@ set(_docsources
     cmake-annotate.rst
     cmake-format.rst
     cmake-lint.rst
-    configopts.rst
     configuration.rst
     conf.py
     contributing.rst
@@ -246,7 +263,7 @@ foreach(_docsource ${_docsources})
     OUTPUT ${_stage}/${_docsource}
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${_docsource}
             ${_stage}/${_docsource}
-    DEPENDS ${_stage}/bits)
+    DEPENDS ${_docsource} ${_stage}/bits)
   list(APPEND _copyfiles ${_stage}/${_docsource})
 endforeach()
 
@@ -271,8 +288,8 @@ set(_sphinx_manifest ${_genbits} ${_copyfiles})
 
 # A list of files that should be exported to the read-the-docs repository. This
 # is used to clean the directory prior to export
-set(_rtd_manifest ${_sphinx_manifest}
-    README.rst .gitignore .readthedocs.yml rtd-requirements.txt)
+set(_rtd_manifest ${_sphinx_manifest} README.rst .gitignore .readthedocs.yml
+                  rtd-requirements.txt)
 list(SORT _sphinx_manifest)
 
 # NOTE(josh): cmake 3.10 does not have list(JOIN)
@@ -297,7 +314,7 @@ add_custom_command(
           ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/html/index.html
   DEPENDS clean-sphinx-stage ${_sphinx_manifest}
-          ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST
+          ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST ../../doc/conf.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Building sphinx documentation for cmake_format")
 
@@ -315,7 +332,6 @@ set_property(GLOBAL APPEND PROPERTY global_doc_files ${_sphinx_manifest})
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
                                        ${_copyfiles} ${_genbits})
 
-
 if(IS_TRAVIS_CI)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
@@ -331,7 +347,6 @@ if(IS_TRAVIS_CI)
     COMMAND chmod 0600 ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Decrypting cmake-format.deploy_key")
-
 
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
@@ -354,18 +369,16 @@ set(_ssh_cmd
 
 add_custom_target(
   push-github-pseudorelease-tag
-  COMMAND
-    python -Bm cmake_format.tools.create_pseudorelease_tag \$\${TRAVIS_BRANCH}
+  COMMAND python -Bm cmake_format.tools.create_pseudorelease_tag
+          \$\${TRAVIS_BRANCH}
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Pushing doc artifacts to the RTD repository")
 
-
 add_custom_target(
   push-rtd-repo
-  COMMAND
-    python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
-      ${_version} -o ${_stage}/rtd-requirements.txt
+  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
+          ${_version} -o ${_stage}/rtd-requirements.txt
   COMMAND
     # cmake-format: off
     python -Bm tangent.tooling.sync_doc_artifacts

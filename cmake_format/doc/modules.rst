@@ -68,10 +68,10 @@ cmake\_format\.parse_funs module
     :undoc-members:
     :show-inheritance:
 
-cmake\_format\.parser module
+cmake\_format\.parse module
 ----------------------------
 
-.. automodule:: cmake_format.parser
+.. automodule:: cmake_format.parse
     :members:
     :undoc-members:
     :show-inheritance:

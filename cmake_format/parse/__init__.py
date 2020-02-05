@@ -3,6 +3,10 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import contextlib
+
+from cmake_format import common
+
 
 class MockEverything(object):
   """Dummy object which implements any interface by mocking all functions
@@ -33,6 +37,25 @@ class ParseContext(object):
       from cmake_format import configuration
       config = configuration.Configuration()
     self.config = config
+
+    # List of currently open parse nodes. Only used by nodes below
+    # the statement level.
+    self.argstack = []
+
+  @contextlib.contextmanager
+  def pusharg(self, node):
+    self.argstack.append(node)
+    yield None
+    if not self.argstack:
+      raise common.InternalError(
+          "Unexpected empty argstack, expected {}".format(node))
+
+    if self.argstack[-1] is not node:
+      raise common.InternalError(
+          "Unexpected node {} on argstack, expecting {}"
+          .format(self.argstack[-1], node))
+
+    self.argstack.pop(-1)
 
 
 def parse(tokens, ctx=None):

@@ -11,6 +11,7 @@ import os
 import sys
 
 import cmake_format
+from cmake_format import common
 from cmake_format import __main__
 from cmake_format import configuration
 from cmake_format import lexer
@@ -75,7 +76,7 @@ cmake-lint [-h]
 """
 
 
-def main():
+def inner_main():
   """Parse arguments, open files, start work."""
   logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -129,6 +130,7 @@ def main():
     except (IOError, OSError):
       logger.error("Failed to open %s for read", infile_path)
       returncode = 1
+      continue
 
     try:
       with infile:
@@ -136,22 +138,43 @@ def main():
     except UnicodeDecodeError:
       logger.error(
           "Unable to read %s as %s", infile_path, cfg.encode.input_encoding)
+      returncode = 1
+      continue
 
-    try:
-      local_ctx = global_ctx.get_file_ctx(infile_path, cfg)
-      process_file(cfg, local_ctx, intext)
-      outfile.write("{}\n{}\n".format(infile_path, "=" * len(infile_path)))
-      local_ctx.writeout(outfile)
-      outfile.write("\n")
-      if local_ctx.has_lint():
-        returncode = 1
-    except:
-      logger.warning('While processing %s', infile_path)
-      raise
+    local_ctx = global_ctx.get_file_ctx(infile_path, cfg)
+    process_file(cfg, local_ctx, intext)
+    outfile.write("{}\n{}\n".format(infile_path, "=" * len(infile_path)))
+    local_ctx.writeout(outfile)
+    outfile.write("\n")
+    if local_ctx.has_lint():
+      returncode = 1
+
   global_ctx.write_summary(outfile)
-
   outfile.close()
   return returncode
+
+
+def main():
+  try:
+    return inner_main()
+  except SystemExit:
+    return 0
+  except common.UserError as ex:
+    logger.fatal(ex.msg)
+    return 1
+  except common.InternalError as ex:
+    logger.exception(ex.msg)
+    return 2
+  except AssertionError as ex:
+    logger.exception(
+        "An internal error occured. Please consider filing a bug report at "
+        "github.com/cheshirekow/cmake_format/issues")
+    return 2
+  except:  # pylint: disable=bare-except
+    logger.exception(
+        "An internal error occured. Please consider filing a bug report at "
+        "github.com/cheshirekow/cmake_format/issues")
+    return 2
 
 
 if __name__ == "__main__":

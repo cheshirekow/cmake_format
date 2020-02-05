@@ -6,6 +6,7 @@ py_library(
         "__init__.py",
         "__main__.py",
         "basic_checker.py",
+        "gendocs.py",
         "lint_util.py",
         "lintdb.py"],
     deps=["//cmake_format:cmake_format"])

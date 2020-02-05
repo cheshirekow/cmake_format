@@ -8,12 +8,19 @@ cmake format
 .. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
     :target: https://cmake-format.readthedocs.io
 
+The ``cmake-format`` project provides Quality Assurance (QA) tools
+for ``cmake``:
+
+
 * ``cmake-annotate`` can generate pretty HTML from your listfiles
 
-* ``cmake-format`` can format your listfiles nicely so that they don't look
-  like crap.
+* ``cmake-format`` can format your listfiles nicely so that they don't
+  look like crap.
 
 * ``cmake-lint`` can check your listfiles for problems
+
+* ``ctest-to`` can parse a ctest output tree and translate it into a
+  more structured format (either JSON or XML).
 
 ------------
 Installation
@@ -22,6 +29,10 @@ Installation
 Install from ``pypi`` using ``pip``::
 
     pip install cmake_format
+
+Or see the `online documentation`__ for additional options.
+
+.. __: https://cmake-format.readthedocs.io/en/latest/installation.html
 
 ------------
 Integrations
@@ -39,7 +50,7 @@ Integrations
 Usage
 -----
 
-.. dynamic: format-usage-begin
+.. dynamic: format-usage-short-begin
 
 .. code:: text
 
@@ -84,197 +95,54 @@ Usage
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 
-    Various configuration options/parameters for formatting:
+
+.. dynamic: format-usage-short-end
+
+.. dynamic: lint-usage-short-begin
+
+.. code:: text
+
+    usage:
+    cmake-lint [-h]
+               [--dump-config {yaml,json,python} | -o OUTFILE_PATH]
+               [-c CONFIG_FILE]
+               infilepath [infilepath ...]
+
+    Check cmake listfile for lint
+
+    positional arguments:
+      infilepaths
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -v, --version         show program's version number and exit
+      -l {error,warning,info,debug}, --log-level {error,warning,info,debug}
+      --dump-config [{yaml,json,python}]
+                            If specified, print the default configuration to
+                            stdout and exit
+      -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
+                            Write errors to this file. Default is stdout.
+      -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
+                            path to configuration file(s)
 
 
-    Options affecting listfile parsing:
-      --vartags [VARTAGS [VARTAGS ...]]
-                            Specify variable tags.
-      --proptags [PROPTAGS [PROPTAGS ...]]
-                            Specify property tags.
-
-    Options effecting formatting.:
-      --line-width LINE_WIDTH
-                            How wide to allow formatted cmake files
-      --tab-size TAB_SIZE   How many spaces to tab for indent
-      --max-subgroups-hwrap MAX_SUBGROUPS_HWRAP
-                            If an argument group contains more than this many sub-
-                            groups (parg or kwarg groups) then force it to a
-                            vertical layout.
-      --max-pargs-hwrap MAX_PARGS_HWRAP
-                            If a positional argument group contains more than this
-                            many arguments, then force it to a vertical layout.
-      --max-rows-cmdline MAX_ROWS_CMDLINE
-                            If a cmdline positional group consumes more than this
-                            many lines without nesting, then invalidate the layout
-                            (and nest)
-      --separate-ctrl-name-with-space [SEPARATE_CTRL_NAME_WITH_SPACE]
-                            If true, separate flow control names from their
-                            parentheses with a space
-      --separate-fn-name-with-space [SEPARATE_FN_NAME_WITH_SPACE]
-                            If true, separate function names from parentheses with
-                            a space
-      --dangle-parens [DANGLE_PARENS]
-                            If a statement is wrapped to more than one line, than
-                            dangle the closing parenthesis on its own line.
-      --dangle-align {prefix,prefix-indent,child,off}
-                            If the trailing parenthesis must be 'dangled' on its
-                            on line, then align it to this reference: `prefix`:
-                            the start of the statement, `prefix-indent`: the start
-                            of the statement, plus one indentation level, `child`:
-                            align to the column of the arguments
-      --min-prefix-chars MIN_PREFIX_CHARS
-                            If the statement spelling length (including space and
-                            parenthesis) is smaller than this amount, then force
-                            reject nested layouts.
-      --max-prefix-chars MAX_PREFIX_CHARS
-                            If the statement spelling length (including space and
-                            parenthesis) is larger than the tab width by more than
-                            this amount, then force reject un-nested layouts.
-      --max-lines-hwrap MAX_LINES_HWRAP
-                            If a candidate layout is wrapped horizontally but it
-                            exceeds this many lines, then reject the layout.
-      --line-ending {windows,unix,auto}
-                            What style line endings to use in the output.
-      --command-case {lower,upper,canonical,unchanged}
-                            Format command names consistently as 'lower' or
-                            'upper' case
-      --keyword-case {lower,upper,unchanged}
-                            Format keywords consistently as 'lower' or 'upper'
-                            case
-      --always-wrap [ALWAYS_WRAP [ALWAYS_WRAP ...]]
-                            A list of command names which should always be wrapped
-      --enable-sort [ENABLE_SORT]
-                            If true, the argument lists which are known to be
-                            sortable will be sorted lexicographicall
-      --autosort [AUTOSORT]
-                            If true, the parsers may infer whether or not an
-                            argument list is sortable (without annotation).
-      --require-valid-layout [REQUIRE_VALID_LAYOUT]
-                            By default, if cmake-format cannot successfully fit
-                            everything into the desired linewidth it will apply
-                            the last, most agressive attempt that it made. If this
-                            flag is True, however, cmake-format will print error,
-                            exit with non-zero status code, and write-out nothing
-
-    Options affecting comment reflow and formatting.:
-      --bullet-char BULLET_CHAR
-                            What character to use for bulleted lists
-      --enum-char ENUM_CHAR
-                            What character to use as punctuation after numerals in
-                            an enumerated list
-      --first-comment-is-literal [FIRST_COMMENT_IS_LITERAL]
-                            If comment markup is enabled, don't reflow the first
-                            comment block in each listfile. Use this to preserve
-                            formatting of your copyright/license statements.
-      --literal-comment-pattern LITERAL_COMMENT_PATTERN
-                            If comment markup is enabled, don't reflow any comment
-                            block which matches this (regex) pattern. Default is
-                            `None` (disabled).
-      --fence-pattern FENCE_PATTERN
-                            Regular expression to match preformat fences in
-                            comments default=r'^\s*([`~]{3}[`~]*)(.*)$'
-      --ruler-pattern RULER_PATTERN
-                            Regular expression to match rulers in comments
-                            default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-      --explicit-trailing-pattern EXPLICIT_TRAILING_PATTERN
-                            If a comment line matches starts with this pattern
-                            then it is explicitly a trailing comment for the
-                            preceeding argument. Default is '#<'
-      --hashruler-min-length HASHRULER_MIN_LENGTH
-                            If a comment line starts with at least this many
-                            consecutive hash characters, then don't lstrip() them
-                            off. This allows for lazy hash rulers where the first
-                            hash char is not separated by space
-      --canonicalize-hashrulers [CANONICALIZE_HASHRULERS]
-                            If true, then insert a space between the first hash
-                            char and remaining hash chars in a hash ruler, and
-                            normalize its length to fill the column
-      --enable-markup [ENABLE_MARKUP]
-                            enable comment markup parsing and reflow
-
-    Options affecting the linter:
-      --disabled-codes [DISABLED_CODES [DISABLED_CODES ...]]
-                            a list of lint codes to disable
-      --function-pattern FUNCTION_PATTERN
-                            regular expression pattern describing valid function
-                            names
-      --macro-pattern MACRO_PATTERN
-                            regular expression pattern describing valid macro
-                            names
-      --global-var-pattern GLOBAL_VAR_PATTERN
-                            regular expression pattern describing valid names for
-                            variables with global scope
-      --internal-var-pattern INTERNAL_VAR_PATTERN
-                            regular expression pattern describing valid names for
-                            variables with global scope (but internal semantic)
-      --local-var-pattern LOCAL_VAR_PATTERN
-                            regular expression pattern describing valid names for
-                            variables with local scope
-      --private-var-pattern PRIVATE_VAR_PATTERN
-                            regular expression pattern describing valid names for
-                            privatedirectory variables
-      --public-var-pattern PUBLIC_VAR_PATTERN
-                            regular expression pattern describing valid names for
-                            publicdirectory variables
-      --keyword-pattern KEYWORD_PATTERN
-                            regular expression pattern describing valid names for
-                            keywords used in functions or macros
-      --max-conditionals-custom-parser MAX_CONDITIONALS_CUSTOM_PARSER
-                            In the heuristic for C0201, how many conditionals to
-                            match within a loop in before considering the loop a
-                            parser.
-      --min-statement-spacing MIN_STATEMENT_SPACING
-                            Require at least this many newlines between statements
-      --max-statement-spacing MAX_STATEMENT_SPACING
-                            Require no more than this many newlines between
-                            statements
-      --max-returns MAX_RETURNS
-      --max-branches MAX_BRANCHES
-      --max-arguments MAX_ARGUMENTS
-      --max-localvars MAX_LOCALVARS
-      --max-statements MAX_STATEMENTS
-
-    Options effecting file encoding:
-      --emit-byteorder-mark [EMIT_BYTEORDER_MARK]
-                            If true, emit the unicode byte-order mark (BOM) at the
-                            start of the file
-      --input-encoding INPUT_ENCODING
-                            Specify the encoding of the input file. Defaults to
-                            utf-8
-      --output-encoding OUTPUT_ENCODING
-                            Specify the encoding of the output file. Defaults to
-                            utf-8. Note that cmake only claims to support utf-8 so
-                            be careful when using anything else
-
-.. dynamic: format-usage-end
+.. dynamic: lint-usage-short-end
 
 -------------
 Configuration
 -------------
 
 ``cmake-format`` accepts configuration files in yaml, json, or python format.
-An example configuration file is given here. Additional flags and additional
-kwargs will help ``cmake-format`` to break up your custom commands in a
-pleasant way.
+An example configuration file is given `in the online documentation`__.
+Providing the structure of your custom commands will help ``cmake-format`` to
+break them up in a pleasant way, and will help `cmake-lint` detect improper
+usages of them.
 
-.. dynamic: configbits-begin
+.. __: https://cmake-format.readthedocs.io/en/latest/configuration.html
+
+An example short configuration file in python format is:
 
 .. code:: python
-
-    # ----------------------------------
-    # Options affecting listfile parsing
-    # ----------------------------------
-    with section("parse"):
-
-      # Specify structure for custom cmake functions
-      additional_commands = {'pkg_find': {'kwargs': {'PKG': '*'}}}
-
-      # Specify variable tags.
-      vartags = []
-
-      # Specify property tags.
-      proptags = []
 
     # -----------------------------
     # Options effecting formatting.
@@ -287,18 +155,6 @@ pleasant way.
       # How many spaces to tab for indent
       tab_size = 2
 
-      # If an argument group contains more than this many sub-groups (parg or kwarg
-      # groups) then force it to a vertical layout.
-      max_subgroups_hwrap = 2
-
-      # If a positional argument group contains more than this many arguments, then
-      # force it to a vertical layout.
-      max_pargs_hwrap = 6
-
-      # If a cmdline positional group consumes more than this many lines without
-      # nesting, then invalidate the layout (and nest)
-      max_rows_cmdline = 2
-
       # If true, separate flow control names from their parentheses with a space
       separate_ctrl_name_with_space = False
 
@@ -309,183 +165,10 @@ pleasant way.
       # parenthesis on its own line.
       dangle_parens = False
 
-      # If the trailing parenthesis must be 'dangled' on its on line, then align it
-      # to this reference: `prefix`: the start of the statement,  `prefix-indent`:
-      # the start of the statement, plus one indentation  level, `child`: align to
-      # the column of the arguments
-      dangle_align = 'prefix'
-
-      # If the statement spelling length (including space and parenthesis) is
-      # smaller than this amount, then force reject nested layouts.
-      min_prefix_chars = 4
-
-      # If the statement spelling length (including space and parenthesis) is larger
-      # than the tab width by more than this amount, then force reject un-nested
-      # layouts.
-      max_prefix_chars = 10
-
-      # If a candidate layout is wrapped horizontally but it exceeds this many
-      # lines, then reject the layout.
-      max_lines_hwrap = 2
-
-      # What style line endings to use in the output.
-      line_ending = 'unix'
-
-      # Format command names consistently as 'lower' or 'upper' case
-      command_case = 'canonical'
-
-      # Format keywords consistently as 'lower' or 'upper' case
-      keyword_case = 'unchanged'
-
-      # A list of command names which should always be wrapped
-      always_wrap = []
-
-      # If true, the argument lists which are known to be sortable will be sorted
-      # lexicographicall
-      enable_sort = True
-
-      # If true, the parsers may infer whether or not an argument list is sortable
-      # (without annotation).
-      autosort = False
-
-      # By default, if cmake-format cannot successfully fit everything into the
-      # desired linewidth it will apply the last, most agressive attempt that it
-      # made. If this flag is True, however, cmake-format will print error, exit
-      # with non-zero status code, and write-out nothing
-      require_valid_layout = False
-
-      # A dictionary mapping layout nodes to a list of wrap decisions. See the
-      # documentation for more information.
-      layout_passes = {}
-
-    # ------------------------------------------------
-    # Options affecting comment reflow and formatting.
-    # ------------------------------------------------
-    with section("markup"):
-
-      # What character to use for bulleted lists
-      bullet_char = '*'
-
-      # What character to use as punctuation after numerals in an enumerated list
-      enum_char = '.'
-
-      # If comment markup is enabled, don't reflow the first comment block in each
-      # listfile. Use this to preserve formatting of your copyright/license
-      # statements.
-      first_comment_is_literal = False
-
-      # If comment markup is enabled, don't reflow any comment block which matches
-      # this (regex) pattern. Default is `None` (disabled).
-      literal_comment_pattern = None
-
-      # Regular expression to match preformat fences in comments
-      # default=r'^\s*([`~]{3}[`~]*)(.*)$'
-      fence_pattern = '^\\s*([`~]{3}[`~]*)(.*)$'
-
-      # Regular expression to match rulers in comments
-      # default=r'^\s*[^\w\s]{3}.*[^\w\s]{3}$'
-      ruler_pattern = '^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$'
-
-      # If a comment line matches starts with this pattern then it is explicitly a
-      # trailing comment for the preceeding argument. Default is '#<'
-      explicit_trailing_pattern = '#<'
-
-      # If a comment line starts with at least this many consecutive hash
-      # characters, then don't lstrip() them off. This allows for lazy hash rulers
-      # where the first hash char is not separated by space
-      hashruler_min_length = 10
-
-      # If true, then insert a space between the first hash char and remaining hash
-      # chars in a hash ruler, and normalize its length to fill the column
-      canonicalize_hashrulers = True
-
-      # enable comment markup parsing and reflow
-      enable_markup = True
-
-    # ----------------------------
-    # Options affecting the linter
-    # ----------------------------
-    with section("lint"):
-
-      # a list of lint codes to disable
-      disabled_codes = []
-
-      # regular expression pattern describing valid function names
-      function_pattern = '[0-9a-z_]+'
-
-      # regular expression pattern describing valid macro names
-      macro_pattern = '[0-9A-Z_]+'
-
-      # regular expression pattern describing valid names for variables with global
-      # scope
-      global_var_pattern = '[0-9A-Z][0-9A-Z_]+'
-
-      # regular expression pattern describing valid names for variables with global
-      # scope (but internal semantic)
-      internal_var_pattern = '_[0-9A-Z][0-9A-Z_]+'
-
-      # regular expression pattern describing valid names for variables with local
-      # scope
-      local_var_pattern = '[0-9a-z_]+'
-
-      # regular expression pattern describing valid names for privatedirectory
-      # variables
-      private_var_pattern = '_[0-9a-z_]+'
-
-      # regular expression pattern describing valid names for publicdirectory
-      # variables
-      public_var_pattern = '[0-9A-Z][0-9A-Z_]+'
-
-      # regular expression pattern describing valid names for keywords used in
-      # functions or macros
-      keyword_pattern = '[0-9A-Z_]+'
-
-      # In the heuristic for C0201, how many conditionals to match within a loop in
-      # before considering the loop a parser.
-      max_conditionals_custom_parser = 2
-
-      # Require at least this many newlines between statements
-      min_statement_spacing = 1
-
-      # Require no more than this many newlines between statements
-      max_statement_spacing = 1
-      max_returns = 6
-      max_branches = 12
-      max_arguments = 5
-      max_localvars = 15
-      max_statements = 50
-
-    # -------------------------------
-    # Options effecting file encoding
-    # -------------------------------
-    with section("encode"):
-
-      # If true, emit the unicode byte-order mark (BOM) at the start of the file
-      emit_byteorder_mark = False
-
-      # Specify the encoding of the input file. Defaults to utf-8
-      input_encoding = 'utf-8'
-
-      # Specify the encoding of the output file. Defaults to utf-8. Note that cmake
-      # only claims to support utf-8 so be careful when using anything else
-      output_encoding = 'utf-8'
-
-    # -------------------------------------
-    # Miscellaneous configurations options.
-    # -------------------------------------
-    with section("misc"):
-
-      # A dictionary containing any per-command configuration overrides. Currently
-      # only `command_case` is supported.
-      per_command = {}
-
-
-.. dynamic: configbits-end
-
-You may specify a path to a configuration file with the ``--config-file``
-command line option. Otherwise, ``cmake-format`` will search the ancestry
-of each ``infilepath`` looking for a configuration file to use. If no
-configuration file is found it will use sensible defaults.
+You may specify a path to one or more configuration files with the
+``--config-file`` command line option. Otherwise, ``cmake-format`` will search
+the ancestry of each ``infilepath`` looking for a configuration file to use.
+If no configuration file is found it will use sensible defaults.
 
 A automatically detected configuration files may have any name that matches
 ``\.?cmake-format(.yaml|.json|.py)``.

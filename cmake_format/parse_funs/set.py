@@ -82,8 +82,9 @@ def parse_set(ctx, tokens, breakstack):
 
     word = get_normalized_kwarg(tokens[0])
     if word == "CACHE":
-      subtree = KeywordGroupNode.parse(
-          ctx, tokens, word, kwargs[word], kwarg_breakstack)
+      with ctx.pusharg(tree):
+        subtree = KeywordGroupNode.parse(
+            ctx, tokens, word, kwargs[word], kwarg_breakstack)
       cache_tokens = subtree.get_semantic_tokens()
       cache_tokens.pop(0)
       cache_args = [None, None, False]
@@ -110,12 +111,14 @@ def parse_set(ctx, tokens, breakstack):
       tree.cache = CacheTuple(*cache_args)
 
     elif word == "PARENT_SCOPE":
-      subtree = PositionalGroupNode.parse(
-          ctx, tokens, '+', ["PARENT_SCOPE"], positional_breakstack)
+      with ctx.pusharg(tree):
+        subtree = PositionalGroupNode.parse(
+            ctx, tokens, '+', ["PARENT_SCOPE"], positional_breakstack)
       tree.parent_scope = True
     else:
-      subtree = PositionalGroupNode.parse(
-          ctx, tokens, '+', [], kwarg_breakstack)
+      with ctx.pusharg(tree):
+        subtree = PositionalGroupNode.parse(
+            ctx, tokens, '+', [], kwarg_breakstack)
       for pattern, tags in ctx.config.parse.vartags_:
         if pattern.match(tree.varname.spelling):
           subtree.tags.extend(tags)

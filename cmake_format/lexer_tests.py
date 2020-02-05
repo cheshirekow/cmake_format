@@ -114,6 +114,12 @@ class TestSpecificLexings(unittest.TestCase):
         [TokenType.UNQUOTED_LITERAL]
     )
 
+  def test_atword(self):
+    self.assert_tok_types(
+        r'@PACKAGE_INIT@',
+        [TokenType.ATWORD]
+    )
+
 
 if __name__ == '__main__':
   unittest.main()

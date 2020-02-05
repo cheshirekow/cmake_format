@@ -32,6 +32,7 @@ TokenType.FORMAT_ON = TokenType(11)
 TokenType.BRACKET_ARGUMENT = TokenType(12)
 TokenType.BRACKET_COMMENT = TokenType(13)
 TokenType.BYTEORDER_MARK = TokenType(14)
+TokenType.ATWORD = TokenType(15)
 
 
 class SourceLocation(tuple):
@@ -148,6 +149,11 @@ def tokenize(contents):
       # Either a valid function name or variable name.
       (r"(?<![^\s\(])[a-zA-z_][a-zA-Z0-9_]*(?![^\s\)\(])",
        lambda s, t: (TokenType.WORD, t)),
+      # A configure_file replacement @<word>@
+      # Either a valid function name or variable name.
+      (r"(?<![^\s\(])@[a-zA-z_][a-zA-Z0-9_]*@(?![^\s\)\(])",
+       lambda s, t: (TokenType.ATWORD, t)),
+      # A variable dereference ${<word>}
       (r"(?<![^\s\(])\${[a-zA-z_][a-zA-Z0-9_]*}(?![^\s\)])",
        lambda s, t: (TokenType.DEREF, t)),
       # unquoted_legacy

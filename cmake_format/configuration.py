@@ -38,11 +38,11 @@ class MarkupConfig(ConfigObject):
   fence_pattern = FieldDescriptor(
       markup.FENCE_PATTERN,
       "Regular expression to match preformat fences in comments"
-      " default=r'{}'".format(markup.FENCE_PATTERN)
+      " default= ``r'{}'``".format(markup.FENCE_PATTERN)
   )
   ruler_pattern = FieldDescriptor(
       markup.RULER_PATTERN,
-      "Regular expression to match rulers in comments default=r'{}'"
+      "Regular expression to match rulers in comments default= ``r'{}'``"
       .format(markup.RULER_PATTERN)
   )
   explicit_trailing_pattern = FieldDescriptor(
@@ -68,14 +68,9 @@ class MarkupConfig(ConfigObject):
       "enable comment markup parsing and reflow"
   )
 
-  def __init__(self, **kwargs):
-    super(MarkupConfig, self).__init__(**kwargs)
-    self.bullet_char = str(self.bullet_char)[0]
-    self.enum_char = str(self.enum_char)[0]
-
 
 class EncodingConfig(ConfigObject):
-  """Options effecting file encoding"""
+  """Options affecting file encoding"""
 
   _field_registry = []
 
@@ -188,7 +183,7 @@ ADDITIONAL_COMMANDS_DEMO = {
 
 
 class FormattingConfig(ConfigObject):
-  """Options effecting formatting."""
+  """Options affecting formatting."""
 
   _field_registry = []
 
@@ -391,26 +386,26 @@ class MiscConfig(ConfigObject):
       " Currently only `command_case` is supported."
   )
 
-  def __init__(self, **kwargs):  # pylint: disable=W0613
-    per_command = kwargs.pop("per_command", {})
-    super(MiscConfig, self).__init__(**kwargs)
-
-    self.per_command = commands.get_default_config()
-    for command, cdict in per_command.items():
+  def _update_derived(self):
+    self.per_command_ = commands.get_default_config()
+    for command, cdict in self.per_command.items():
       if not isinstance(cdict, dict):
         logging.warning("Invalid override of type %s for %s",
                         type(cdict), command)
         continue
 
       command = command.lower()
-      if command not in self.per_command:
-        self.per_command[command] = {}
-      self.per_command[command].update(cdict)
+      if command not in self.per_command_:
+        self.per_command_[command] = {}
+      self.per_command_[command].update(cdict)
+
+  def __init__(self, **kwargs):  # pylint: disable=W0613
+    self.per_command_ = {}
+    super(MiscConfig, self).__init__(**kwargs)
 
 
 class Configuration(ConfigObject):
-  """Various configuration options/parameters for formatting
-  """
+  """Various configuration options and parameters"""
   _field_registry = []
 
   parse = SubtreeDescriptor(ParseConfig)
@@ -444,7 +439,7 @@ class Configuration(ConfigObject):
           "in the global configuration ({})".format(config_key))
       default_value = getattr(configobj, fieldname)
 
-    command_dict = self.misc.per_command.get(command_name.lower(), {})
+    command_dict = self.misc.per_command_.get(command_name.lower(), {})
     if config_key in command_dict:
       return command_dict[config_key]
 

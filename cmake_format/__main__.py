@@ -227,7 +227,15 @@ def get_one_config_dict(configfile_path):
   If the filepath has a known extension then we parse it according to that
   extension. Otherwise we try to parse is using each parser one by one.
   """
+  if not os.path.exists(configfile_path):
+    raise common.UserError(
+        "Desired config file does not exist: {}".format(configfile_path))
+
   if configfile_path.endswith('.json'):
+    # NOTE(josh): an empty file is not valid JSON, but we don't need to be as
+    # pedantic
+    if os.stat(configfile_path).st_size == 0:
+      return {}
     with io.open(configfile_path, 'r', encoding='utf-8') as config_file:
       try:
         return json.load(config_file)
@@ -561,7 +569,7 @@ def main():
     logger.fatal(ex.msg)
     return 1
   except common.InternalError as ex:
-    logger.execption(ex.msg)
+    logger.exception(ex.msg)
     return 1
   except AssertionError as ex:
     logger.exception(

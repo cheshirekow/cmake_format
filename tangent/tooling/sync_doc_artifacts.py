@@ -171,6 +171,13 @@ def inner_main(
       ["git", "--git-dir=" + docrepo_dir, "--work-tree=" + stage_dir,
        "add", "-A"])
 
+  result = subprocess.call(
+      ["git", "diff", "--quiet", "--exit-code", "--cached"],
+      cwd=docrepo_dir)
+  if result == 0:
+    # There is nothing to commit, the doc sources have not changed.
+    return
+
   tfile = tempfile.NamedTemporaryFile(
       delete=False, prefix="gitmsg-", mode="w", encoding="utf-8")
   with tfile as outfile:

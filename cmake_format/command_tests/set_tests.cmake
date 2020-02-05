@@ -72,3 +72,9 @@ set(SOURCES
     source_f.cc
     source_g.cc
     source_h.cc)
+
+# test: cmdline_is_hwrapped
+set(CTEST_GIT_COMMAND
+    really-long-argument really-long-argument really-long-argument
+    really-long-argument really-long-argument really-long-argument
+    really-long-argument really-long-argument really-long-argument)

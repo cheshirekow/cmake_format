@@ -86,6 +86,7 @@ def gen_reference(outfile):
   outfile.write(HEADER)
   for idstr, msgfmt, kwargs in lintdb.LINT_DB:
     # outfile.write(".. _{}:\n".format(idstr.lower()))
+    outfile.write(".. _{}:\n\n".format(idstr))
     write_title(outfile, idstr, numrule=2)
     write_title(outfile, "message")
     outfile.write(format_directive(msgfmt))

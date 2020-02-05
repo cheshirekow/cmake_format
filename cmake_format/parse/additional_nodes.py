@@ -36,6 +36,7 @@ class TupleGroupNode(PositionalGroupNode):
     """
 
     tree = cls()
+    tree.spec = PositionalSpec(ntup, flags=flags, legacy=True)
     subtree = None
     active_depth = tree
 

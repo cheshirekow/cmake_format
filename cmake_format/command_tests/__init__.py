@@ -485,7 +485,7 @@ class TestComment(TestBase):
   """
   Test various examples involving comments
   """
-  kExpectNumSidecarTests = 3
+  kExpectNumSidecarTests = 5
 
 
 class TestConditional(TestBase):
@@ -548,4 +548,4 @@ class TestSet(TestBase):
   """
   Test various examples of the set() function
   """
-  kExpectNumSidecarTests = 8
+  kExpectNumSidecarTests = 9

@@ -1,3 +1,5 @@
+.. _configuration:
+
 =============
 Configuration
 =============
@@ -18,20 +20,30 @@ The tools accept configuration files in yaml, json, or python format.
   ``pyyaml`` manually.
 
 
-You may specify a path to a configuration file with the ``--config-file``
-command line option. Otherwise, the tools will search the ancestry
-of each source file looking for a configuration file to use. If no
-configuration file is found it will use sensible defaults.
+You may specify a path to one or more configuration files with the
+``--config-file`` (``--config-files``) command line option. Otherwise, the
+tools will search the ancestry of each source file looking for a configuration
+file to use. If no configuration file is found it will use sensible defaults.
 
 Automatically detected configuration files may have any name that matches
 ``\.?cmake-format(.yaml|.json|.py)``.
 
 If you'd like to create a new configuration file, ``cmake-format`` can help
 by dumping out the default configuration in your preferred format. You can run
-``cmake-format --dump-config [yaml|json|python]`` to print the default
-configuration ``stdout`` and use that as a starting point.
+``cmake-format --dump-config [python|json|yaml]`` to print the default
+configuration to ``stdout`` and use that as a starting point.
+
+.. warning::
+
+  ``cmake-format`` will detect and load an automatic configuration file, even
+  when executing ``--dump-config``. This is so that you can debug the *active*
+  configuration from a certain location in your tree. If you have a corrupt /
+  un-parsable configuration file in an automatic location ``--dump-config`` may
+  fail. You can always ``cd`` to a clean location (``/`` or ``/tmp``) and
+  execute ``--dump-config`` to get a default configuration.
 
 Here is an example python-style configuration file with the default options and
-help-text. Some detailed examples can be found at :ref:`configopts`.
+help-text. Some detailed explanation and examples can be found at
+:ref:`configopts`.
 
 .. literalinclude:: bits/configbits.py

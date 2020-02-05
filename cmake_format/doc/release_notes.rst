@@ -9,6 +9,24 @@ v0.6 series
 ===========
 
 ------
+v0.6.9
+------
+
+The parser now performs token look-ahead when parsing a comment within a
+statement. This allows it to determine whether a comment belongs to the current
+semantic node or one higher up in the tree (previously it would assign all
+comments to the most recent semantic node). This should prevent some unusual
+indentation of comments within deep statements.
+
+Some ``cmake-lint`` crashes have been fixed and the test coverage has increased
+significantly. There are still some outstanding issues but it should crash less
+frequently and with more helpful information.
+
+Detailed documentation for configuration options is now generated
+automatically, including default value, command line syntax, and example
+configuration file entry.
+
+------
 v0.6.8
 ------
 

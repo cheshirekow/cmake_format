@@ -34,11 +34,13 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autosectionlabel',
+    # autosectionlabel is pretty broken
+    # 'sphinx.ext.autosectionlabel',
     # "readthedocs_ext.readthedocs",
 ]
 
 autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 2
 
 mathjax_path = (
     "https://cdnjs.cloudflare.com/ajax/libs/mathjax/"

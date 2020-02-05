@@ -11,6 +11,7 @@ from cmake_format.parse.util import (
     get_normalized_kwarg,
     iter_semantic_tokens,
     only_comments_and_whitespace_remain,
+    PositionalSpec,
     should_break
 )
 
@@ -80,6 +81,7 @@ def parse_add_library_standard(ctx, tokens, breakstack, sortable):
     if state_ is parsing_name:
       token = tokens.pop(0)
       parg_group = PositionalGroupNode()
+      parg_group.spec = PositionalSpec("+")
       active_depth = parg_group
       tree.children.append(parg_group)
       child = TreeNode(NodeType.ARGUMENT)
@@ -104,6 +106,7 @@ def parse_add_library_standard(ctx, tokens, breakstack, sortable):
         parg_group.children.append(child)
       state_ += 1
       src_group = PositionalGroupNode(sortable=sortable, tags=["file-list"])
+      src_group.spec = PositionalSpec("+")
       active_depth = src_group
       tree.children.append(src_group)
     elif state_ is parsing_sources:

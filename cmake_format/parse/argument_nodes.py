@@ -7,8 +7,15 @@ import logging
 
 from cmake_format import lexer
 from cmake_format.parse.util import (
-    WHITESPACE_TOKENS, get_normalized_kwarg, get_tag, npargs_is_exact,
-    pargs_are_full, should_break, PositionalSpec, IMPLICIT_PARG_TYPES
+    comment_belongs_up_tree,
+    get_normalized_kwarg,
+    get_tag,
+    npargs_is_exact,
+    pargs_are_full,
+    IMPLICIT_PARG_TYPES,
+    PositionalSpec,
+    WHITESPACE_TOKENS,
+    should_break,
 )
 from cmake_format.parse.common import (
     NodeType, ParenBreaker, KwargBreaker, TreeNode
@@ -71,7 +78,6 @@ class StandardArgTree(ArgGroupNode):
                     KEYWORD1 kwarg1 kwarg2...
                     KEYWORD2 kwarg3 kwarg4...
                     FLAG1 FLAG2 FLAG3)
-
     The parser starts off as a positional parser. If a keyword or flag is
     encountered the positional parser is popped off the parse stack. If it was
     a keyword then the keyword parser is pushed on the parse stack. If it was
@@ -116,6 +122,8 @@ class StandardArgTree(ArgGroupNode):
       # If it's a comment, then add it at the current depth
       if tokens[0].type in (lexer.TokenType.COMMENT,
                             lexer.TokenType.BRACKET_COMMENT):
+        if comment_belongs_up_tree(ctx, tokens, tree, breakstack):
+          break
         tree.children.append(CommentNode.consume(ctx, tokens))
         continue
 
@@ -128,8 +136,9 @@ class StandardArgTree(ArgGroupNode):
       ntokens = len(tokens)
       word = get_normalized_kwarg(tokens[0])
       if word in kwargs:
-        subtree = KeywordGroupNode.parse(
-            ctx, tokens, word, kwargs[word], kwarg_breakstack)
+        with ctx.pusharg(tree):
+          subtree = KeywordGroupNode.parse(
+              ctx, tokens, word, kwargs[word], kwarg_breakstack)
         tree.kwarg_groups.append(subtree)
       else:
         if pargspecs:
@@ -146,10 +155,11 @@ class StandardArgTree(ArgGroupNode):
         positional_breakstack = breakstack + [
             KwargBreaker(list(kwargs.keys()) + other_flags)]
 
-        subtree = PositionalGroupNode.parse(
-            ctx, tokens, pspec.nargs, pspec.flags, positional_breakstack)
-        subtree.tags.extend(pspec.tags)
-        tree.parg_groups.append(subtree)
+        with ctx.pusharg(tree):
+          subtree = PositionalGroupNode.parse(
+              ctx, tokens, pspec.nargs, pspec.flags, positional_breakstack)
+          subtree.tags.extend(pspec.tags)
+          tree.parg_groups.append(subtree)
 
       assert len(tokens) < ntokens, "parsed an empty subtree"
       tree.children.append(subtree)
@@ -265,7 +275,8 @@ class KeywordGroupNode(TreeNode):
       tree.children.append(tokens.pop(0))
 
     ntokens = len(tokens)
-    subtree = subparser(ctx, tokens, breakstack)
+    with ctx.pusharg(tree):
+      subtree = subparser(ctx, tokens, breakstack)
     if len(tokens) < ntokens:
       tree.body = subtree
       tree.children.append(subtree)
@@ -341,7 +352,8 @@ class PositionalGroupNode(TreeNode):
       # NOTE(josh): syntatically this probably shouldn't be allowed here, but
       # cmake seems to accept it so we probably should too.
       if tokens[0].type == lexer.TokenType.LEFT_PAREN:
-        subtree = ParenGroupNode.parse(ctx, tokens, breakstack)
+        with ctx.pusharg(tree):
+          subtree = ParenGroupNode.parse(ctx, tokens, breakstack)
         tree.children.append(subtree)
         continue
 
@@ -355,6 +367,9 @@ class PositionalGroupNode(TreeNode):
       # directly into the parse tree at the current depth
       if tokens[0].type in (lexer.TokenType.COMMENT,
                             lexer.TokenType.BRACKET_COMMENT):
+        if comment_belongs_up_tree(ctx, tokens, tree, breakstack):
+          break
+
         child = CommentNode.consume(ctx, tokens)
         tree.children.append(child)
         continue
@@ -431,7 +446,8 @@ class ParenGroupNode(TreeNode):
     lparen.children.append(tokens.pop(0))
     tree.children.append(lparen)
 
-    subtree = ConditionalGroupNode.parse(ctx, tokens, [ParenBreaker()])
+    with ctx.pusharg(tree):
+      subtree = ConditionalGroupNode.parse(ctx, tokens, [ParenBreaker()])
     tree.children.append(subtree)
 
     if tokens[0].type != lexer.TokenType.RIGHT_PAREN:
@@ -520,6 +536,8 @@ class ConditionalGroupNode(ArgGroupNode):
       # If it's a comment, then add it at the current depth
       if tokens[0].type in (lexer.TokenType.COMMENT,
                             lexer.TokenType.BRACKET_COMMENT):
+        # TODO(josh): not sure if we should check comment_belongs_up_tree
+        # here
         child = TreeNode(NodeType.COMMENT)
         tree.children.append(child)
         child.children.append(tokens.pop(0))
@@ -533,22 +551,25 @@ class ConditionalGroupNode(ArgGroupNode):
 
       # If this is the start of a parenthetical group, then parse the group
       if tokens[0].type == lexer.TokenType.LEFT_PAREN:
-        subtree = ParenGroupNode.parse(ctx, tokens, breakstack)
+        with ctx.pusharg(tree):
+          subtree = ParenGroupNode.parse(ctx, tokens, breakstack)
         tree.children.append(subtree)
         continue
 
       ntokens = len(tokens)
       word = get_normalized_kwarg(tokens[0])
       if word in kwargs:
-        subtree = KeywordGroupNode.parse(
-            ctx, tokens, word, kwargs[word], child_breakstack)
+        with ctx.pusharg(tree):
+          subtree = KeywordGroupNode.parse(
+              ctx, tokens, word, kwargs[word], child_breakstack)
         assert len(tokens) < ntokens, "parsed an empty subtree"
         tree.children.append(subtree)
         continue
 
       # Otherwise is it is a positional argument, so add it to the tree as such
-      child = PositionalGroupNode.parse(
-          ctx, tokens, '+', flags, child_breakstack)
+      with ctx.pusharg(tree):
+        child = PositionalGroupNode.parse(
+            ctx, tokens, '+', flags, child_breakstack)
       # token = tokens.pop(0)
       # if get_normalized_kwarg(token) in flags:
       #   child = TreeNode(NodeType.FLAG)

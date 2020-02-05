@@ -81,7 +81,10 @@ format_and_lint(
   tools/parse_cmake_help.py
   tools/push_github_release.py
   tools/usage_lexer.py
-  tools/usage_parser.py)
+  tools/usage_parser.py
+  vscode_extension/CMakeLists.txt
+  # EXCLUDE "command_tests/" "doc/stage" "test/.*" ".*\\.jinja.py$"
+)
 
 set(_testnames invocation_tests layout_tests lexer_tests markup_tests
                parser_tests)
@@ -102,43 +105,31 @@ if(NOT IS_TRAVIS_CI)
   endforeach()
 endif()
 
-add_test(
-  NAME cmake_format-check-lint-manifest
-  COMMAND
-    python -Bm cmake.validate_lint_manifest #
-    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} #
-    --exclude "command_tests/" "doc/stage" "test/.*" ".*\\.jinja.py$"
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
 set(_genfiles)
-
 add_custom_command(
-  OUTPUT cmake_format/parse/variables.py
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/parse/variables.py
   COMMAND python -Bm cmake_format.tools.parse_cmake_help --outfile
           cmake_format/parse/variables.py variables
   DEPENDS tools/parse_cmake_help.py tools/variables.jinja.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Generating variables.py")
-list(APPEND _genfiles cmake_format/parse/variables.py)
-
+list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/parse/variables.py)
 
 add_custom_command(
-  OUTPUT cmake_format/parse/properties.py
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/parse/properties.py
   COMMAND python -Bm cmake_format.tools.parse_cmake_help --outfile
           cmake_format/parse/properties.py properties
   DEPENDS tools/parse_cmake_help.py tools/properties.jinja.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Generating properties.py")
-list(APPEND _genfiles cmake_format/parse/properties.py)
+list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/parse/properties.py)
 
-add_custom_target(
-  gen-cmake_format
-  DEPENDS ${_genfiles})
+add_custom_target(gen-cmake_format DEPENDS ${_genfiles})
 add_dependencies(gen gen-cmake_format)
 
-# NOTE(josh): this is just here to induce a dependency on the configure step.
-# If we change the version number in __init__.py we need to re-run cmake so we
-# can get out the version number and create rules for the distribution files.
+# NOTE(josh): this is just here to induce a dependency on the configure step. If
+# we change the version number in __init__.py we need to re-run cmake so we can
+# get out the version number and create rules for the distribution files.
 configure_file(__init__.py init.stamp COPYONLY)
 
 execute_process(
@@ -152,6 +143,10 @@ if(NOT _resultcode EQUAL 0)
     FATAL_ERROR "Failed to get cmake-format version number from __init__.py")
 endif()
 
+# NOTE(josh): python uses dot to separate pre-release while node uses dash
+string(REGEX REPLACE "([0-9]+\\.[0-9]+\\.[0-9]+)\\.(.*)" "\\1-\\2"
+                     _extension_version "${_version}")
+
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/.egg
   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/.egg
@@ -159,9 +154,8 @@ add_custom_command(
 
 set(_distdir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 add_custom_command(
-  OUTPUT
-    ${_distdir}/cmake_format-${_version}.tar.gz
-    ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  OUTPUT ${_distdir}/cmake_format-${_version}.tar.gz
+         ${_distdir}/cmake_format-${_version}-py3-none-any.whl
   COMMAND
     # cmake-format: off
     python cmake_format/pypi/setup.py
@@ -175,23 +169,33 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/.egg
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+add_custom_target(cmake_format-wheel
+                  DEPENDS ${_distdir}/cmake_format-${_version}-py3-none-any.whl)
+add_dependencies(wheels cmake_format-wheel)
+
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
-  COMMAND python -Bm cmake_format.tools.get_release_notes
-          cmake_format/doc/release_notes.rst \$\${TRAVIS_TAG}
-          -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
-  DEPENDS doc/release_notes.rst
-          tools/get_release_notes.py
+  COMMAND
+    python -Bm cmake_format.tools.get_release_notes
+    cmake_format/doc/release_notes.rst \$\${TRAVIS_TAG} -o
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  DEPENDS doc/release_notes.rst tools/get_release_notes.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
-  COMMAND pandoc -s
-          -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+  COMMAND pandoc -s -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
           ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+add_subdirectory(command_tests)
+add_subdirectory(contrib)
+add_subdirectory(doc)
+add_subdirectory(test)
+add_subdirectory(vscode_extension)
+
+set(_vscedir ${CMAKE_CURRENT_BINARY_DIR}/vscode_extension)
 add_custom_target(
   push-github-release
   COMMAND
@@ -201,15 +205,17 @@ add_custom_target(
       \$\${TRAVIS_TAG}
       ${_distdir}/cmake_format-${_version}.tar.gz
       ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+      ${_vscedir}/cmake-format-${_extension_version}.vsix
     # cmake-format: on
-  DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
-    ${_distdir}/cmake_format-${_version}.tar.gz
-    ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+          ${_distdir}/cmake_format-${_version}.tar.gz
+          ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+          # ${_vscedir}/cmake-format-${_extension_version}.vsix
   COMMENT "Uploading release artifacts"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_subdirectory(command_tests)
-add_subdirectory(contrib)
-add_subdirectory(doc)
-add_subdirectory(test)
+# NOTE(josh): cmake is broken. It fails to produce an accurate build system
+# when we correctly specify the .vsix path in the above rule. We must use
+# target level dependencies to get the correct order of operations and then
+# omit the actual file-level dependency.
+add_dependencies(push-github-release vscode-extension)

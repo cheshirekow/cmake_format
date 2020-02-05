@@ -47,6 +47,7 @@ add_custom_target(format)
 add_custom_target(gen)
 add_custom_target(lint)
 add_custom_target(test-deps)
+add_custom_target(wheels)
 
 set(ENV{PYTHONPATH} ${CMAKE_SOURCE_DIR})
 set(CTEST_ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}")

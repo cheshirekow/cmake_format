@@ -55,7 +55,7 @@ comment in the form of::
 
 If non-default configuration options are required, or if you would like to
 assert a lex, parse, or layout result, then you can specify that in an optional
-bracket comment immediately following the ``# test: `` sentinel. The bracket
+bracket comment immediately following the ``# test:`` sentinel. The bracket
 comment must begin and end on it's own line, such as::
 
    #[=[
@@ -181,6 +181,7 @@ on the popular keyservers. Travis will fetch it from
 https://keyserver.ubuntu.com
 
 .. _copyright:
+
 --------------------
 Copyright Assignment
 --------------------
@@ -201,7 +202,7 @@ For the long way, please follow this process:
 
 3. Sign the document with e.g.::
 
-   gpg --output cmake-format-ca.txt --clearsign cmake-format-ca.txt.in``
+      gpg --output cmake-format-ca.txt --clearsign cmake-format-ca.txt.in``
 
    Please be sure to use the same pgp key that you'll be using to sign your
    commits.

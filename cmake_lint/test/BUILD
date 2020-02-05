@@ -5,6 +5,8 @@ py_library(
     srcs=[
         "__init__.py",
         "__main__.py",
+        "execution_tests.py",
+        "expect_tests.py",
         "genfiles.py"],
 )
 

@@ -8,6 +8,10 @@ h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend, p.capti
   font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
 }
 
+h4 {
+  font-size: smaller;
+}
+
 /* Use white for navigation background */
 /* navigation background */
 .wy-nav-side {
