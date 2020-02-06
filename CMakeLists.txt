@@ -42,6 +42,7 @@ set(CXX_STANDARD
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STANDARD}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
+add_custom_target(chkfmt)
 add_custom_target(doc)
 add_custom_target(format)
 add_custom_target(gen)
@@ -126,4 +127,7 @@ add_custom_target(
 )
 
 add_custom_target(pre-push)
-add_dependencies(pre-push better-test doc format gen lint)
+add_dependencies(pre-push lint chkfmt)
+
+add_custom_target(pre-release)
+add_dependencies(pre-release better-test doc lint chkfmt)

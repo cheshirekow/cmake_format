@@ -89,7 +89,11 @@ def get_generated_manifest(rootdir):
       if filename.endswith(".lint-manifest"):
         fullpath_file = os.path.join(rootdir, relpath_file)
         with io.open(fullpath_file, "r", encoding="utf-8") as infile:
-          manifest.extend(line.strip() for line in infile)
+          if relpath_dir == ".":
+            manifest.extend(line.strip() for line in infile)
+          else:
+            manifest.extend(
+              os.path.join(relpath_dir, line.strip()) for line in infile)
   return manifest
 
 

@@ -30,7 +30,7 @@ def parse_sourcefile(infile):
   }
 
   varname = None
-  buffer = []
+  buf = []
 
   lineiter = enumerate(lines)
   for idx, line in lineiter:
@@ -38,9 +38,9 @@ def parse_sourcefile(infile):
       if lines[idx + 2] == line:
         # Section heading
         if varname:
-          stack[-1][varname] = "\n".join(buffer)
+          stack[-1][varname] = "\n".join(buf)
           varname = None
-        buffer = []
+        buf = []
 
         title = lines[idx + 1]
         newdict = {}
@@ -53,17 +53,17 @@ def parse_sourcefile(infile):
     elif line and ruler.match(lines[idx + 1]):
       # Variable heading
       if varname:
-        stack[-1][varname] = "\n".join(buffer[:-1])
+        stack[-1][varname] = "\n".join(buf[:-1])
         varname = None
-      buffer = []
+      buf = []
       varname = line
       next(lineiter)
     else:
-      buffer.append(line)
+      buf.append(line)
 
   if varname:
-    stack[-1][varname] = "\n".join(buffer[:-1])
-    buffer = []
+    stack[-1][varname] = "\n".join(buf[:-1])
+    buf = []
     varname = None
 
   return out
@@ -98,10 +98,10 @@ ROOT_CONFIG = None
 def get_config_example(root, obj, descr):
   default_value = descr.__get__(obj, None)
   descr.__set__(obj, default_value)
-  buffer = io.StringIO()
-  root.dump(buffer, with_defaults=False)
+  buf = io.StringIO()
+  root.dump(buf, with_defaults=False)
   descr.unset(obj)
-  return buffer.getvalue()
+  return buf.getvalue()
 
 
 def write_outfile(outfile, data, obj, name=None, depth=0, root=None):

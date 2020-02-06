@@ -4,5 +4,15 @@ with section("parse"):
       "kwargs": {
         "PKG": "*"
       }
+    },
+    "format_and_lint": {
+      "kwargs": {
+        "CC": "*",
+        "CCDEPENDS": "*",
+        "CMAKE": "*",
+        "PY": "*",
+        "JS": "*",
+        "EXCLUDE": "*"
+      }
     }
   }

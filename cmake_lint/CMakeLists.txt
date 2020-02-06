@@ -13,8 +13,7 @@ format_and_lint(
   test/execution_tests.py
   test/expect_tests.py
   test/genfiles.py
-  #EXCLUDE "test/.*"
-)
+  EXCLUDE "test/.*")
 
 set(_genfiles ${CMAKE_CURRENT_SOURCE_DIR}/test/expect_lint.cmake
               ${CMAKE_CURRENT_SOURCE_DIR}/test/lint_tests.cmake)

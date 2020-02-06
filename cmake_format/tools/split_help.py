@@ -4,7 +4,6 @@ configuration options.
 """
 
 import argparse
-import inspect
 import io
 
 from cmake_format import configuration
@@ -21,7 +20,7 @@ def main():
   for _, item in vars(configuration).items():
     if (isinstance(item, type) and
         issubclass(item, configuration.ConfigObject) and
-        not item is configuration.ConfigObject):
+        item is not configuration.ConfigObject):
       firstline = item.__doc__.strip().split("\n")[0]
       matchlines.append(firstline)
 
@@ -43,6 +42,7 @@ def main():
   if args.common_outfile != "/dev/null":
     with io.open(args.common_outfile, "w", encoding="utf-8") as outfile:
       outfile.write("".join(common_lines))
+
 
 if __name__ == "__main__":
   main()

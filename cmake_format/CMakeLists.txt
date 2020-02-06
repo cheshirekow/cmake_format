@@ -75,6 +75,7 @@ format_and_lint(
   tools/__init__.py
   tools/bump_version.py
   tools/create_pseudorelease_tag.py
+  tools/gen_config_details.py
   tools/gen_rtd_requirements.py
   tools/generate_missing_parsers.py
   tools/get_release_notes.py
@@ -82,9 +83,9 @@ format_and_lint(
   tools/push_github_release.py
   tools/usage_lexer.py
   tools/usage_parser.py
+  tools/split_help.py
   vscode_extension/CMakeLists.txt
-  # EXCLUDE "command_tests/" "doc/stage" "test/.*" ".*\\.jinja.py$"
-)
+  EXCLUDE "command_tests/" "doc/stage" "test/.*" ".*\\.jinja.py$")
 
 set(_testnames invocation_tests layout_tests lexer_tests markup_tests
                parser_tests)
@@ -214,8 +215,8 @@ add_custom_target(
   COMMENT "Uploading release artifacts"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-# NOTE(josh): cmake is broken. It fails to produce an accurate build system
-# when we correctly specify the .vsix path in the above rule. We must use
-# target level dependencies to get the correct order of operations and then
-# omit the actual file-level dependency.
+# NOTE(josh): cmake is broken. It fails to produce an accurate build system when
+# we correctly specify the .vsix path in the above rule. We must use target
+# level dependencies to get the correct order of operations and then omit the
+# actual file-level dependency.
 add_dependencies(push-github-release vscode-extension)
