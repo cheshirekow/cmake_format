@@ -62,12 +62,12 @@ export function activate(context: vscode.ExtensionContext) {
       }
       var cenv: any = config.get("env", {});
       if (cenv !== null) {
-        var delim = path.delimeter;
+        var delim = path.delimiter;
         for (var [key, value] of Object.entries(cenv)) {
           if (key.endsWith("PATH")) {
             var items = cenv[key].split(delim);
             if (key in env) {
-              items = items.concat(env[key].spit(delim));
+              items = items.concat(env[key].split(delim));
             }
             env[key] = items.join(delim);
           } else {
