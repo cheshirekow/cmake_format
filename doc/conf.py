@@ -3,11 +3,6 @@ from __future__ import print_function
 
 import os
 import sphinx_rtd_theme
-import subprocess
-import tempfile
-
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
 
 project = 'tangentsky'
 thisfile = os.path.realpath(__file__)
@@ -49,10 +44,7 @@ mathjax_path = (
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
 
-source_parsers = {
-    '.md': CommonMarkParser,
-}
-source_suffix = ['.rst', '.md']
+source_suffix = ['.rst']
 master_doc = 'index'
 
 version = u'0.1.0'
@@ -125,16 +117,3 @@ texinfo_documents = [
 ]
 
 intersphinx_mapping = {'https://docs.python.org/': None}
-
-# Advanced markdown
-
-
-def setup(app):
-  app.add_config_value('recommonmark_config', {
-      'auto_code_block': True,
-      # 'url_resolver': lambda url: github_doc_root + url,
-      'auto_toc_tree_section': 'Contents',
-      'enable_auto_toc_tree': True,
-      'enable_eval_rst': True,
-  }, True)
-  app.add_transform(AutoStructify)

@@ -30,7 +30,10 @@ class TestConfigInclude(unittest.TestCase):
       result = self.defaultTestResult()
       self._feedErrorsToResult(result, self._outcome.errors)
     else:  # Python 3.2 - 3.3 or 3.0 - 3.1 and 2.7
-      result = getattr(self, '_outcomeForDoCleanups', self._resultForDoCleanups)
+      result = getattr(
+          self, '_outcomeForDoCleanups',
+          self._resultForDoCleanups) # pylint: disable=no-member
+
     error = self._list2reason(result.errors)
     failure = self._list2reason(result.failures)
     return not error and not failure

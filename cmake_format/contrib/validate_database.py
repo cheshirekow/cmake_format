@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import unittest
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -48,11 +49,20 @@ class TestContributorAgreements(unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
     super(TestContributorAgreements, self).__init__(*args, **kwargs)
+    self.homedir = None
+
+  def setUp(self):
+    self.homedir = tempfile.mkdtemp(prefix="gpgtmp")
+
+  def tearDown(self):
+    shutil.rmtree(self.homedir)
 
   def test_signatures(self):
     """
     Iterate over signatures and verify them.
     """
+    gpg_argv = ["gpg", "--homedir", self.homedir]
+
     if sys.version_info < (3, 0, 0):
       self.skipTest("no pgpy on this python version")
 
@@ -76,7 +86,7 @@ class TestContributorAgreements(unittest.TestCase):
     # First, get a list of keys already in the local keyring
     known_fingerprints = set()
     proc = subprocess.Popen(
-        ["gpg", "--fingerprint", "--with-colons"],
+        gpg_argv + ["--fingerprint", "--with-colons"],
         stdout=subprocess.PIPE)
     for line in proc.stdout:
       parts = line.decode("utf-8").split(":")
@@ -98,7 +108,7 @@ class TestContributorAgreements(unittest.TestCase):
     if needkeys:
       # TODO(josh): use SKS pool instead of specific server
       result = subprocess.check_call(
-          ["gpg", "--keyserver", "keyserver.ubuntu.com", "--recv-keys"]
+          gpg_argv + ["--keyserver", "keyserver.ubuntu.com", "--recv-keys"]
           + needkeys)
       self.assertEqual(
           result, 0, msg="Failed to fetch all keys from keyserver")
@@ -120,7 +130,7 @@ class TestContributorAgreements(unittest.TestCase):
 
       with open(os.devnull, "w") as devnull:
         proc = subprocess.Popen(
-            ["gpg", "--verify", detached_sig, document_msg],
+            gpg_argv + ["--verify", detached_sig, document_msg],
             stderr=devnull)
         result = proc.wait()
       self.assertEqual(

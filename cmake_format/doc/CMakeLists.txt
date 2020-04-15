@@ -8,7 +8,6 @@ add_custom_command(
   OUTPUT ${_stage}/bits
   COMMAND ${CMAKE_COMMAND} -E make_directory ${_stage}/bits
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-list(APPEND _genbits ${_stage}/bits/format-usage.txt)
 
 set(_config_deps
     ../__main__.py #
@@ -217,6 +216,12 @@ foreach(_genfile ${_insource_genfiles})
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile})
 
+  add_custom_target(
+    run.cmake_format-doc-verify-${_genfile}
+    COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
+            ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
   add_test(
     NAME cmake_format-doc-verify-${_genfile}
     COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
@@ -284,12 +289,19 @@ add_custom_command(
   DEPENDS ${_stage}/bits)
 list(APPEND _copyfiles ${_stage}/sphinx-static/css/cheshire_theme.css)
 
-set(_sphinx_manifest ${_genbits} ${_copyfiles})
+set(_tag pseudo-staging)
+if(TRAVIS_TAG)
+  set(_tag ${TRAVIS_TAG})
+endif()
+add_custom_command(
+  OUTPUT ${_stage}/rtd-requirements.txt
+  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements ${_tag} ${_version}
+          -o ${_stage}/rtd-requirements.txt
+  DEPENDS ${CMAKE_SOURCE_DIR}/cmake_format/tools/gen_rtd_requirements.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+list(APPEND _genbits ${_stage}/rtd-requirements.txt)
 
-# A list of files that should be exported to the read-the-docs repository. This
-# is used to clean the directory prior to export
-set(_rtd_manifest ${_sphinx_manifest} README.rst .gitignore .readthedocs.yml
-                  rtd-requirements.txt)
+set(_sphinx_manifest ${_genbits} ${_copyfiles})
 list(SORT _sphinx_manifest)
 
 # NOTE(josh): cmake 3.10 does not have list(JOIN)
@@ -301,7 +313,7 @@ configure_file(MANIFEST.in ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST
                NEWLINE_STYLE UNIX)
 
 add_custom_target(
-  clean-sphinx-stage
+  clean-cmake_format-sphinx-stage
   DEPENDS ${_sphinx_manifest} ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST
   COMMAND python -Bm tangent.tooling.clean_stage
           ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST ${_stage}
@@ -313,8 +325,8 @@ add_custom_command(
   COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR} sphinx-build -M html ${_stage}
           ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/html/index.html
-  DEPENDS clean-sphinx-stage ${_sphinx_manifest}
-          ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST ../../doc/conf.py
+  DEPENDS clean-cmake_format-sphinx-stage ${_sphinx_manifest}
+          ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST ${CMAKE_SOURCE_DIR}/doc/conf.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Building sphinx documentation for cmake_format")
 
@@ -332,64 +344,44 @@ set_property(GLOBAL APPEND PROPERTY global_doc_files ${_sphinx_manifest})
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
                                        ${_copyfiles} ${_genbits})
 
-if(IS_TRAVIS_CI)
-  add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
-    COMMAND
-      # cmake-format: off
-      openssl aes-256-cbc
-      -K $ENV{encrypted_bbb694bc6401_key}
-      -iv $ENV{encrypted_bbb694bc6401_iv}
-      -in ${CMAKE_SOURCE_DIR}/tangent/tooling/deploy_keys/cmake-format.enc
-      -out ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
-      -d
-      # cmake-format: on
-    COMMAND chmod 0600 ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Decrypting cmake-format.deploy_key")
+add_custom_target(
+  push-cmake_format-github-pseudorelease-tag
+  COMMAND python -Bm tangent.tooling.github create-pseudorelease-tag
+          cheshirekow/cmake_format \$\${TRAVIS_BRANCH}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Pushing psuedo-release tag")
 
+set(_deploykey)
+if(IS_TRAVIS_CI)
+  set(_deploykey ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key)
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
+    OUTPUT ${_deploykey}
     COMMAND
       # cmake-format: off
       openssl aes-256-cbc
       -K $ENV{encrypted_4bf912706780_key}
       -iv $ENV{encrypted_4bf912706780_iv}
       -in ${CMAKE_SOURCE_DIR}/tangent/tooling/deploy_keys/cmake-tools-rtd.enc
-      -out ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
+      -out ${_deploykey}
       -d
       # cmake-format: on
-    COMMAND chmod 0600 ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
+    COMMAND chmod 0600 ${_deploykey}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Decrypting cmake-tools-rtd.deploy_key")
 endif()
 
-set(_ssh_cmd
-    "ssh -i ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key -F /dev/null")
-
 add_custom_target(
-  push-github-pseudorelease-tag
-  COMMAND python -Bm cmake_format.tools.create_pseudorelease_tag
-          \$\${TRAVIS_BRANCH}
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cmake-format.deploy_key
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Pushing doc artifacts to the RTD repository")
-
-add_custom_target(
-  push-rtd-repo
-  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
-          ${_version} -o ${_stage}/rtd-requirements.txt
+  push-cmake_format-rtd-repo
   COMMAND
     # cmake-format: off
-    python -Bm tangent.tooling.sync_doc_artifacts
+    python -Bm tangent.tooling.github sync-doc-artifacts
       --doc-repo git@github.com:cheshirekow/cmake-tools-rtd.git
       --repo-dir ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.git
       --scratch-tree ${CMAKE_CURRENT_BINARY_DIR}/scratch-tree
       --stage ${_stage}
-      --deploy-key ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
-      --tag \$\${TRAVIS_TAG}
+      --deploy-key "${_deploykey}"
+      --tag ${_tag}
     # cmake-format: on
-  DEPENDS clean-sphinx-stage ${_sphinx_manifest}
-          ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.deploy_key
+  DEPENDS clean-cmake_format-sphinx-stage ${_sphinx_manifest} ${_deploykey}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Pushing doc artifacts to the RTD repository")

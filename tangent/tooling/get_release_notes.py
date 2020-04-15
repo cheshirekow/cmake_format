@@ -2,6 +2,8 @@
 Extract release notes for the given tag
 """
 
+from __future__ import absolute_import, unicode_literals
+
 import argparse
 import io
 import logging

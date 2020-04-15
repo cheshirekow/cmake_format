@@ -41,9 +41,16 @@ def find_statements_in_subtree(subtree, funnames):
 
   while queue:
     node = queue.pop(0)
+
+    if isinstance(node, SetFnNode) and "set" in funnames:
+      yield node
+      continue
+
     if isinstance(node, StatementNode):
       if node.get_funname() in funnames:
         yield node
+        continue
+
     for child in node.children:
       if isinstance(child, TreeNode):
         queue.append(child)
@@ -68,28 +75,31 @@ def replace_varrefs(value, variables):
   return value
 
 
-def process_set_statement(stmt, variables):
+def process_set_statement(argtree, variables):
   """
   Process a set() statement, updating the variable assignments accordingly
   """
-  varname = replace_varrefs(stmt.varname.spelling, variables)
-  if not stmt.value_group:
-    del variables[varname]
+  varname = replace_varrefs(argtree.varname.spelling, variables)
+  if not argtree.value_group:
+    variables.pop(varname, None)
     return
 
-  variables[varname] = replace_varrefs(
-      ";".join(arg.spelling.strip('"') for arg in stmt.value_group), variables)
+  setargs = argtree.value_group.get_tokens(kind="semantic")
+  valuestr = ";".join(arg.spelling.strip('"') for arg in setargs)
+  variables[varname] = replace_varrefs(valuestr, variables)
 
 
 def process_defn_body(body, out):
   assert isinstance(body, BodyNode)
   variables = {}
-  for child in body.children:
-    if isinstance(child, SetFnNode):
-      process_set_statement(child, variables)
-      continue
+  for child in find_statements_in_subtree(
+      body, ["list", "cmake_parse_arguments", "set"]):
 
     if isinstance(child, StatementNode):
+      if child.get_funname() == "set":
+        process_set_statement(child.argtree, variables)
+        continue
+
       if child.get_funname() == "list":
         # TODO(josh): implement list processor
         continue
@@ -127,7 +137,8 @@ def process_defn_body(body, out):
           kwarg = kwarg.strip().upper()
           if kwarg:
             kwargs[kwarg] = "+"
-
+        return
+  return
 
 def process_defn(statement):
   """

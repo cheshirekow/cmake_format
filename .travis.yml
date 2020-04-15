@@ -1,16 +1,28 @@
-dist: xenial
+dist: bionic
 language: python
+
 python:
 - '2.7'
 - '3.5'
 - '3.6'
 
+go:
+- 1.13
+
 before_install:
+- sudo add-apt-repository --no-update -y ppa:longsleep/golang-backports
 - sudo apt-get update
-- sudo apt-get -y install pandoc
+- sudo apt-get -y install
+    $(tr '\n' ' ' < apt-requirements.txt)
 
 install:
-- pip install -r requirements.txt
+- export GOROOT=/usr/lib/go-1.13
+- export GOPATH=$HOME/gopath
+- export PATH=$GOROOT/bin:$PATH:$GOPATH/bin
+- export PATH=$PATH:${PWD}/cmake/node_modules/.bin
+- go get $(tr '\n' ' ' < go-requirements.txt)
+- npm --prefix ./cmake install ./cmake
+- pip install -r pip-requirements.txt
 
 script:
 - make better-test
@@ -30,7 +42,7 @@ jobs:
         AND branch =~ ^((master)|(staging))$
     python: 3.6
     script:
-    - make push-github-pseudorelease-tag
+    - make push-cmake_format-github-pseudorelease-tag
   - name: deploy-artifacts
     python: 3.6
     if: repo = cheshirekow/cmake_format
@@ -38,5 +50,5 @@ jobs:
         AND (tag =~ ^pseudo-((master)|(staging))$
              OR tag =~ ^v\d+\.\d+\.\d+)
     script:
-    - make push-github-release
-    - make push-rtd-repo
+    - make push-cmake_format-github-release
+    - make push-cmake_format-rtd-repo

@@ -6,6 +6,11 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.10
+-------
+
+* Fix some bugs in genparsers
+
 v0.6.9
 ------
 

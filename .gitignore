@@ -5,7 +5,7 @@
 # sparse-export stuff
 .gitu
 .sparse-export
-tangent/tooling/sparse-exports
+tangent/tooling/.gitignore
 
 # qt creator
 *.qtc.*

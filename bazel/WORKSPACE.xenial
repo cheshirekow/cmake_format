@@ -1,0 +1,5 @@
+new_local_repository(
+    name="system",
+    path="/",
+    build_file="bazel/system-xenial.bzl"
+)

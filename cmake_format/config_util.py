@@ -320,6 +320,11 @@ class ConfigObject(six.with_metaclass(ConfigMeta)):
     """subclass hook to update any derived values after a change."""
 
   def __init__(self, **kwargs):
+    # Ensure that the most derived class has a field registry
+    assert hasattr(self.__class__, "_field_registry"), (
+        "Derived class {} is missing _field_registry member".format(
+            self.__class__.__name__))
+
     self.consume_known(kwargs)
     self.legacy_consume(kwargs)
     warn_unused(kwargs)
@@ -442,6 +447,7 @@ class ConfigObject(six.with_metaclass(ConfigMeta)):
     else:
       title = cls.__doc__
       description = None
+
     optgroup = argparser.add_argument_group(
         title=title, description=description)
 

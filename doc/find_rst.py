@@ -2,6 +2,8 @@
 Find all restructured text files and write them out to a manifest
 """
 
+from __future__ import print_function
+
 import argparse
 import os
 
@@ -9,6 +11,7 @@ EXCLUDE_DIRS = [
     ".build",
     ".git"
 ]
+
 
 def main():
   parser = argparse.ArgumentParser(description=__doc__)
@@ -59,6 +62,7 @@ def main():
   elif args.touch and latest_mtime > manifest_mtime:
     print("An RST file has changed")
     os.utime(manifest_path, None)
+
 
 if __name__ == "__main__":
   main()

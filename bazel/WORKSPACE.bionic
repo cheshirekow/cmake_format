@@ -1,0 +1,5 @@
+new_local_repository(
+  name = "system",
+  build_file = "bazel/system-bionic.bzl",
+  path = "/",
+)

@@ -1,15 +1,17 @@
 # Porcelain tools for using pkg config. Better than cmake's builtins.
 
-# Execute pkg-config and store flags in the cache. Sets the variable
-# `pkg_errno` in the parent scope to the return value of the subprocess
-# call.
+# Execute pkg-config and store flags in the cache. Sets the variable `pkg_errno`
+# in the parent scope to the return value of the subprocess call.
 function(_pkg_query outvar arg)
-  execute_process(COMMAND pkg-config --cflags-only-I ${arg}
-                  RESULT_VARIABLE _pkg_err
-                  OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND pkg-config --cflags-only-I ${arg}
+    RESULT_VARIABLE _pkg_err
+    OUTPUT_VARIABLE _pkg_out
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
-    set(pkg_errno 1 PARENT_SCOPE)
+    set(pkg_errno
+        1
+        PARENT_SCOPE)
     return()
   endif()
 
@@ -18,16 +20,18 @@ function(_pkg_query outvar arg)
   # Convert space-separated list to semicolon-separated cmake-list
   string(REGEX REPLACE " +" ";" _include_list "${_include_dirs}")
 
+  set(pkg_${outvar}_includedirs
+      ${_include_list}
+      CACHE STRING "include directories for ${outvar}" FORCE)
 
-  set(pkg_${outvar}_includedirs ${_include_list} CACHE STRING
-      "include directories for ${outvar}" FORCE)
-
-  execute_process(COMMAND pkg-config --cflags-only-other ${arg}
-                  RESULT_VARIABLE _pkg_err
-                  OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND pkg-config --cflags-only-other ${arg}
+    RESULT_VARIABLE _pkg_err
+    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
-    set(pkg_errno 1 PARENT_SCOPE)
+    set(pkg_errno
+        1
+        PARENT_SCOPE)
     return()
   endif()
 
@@ -36,44 +40,55 @@ function(_pkg_query outvar arg)
   # Convert some C++ specific flags into a generator expression that will
   # nullify during C compiles. Specifically match replace strings like
   # "-std=c++11" to "$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>".
-  string(REGEX REPLACE "(-std=[^;]+)" "$<$<COMPILE_LANGUAGE:CXX>:\\1>"
-         _cflags "${_cflags}")
+  string(REGEX REPLACE "(-std=[^;]+)" "$<$<COMPILE_LANGUAGE:CXX>:\\1>" _cflags
+                       "${_cflags}")
 
-  set(pkg_${outvar}_cflags ${_cflags} CACHE STRING
-      "cflags directories for ${outvar}" FORCE)
+  set(pkg_${outvar}_cflags
+      ${_cflags}
+      CACHE STRING "cflags directories for ${outvar}" FORCE)
 
-  execute_process(COMMAND pkg-config --libs-only-L ${arg}
-                  RESULT_VARIABLE _pkg_err
-                  OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND pkg-config --libs-only-L ${arg}
+    RESULT_VARIABLE _pkg_err
+    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
-    set(pkg_errno 1 PARENT_SCOPE)
+    set(pkg_errno
+        1
+        PARENT_SCOPE)
     return()
   endif()
 
-  set(pkg_${outvar}_libdirs ${_pkg_out} CACHE STRING
-      "library directories for ${outvar}" FORCE)
+  set(pkg_${outvar}_libdirs
+      ${_pkg_out}
+      CACHE STRING "library directories for ${outvar}" FORCE)
 
-  execute_process(COMMAND pkg-config --libs-only-l ${arg}
-                  RESULT_VARIABLE _pkg_err
-                  OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND pkg-config --libs-only-l ${arg}
+    RESULT_VARIABLE _pkg_err
+    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
-    set(pkg_errno 1 PARENT_SCOPE)
+    set(pkg_errno
+        1
+        PARENT_SCOPE)
     return()
   endif()
 
-  set(pkg_${outvar}_libs ${_pkg_out} CACHE STRING
-      "library directories for ${outvar}" FORCE)
+  set(pkg_${outvar}_libs
+      ${_pkg_out}
+      CACHE STRING "library directories for ${outvar}" FORCE)
 
-  set(pkg_${outvar}_name ${arg} CACHE STRING
-      "selected name which worked as an argument to pkg-config" FORCE)
+  set(pkg_${outvar}_name
+      ${arg}
+      CACHE STRING "selected name which worked as an argument to pkg-config"
+            FORCE)
 
-  set(pkg_errno 0 PARENT_SCOPE)
+  set(pkg_errno
+      0
+      PARENT_SCOPE)
 endfunction()
 
-# Execute pkg-config for each name in the list
-# Usage _pkg_query_loop(<canonical_name> [<alt1> [<alt2> [...]]])
+# Execute pkg-config for each name in the list Usage
+# _pkg_query_loop(<canonical_name> [<alt1> [<alt2> [...]]])
 function(_pkg_query_loop name)
   if(pkg_${outvar}_found)
     return()
@@ -88,28 +103,34 @@ function(_pkg_query_loop name)
   foreach(_qname ${names})
     _pkg_query(${outvar} ${_qname})
     if(pkg_errno EQUAL 0)
-      set(pkg_${outvar}_found TRUE CACHE BOOL "${outvar} was found" FORCE)
+      set(pkg_${outvar}_found
+          TRUE
+          CACHE BOOL "${outvar} was found" FORCE)
       return()
     endif()
   endforeach()
 
-  set(pkg_${outvar}_found FALSE CACHE BOOL "${outvar} was not found" FORCE)
+  set(pkg_${outvar}_found
+      FALSE
+      CACHE BOOL "${outvar} was not found" FORCE)
 endfunction()
 
 # Find system packages using pkg-config.
 #
 # usage:
+# ~~~
 # pkg_find(PKG libfoo NAMES libfoo libfoo-1 libfoox
 #          PKG libbar NAMES libarx
 #          PKG libbaz)
+# ~~~
 #
-# Execute pkg-config to get flags for each of the given library names.
-# Each library is specified with a line `PKG <name> [NAMES <name0>, ...]`.
-# If the library might have different names on different supported systems
-# you may specify a list of names to attempt. The first one that `pkg-config`
-# exists with `0` for will be used. If `NAMES` is provided, then `<name>` will
-# not be attempted (so duplicate it if you want to). `<name>` will be used
-# for the key in the pkg-config database cache.
+# Execute pkg-config to get flags for each of the given library names. Each
+# library is specified with a line `PKG <name> [NAMES <name0>, ...]`. If the
+# library might have different names on different supported systems you may
+# specify a list of names to attempt. The first one that `pkg-config` exists
+# with `0` for will be used. If `NAMES` is provided, then `<name>` will not be
+# attempted (so duplicate it if you want to). `<name>` will be used for the key
+# in the pkg-config database cache.
 function(pkg_find)
   set(state_ "PARSE_PKG")
   set(name_)
@@ -173,14 +194,13 @@ function(target_pkg_depends target pkg0)
                           " required by ${target}")
     endif()
     if(pkg_${pkgname}_includedirs)
-      # TODO(josh): passthrough things like
-      # SYSTEM, BEFORE, INTERFACE|PUBLIC|PRIVATE
-      target_include_directories(${target} SYSTEM PUBLIC
-                                 ${pkg_${pkgname}_includedirs})
+      # TODO(josh): passthrough things like SYSTEM, BEFORE,
+      # INTERFACE|PUBLIC|PRIVATE
+      target_include_directories(${target} SYSTEM
+                                 PUBLIC ${pkg_${pkgname}_includedirs})
     endif()
     if(pkg_${pkgname}_cflags)
-      # TODO(josh): passthrough things like
-      # BEFORE, INTERFACE|PUBLIC|PRIVATE
+      # TODO(josh): passthrough things like BEFORE, INTERFACE|PUBLIC|PRIVATE
       target_compile_options(${target} PUBLIC ${pkg_${pkgname}_cflags})
     endif()
     if(pkg_${pkgname}_libdirs)
@@ -190,7 +210,7 @@ function(target_pkg_depends target pkg0)
         set_target_properties(${target} PROPERTIES LINK_FLAGS ${lflags_})
       else()
         set_target_properties(${target} PROPERTIES LINK_FLAGS
-                              ${pkg_${pkgname}_lflags})
+                                                   ${pkg_${pkgname}_lflags})
       endif()
 
     endif()
