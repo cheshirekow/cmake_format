@@ -3,6 +3,10 @@
 Note that the vscode extension release version matches the
 cmake-format release version on [pypi][2].
 
+### 0.6.10
+
+- Fix typos in environment handling
+
 ### 0.6.6
 
 `--` is automatically appended to the argument vector used to call
@@ -28,3 +32,4 @@ Fixed bug with using workspace path as `cwd` when calling `cmake-foramt`.
 - Working callout to cmake-format with configuration options.
 
 [2]: https://pypi.org/project/cmake_format/
+

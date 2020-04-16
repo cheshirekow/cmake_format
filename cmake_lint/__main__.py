@@ -61,6 +61,17 @@ def setup_argparse(argparser):
                           'Default is stdout.')
 
   argparser.add_argument(
+      "--no-help", action="store_false", dest="with_help",
+      help="When used with --dump-config, will omit helptext comments in the"
+           " output"
+  )
+  argparser.add_argument(
+      "--no-default", action="store_false", dest="with_defaults",
+      help="When used with --dump-config, will omit any unmodified "
+           "configuration value."
+  )
+
+  argparser.add_argument(
       '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
   argparser.add_argument('infilepaths', nargs='*')

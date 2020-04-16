@@ -40,6 +40,11 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
     ],
     include_package_data=True,
+    package_data={
+        "cmake_format": [
+            "templates/*"
+        ]
+    },
     entry_points={
         'console_scripts': [
             'cmake-annotate=cmake_format.annotate:main',

@@ -1,5 +1,5 @@
 # test: line-too-long
-# expect: C0301
+# expect: C0301@1
 # The line is too long and exceeds the default 80 character column limit enforced cmake-lint
 
 # test: trailing-whitespace
@@ -69,10 +69,6 @@ add_custom_command(
 # test: add-custom-command-missing-required-kwarg
 # expect: C0113,E1125
 add_custom_command(OUTPUT foo)
-
-# test: add-custom-target-missing-required-kwarg
-# expect: C0113,C0113
-add_custom_target(foo ALL)
 
 # test: file-missing-required
 # expect: E1120

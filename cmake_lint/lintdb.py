@@ -46,7 +46,7 @@ specified with the bad-names option. This message is raised whenever a name is
 in the list of names defined with the bad-names option.
 """
 }), (
-"C0103", "Invalid {:s} name \"{:s}\"", {
+"C0103", "Invalid {:s} name \"{:s}\" doesn't match `{:s}`", {
 "description": """\
 Used when a name doesn't doesn't fit the naming convention associated to its
 type (function, macro, variable, ...).

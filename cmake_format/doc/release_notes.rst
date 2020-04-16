@@ -8,6 +8,12 @@ some high level notes and highlights from each release.
 v0.6 series
 ===========
 
+-------
+v0.6.10
+-------
+
+
+
 ------
 v0.6.9
 ------

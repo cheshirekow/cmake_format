@@ -46,8 +46,6 @@ add_custom_command(
 
 add_custom_command(OUTPUT foo)
 
-add_custom_target(foo ALL)
-
 file()
 
 set(_form TOUCH)

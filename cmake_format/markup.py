@@ -189,6 +189,15 @@ def is_hashruler(item):
   return True
 
 
+COMMON_KWARGS = dict(
+    expand_tabs=True,
+    replace_whitespace=True,
+    drop_whitespace=True,
+    break_long_words=False,
+    break_on_hyphens=False
+)
+
+
 def format_item(config, line_width, item):
   """
   Return lines of formatted text based on the typeof markup
@@ -203,20 +212,14 @@ def format_item(config, line_width, item):
   if is_hashruler(item) and config.markup.canonicalize_hashrulers:
     return ['#' * line_width]
   if item.kind in (CommentType.PARAGRAPH, CommentType.NOTE, CommentType.RULER):
-    wrapper = textwrap.TextWrapper(width=line_width,
-                                   expand_tabs=True,
-                                   replace_whitespace=True,
-                                   drop_whitespace=True)
+    wrapper = textwrap.TextWrapper(width=line_width, **COMMON_KWARGS)
     return common.stable_wrap(wrapper, '\n'.join(item.lines).strip())
 
   if item.kind == CommentType.BULLET_LIST:
     assert line_width > 2
     outlines = []
 
-    wrapper = textwrap.TextWrapper(width=line_width - 2,
-                                   expand_tabs=True,
-                                   replace_whitespace=True,
-                                   drop_whitespace=True)
+    wrapper = textwrap.TextWrapper(width=line_width - 2, **COMMON_KWARGS)
     for line in item.lines:
       increment_lines = common.stable_wrap(wrapper, line.strip())
       outlines.append(config.markup.bullet_char + ' ' + increment_lines[0])
@@ -226,10 +229,7 @@ def format_item(config, line_width, item):
   if item.kind == CommentType.ENUM_LIST:
     assert line_width > 2
     outlines = []
-    wrapper = textwrap.TextWrapper(width=line_width - 2,
-                                   expand_tabs=True,
-                                   replace_whitespace=True,
-                                   drop_whitespace=True)
+    wrapper = textwrap.TextWrapper(width=line_width - 2, **COMMON_KWARGS)
 
     digits = int(math.ceil(math.log(len(item.lines), 10)))
     fmt = '{:%dd}%s ' % (digits, config.markup.enum_char)

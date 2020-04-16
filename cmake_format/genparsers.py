@@ -69,9 +69,10 @@ def replace_varrefs(value, variables):
   Replace cmake variable dereferences in the string, given a dictionary of
   currently assigned variables.
   """
+  regex = re.compile(r"\$\{([\w_]+)\}")
   repl = VarSub(variables)
-  while "${" in value:
-    value = re.sub(r"\$\{([\w_]+)\}", repl, value)
+  while regex.search(value):
+    value = regex.sub(repl, value)
   return value
 
 
@@ -245,6 +246,7 @@ def main():
   returncode = 0
   outdict = collections.OrderedDict()
   for infile_path in args.infilepaths:
+    print(infile_path)
     cfg = configuration.Configuration()
     if infile_path == '-':
       infile_path = os.dup(sys.stdin.fileno())

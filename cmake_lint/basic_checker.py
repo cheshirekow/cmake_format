@@ -60,6 +60,9 @@ def check_basics(cfg, local_ctx, infile_content):
   lines = infile_content.split("\n")
 
   for lineno, line in enumerate(lines):
+    # NOTE(josh): The tokenizer starts lineno at "1", so we must do the same
+    # here in order to be consistent.
+    lineno += 1
     if len(line) > cfg.format.line_width:
       local_ctx.record_lint(
           "C0301", len(line), cfg.format.line_width, location=(lineno,))
@@ -129,7 +132,8 @@ def check_name_against_pattern(cfg, local_ctx, defn_node, pattern):
   token = tokens.pop(0)  # function/macro name
   if not re.match(pattern, token.spelling):
     local_ctx.record_lint(
-        "C0103", "function", token.spelling, location=token.get_location())
+        "C0103", "function", token.spelling, pattern,
+        location=token.get_location())
 
 
 def check_argument_names(cfg, local_ctx, defn_node):
@@ -153,7 +157,8 @@ def check_argument_names(cfg, local_ctx, defn_node):
             "C0202", token.spelling, location=token.get_location())
       elif not re.match(cfg.lint.local_var_pattern, token.spelling):
         local_ctx.record_lint(
-            "C0103", "argument", token.spelling, location=token.get_location())
+            "C0103", "argument", token.spelling, cfg.lint.local_var_pattern,
+            location=token.get_location())
       seen_names.add(token.spelling)
       uncase_names.add(token.spelling.lower())
 
@@ -208,7 +213,8 @@ def check_foreach(cfg, local_ctx, node):
   token = tokens.pop(0)  # loopvaraible
   if not re.match(cfg.lint.local_var_pattern, token.spelling):
     local_ctx.record_lint(
-        "C0103", "loopvar", token.spelling, location=token.get_location())
+        "C0103", "loopvar", token.spelling, cfg.lint.local_var_pattern,
+        location=token.get_location())
 
 
 def check_flow_control(cfg, local_ctx, node):
@@ -416,9 +422,9 @@ def check_is_in_loop(cfg, local_ctx, node):
 class Scope(enum.IntEnum):
   CACHE = 0  # global scope (public)
   INTERNAL = 1  # global scope (private)
-  PARENT = 1  # indeterminate scope, but it can't be CACHE
-  LOCAL = 2  # function local scope
-  DIRECTORY = 3  # directory scope
+  PARENT = 2  # indeterminate scope, but it can't be CACHE
+  LOCAL = 3  # function local scope
+  DIRECTORY = 4  # directory scope
 
 
 def get_scope_of_assignment(set_node):
@@ -461,7 +467,7 @@ def check_assignment(cfg, local_ctx, set_node):
     pattern = cfg.lint.global_var_pattern
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
-          "C0103", "CACHE variable", varname.spelling,
+          "C0103", "CACHE variable", varname.spelling, pattern,
           location=varname.get_location())
   elif scope is Scope.INTERNAL:
     # variable is global scope but private
@@ -469,6 +475,7 @@ def check_assignment(cfg, local_ctx, set_node):
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
           "C0103", "INTERNAL variable", varname.spelling,
+          cfg.lint.internal_var_pattern,
           location=varname.get_location())
   elif scope is Scope.PARENT:
     # indeterminate scope, but it's not global
@@ -480,13 +487,13 @@ def check_assignment(cfg, local_ctx, set_node):
 
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
-          "C0103", "PARENT_SCOPE variable", varname.spelling,
+          "C0103", "PARENT_SCOPE variable", varname.spelling, pattern,
           location=varname.get_location())
   elif scope is Scope.LOCAL:
     if not re.match(cfg.lint.local_var_pattern, varname.spelling):
       local_ctx.record_lint(
           "C0103", "local variable", varname.spelling,
-          location=varname.get_location())
+          cfg.lint.local_var_pattern, location=varname.get_location())
   elif scope is Scope.DIRECTORY:
     # We cannot tell by assignment whether it's meant to be public or private,
     # but it must match one of these patterns
@@ -496,7 +503,7 @@ def check_assignment(cfg, local_ctx, set_node):
     ])
     if not re.match(pattern, varname.spelling):
       local_ctx.record_lint(
-          "C0103", "directory variable", varname.spelling,
+          "C0103", "directory variable", varname.spelling, pattern,
           location=varname.get_location())
 
 

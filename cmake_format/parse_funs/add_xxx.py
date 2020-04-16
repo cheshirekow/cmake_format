@@ -169,7 +169,6 @@ def parse_add_custom_target(ctx, tokens, breakstack):
 
   required_kwargs = {
       # Required by convention
-      "COMMAND": "C0113",
       "COMMENT": "C0113"
   }
 

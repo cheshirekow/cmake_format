@@ -159,7 +159,7 @@ class LinterConfig(ConfigObject):
   )
 
   max_statement_spacing = FieldDescriptor(
-      1,
+      2,
       "Require no more than this many newlines between statements"
   )
 

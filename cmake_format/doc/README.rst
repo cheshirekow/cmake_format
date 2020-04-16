@@ -122,6 +122,10 @@ Usage
                             stdout and exit
       -o OUTFILE_PATH, --outfile-path OUTFILE_PATH
                             Write errors to this file. Default is stdout.
+      --no-help             When used with --dump-config, will omit helptext
+                            comments in the output
+      --no-default          When used with --dump-config, will omit any unmodified
+                            configuration value.
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 

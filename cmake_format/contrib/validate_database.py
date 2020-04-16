@@ -11,6 +11,14 @@ import sys
 import tempfile
 import warnings
 
+# NOTE(josh): FileNotFoundError doesn't exist in python2, so we'll define
+# it to be the parent class.
+try:
+  FileNotFoundError
+except NameError:
+  # pylint: disable=W0622
+  FileNotFoundError = IOError
+
 
 def get_repo_dir():
   """
@@ -55,7 +63,19 @@ class TestContributorAgreements(unittest.TestCase):
     self.homedir = tempfile.mkdtemp(prefix="gpgtmp")
 
   def tearDown(self):
-    shutil.rmtree(self.homedir)
+    for _ in range(3):
+      try:
+        # NOTE(josh): for some reason we see
+        # `FileNotFoundError:
+        #   [Errno 2] No such file or directory: 'S.gpg-agent.browser'`
+        # My guess is that the file is deleted after the directory scan but
+        # before the unlink.
+        shutil.rmtree(self.homedir)
+        break
+      except FileNotFoundError:
+        continue
+    else:
+      self.fail("FileNotFoundError after several retries")
 
   def test_signatures(self):
     """
