@@ -20,14 +20,6 @@ cmake\_format\.configuration module
     :undoc-members:
     :show-inheritance:
 
-cmake\_format\.commands module
-------------------------------
-
-.. automodule:: cmake_format.commands
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 cmake\_format\.common module
 ----------------------------
 

@@ -37,6 +37,7 @@ for ``cmake``:
    parse-algorithm
    parse-automatic
    contributing
+   release_process
 
    release_notes
    changelog

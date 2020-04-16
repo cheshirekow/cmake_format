@@ -256,13 +256,16 @@ set(_docsources
     index.rst
     installation.rst
     lint-example.rst
+    lint-notes.rst
     lint-summary.rst
     lint-usage.rst
     modules.rst
     parse-algorithm.rst
     parse-automatic.rst
     parse-tree.rst
-    release_notes.rst)
+    release_notes.rst
+    release_process.rst
+    release-pipeline.svg)
 foreach(_docsource ${_docsources})
   add_custom_command(
     OUTPUT ${_stage}/${_docsource}
@@ -289,14 +292,10 @@ add_custom_command(
   DEPENDS ${_stage}/bits)
 list(APPEND _copyfiles ${_stage}/sphinx-static/css/cheshire_theme.css)
 
-set(_tag pseudo-staging)
-if(TRAVIS_TAG)
-  set(_tag ${TRAVIS_TAG})
-endif()
 add_custom_command(
   OUTPUT ${_stage}/rtd-requirements.txt
-  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements ${_tag} ${_version}
-          -o ${_stage}/rtd-requirements.txt
+  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
+          ${_version} -o ${_stage}/rtd-requirements.txt
   DEPENDS ${CMAKE_SOURCE_DIR}/cmake_format/tools/gen_rtd_requirements.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/rtd-requirements.txt)
@@ -380,7 +379,7 @@ add_custom_target(
       --scratch-tree ${CMAKE_CURRENT_BINARY_DIR}/scratch-tree
       --stage ${_stage}
       --deploy-key "${_deploykey}"
-      --tag ${_tag}
+      --tag \$\${TRAVIS_TAG}
     # cmake-format: on
   DEPENDS clean-cmake_format-sphinx-stage ${_sphinx_manifest} ${_deploykey}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

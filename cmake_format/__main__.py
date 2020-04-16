@@ -28,7 +28,6 @@ import shutil
 import sys
 
 import cmake_format
-from cmake_format import commands
 from cmake_format import common
 from cmake_format import configuration
 from cmake_format import config_util
@@ -39,6 +38,7 @@ from cmake_format import parse
 from cmake_format import parse_funs
 from cmake_format.parse.common import NodeType, TreeNode
 from cmake_format.parse.printer import dump_tree as dump_parse
+from cmake_format.parse_funs import standard_funs
 
 
 logger = logging.getLogger(__name__)
@@ -346,7 +346,7 @@ def dump_config(args, config_dict, outfile):
   config_dict.update(get_argdict(args))
   cfg = configuration.Configuration(**config_dict)
   # Don't dump default per-command configs
-  for key in commands.get_default_config():
+  for key in standard_funs.get_default_config():
     cfg.misc.per_command.pop(key, None)
 
   if outfmt == 'yaml':

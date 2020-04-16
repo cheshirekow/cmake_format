@@ -13,3 +13,4 @@ common mistakes, and anti-patterns.
    lint-example
    lint-summary
    lint-implemented
+   lint-notes

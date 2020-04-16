@@ -34,14 +34,17 @@ def process_file(config, local_ctx, infile_content):
     config = config.clone()
     config.set_line_ending(detected)
 
-  basic_checker.check_basics(config, local_ctx, infile_content)
+  checker = basic_checker.LintChecker(config, local_ctx)
+  checker.check_basics(infile_content)
   tokens = lexer.tokenize(infile_content)
+  checker.check_tokens(tokens)
+
   parse_db = parse_funs.get_parse_db()
   parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
   ctx = parse.ParseContext(parse_db, local_ctx, config)
   parse_tree = parse.parse(tokens, ctx)
   parse_tree.build_ancestry()
-  basic_checker.check_parse_tree(config, local_ctx, parse_tree)
+  checker.check_parse_tree(parse_tree)
 
 
 def setup_argparse(argparser):

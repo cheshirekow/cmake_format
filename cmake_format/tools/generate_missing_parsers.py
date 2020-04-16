@@ -8,7 +8,6 @@ import os
 import subprocess
 import sys
 
-from cmake_format import commands
 from cmake_format import parse_funs
 
 TEMPLATE = '''
@@ -35,7 +34,6 @@ def main():
       stdout=subprocess.PIPE)
 
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(commands.get_fn_spec()).kwargs)
 
   with proc.stdout as infile:
     for line in infile:

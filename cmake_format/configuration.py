@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import logging
 import re
 
-from cmake_format import commands
+from cmake_format.parse_funs import standard_funs
 from cmake_format import markup
 from cmake_format.config_util import (
     FieldDescriptor, ConfigObject, SubtreeDescriptor)
@@ -112,19 +112,19 @@ class LinterConfig(ConfigObject):
   )
 
   global_var_pattern = FieldDescriptor(
-      "[0-9A-Z][0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]+",
       "regular expression pattern describing valid names for variables"
-      " with global scope"
+      " with global (cache) scope"
   )
 
   internal_var_pattern = FieldDescriptor(
-      "_[0-9A-Z][0-9A-Z_]+",
+      "_[A-Z][0-9A-Z_]+",
       "regular expression pattern describing valid names for variables"
       " with global scope (but internal semantic)"
   )
 
   local_var_pattern = FieldDescriptor(
-      "[0-9a-z_]+",
+      "[a-z][a-z0-9_]+",
       "regular expression pattern describing valid names for variables"
       " with local scope"
   )
@@ -136,13 +136,19 @@ class LinterConfig(ConfigObject):
   )
 
   public_var_pattern = FieldDescriptor(
-      "[0-9A-Z][0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]+",
       "regular expression pattern describing valid names for public"
-      "directory variables"
+      " directory variables"
+  )
+
+  argument_var_pattern = FieldDescriptor(
+      "[a-z][a-z0-9_]+",
+      "regular expression pattern describing valid names for function/macro"
+      " arguments and loop variables."
   )
 
   keyword_pattern = FieldDescriptor(
-      "[0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]+",
       "regular expression pattern describing valid names for keywords"
       " used in functions or macros"
   )
@@ -356,6 +362,12 @@ class ParseConfig(ConfigObject):
   vartags = FieldDescriptor([], "Specify variable tags.")
   proptags = FieldDescriptor([], "Specify property tags.")
 
+  def __init__(self, **kwargs):  # pylint: disable=W0613
+    self.fn_spec = standard_funs.CommandSpec("<root>")
+    self.vartags_ = []
+    self.proptags_ = []
+    super(ParseConfig, self).__init__(**kwargs)
+
   def _update_derived(self):
     if self.additional_commands is not None:
       for command_name, spec in self.additional_commands.items():
@@ -367,12 +379,6 @@ class ParseConfig(ConfigObject):
     self.proptags_ = [
         (re.compile(pattern, re.IGNORECASE), tags) for pattern, tags in
         BUILTIN_PROPTAGS + self.proptags]
-
-  def __init__(self, **kwargs):  # pylint: disable=W0613
-    self.fn_spec = commands.get_fn_spec()
-    self.vartags_ = []
-    self.proptags_ = []
-    super(ParseConfig, self).__init__(**kwargs)
 
 
 class MiscConfig(ConfigObject):
@@ -387,7 +393,7 @@ class MiscConfig(ConfigObject):
   )
 
   def _update_derived(self):
-    self.per_command_ = commands.get_default_config()
+    self.per_command_ = standard_funs.get_default_config()
     for command, cdict in self.per_command.items():
       if not isinstance(cdict, dict):
         logging.warning("Invalid override of type %s for %s",

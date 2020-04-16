@@ -23,6 +23,17 @@ v0.6.10
 * Fix Scope.PARENT is same enum value as scope.INTERNAL
 * Skip travis deploy stage on pull request
 
+* Move commands.py into parse_funs/standard_funs.py
+* replace duplicates of parse_db update from standard_funs
+* get rid of root makefile
+* document the release process
+* refactor basic_checker module into a class where common function parameters
+  are now member state.
+* analyze and document variable naming conventions
+* add a pattern for function/macro argument names
+* implement W0106 looks like a variable reference missing a brace
+* fix name checks shouldn't be applied to variable references
+
 * Closes: `#170`_: Comment is wrong
 * Closes: `#171`_: Crash when running `cmake-lint --dump-config`
 * Closes: `#172`_: Possibly false positives for too many newlines
@@ -34,6 +45,8 @@ v0.6.10
 * Closes: `#184`_: Trailing whitespace reported on wrong line
 * Closes: `#185`_: cmake-lint: set with PARENT_SCOPE is not INTERNAL
 * Closes: `#187`_: Fixed typos and bugs in vscode extension
+
+* Closes: 358e95c, 376422c, 5258b1b, 97f7956, d85b7c7, e03ec57, f0fcbce,
 
 .. _#170: https://github.com/cheshirekow/cmake_format/issues/170
 .. _#171: https://github.com/cheshirekow/cmake_format/issues/171

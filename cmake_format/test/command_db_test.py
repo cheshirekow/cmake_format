@@ -2,7 +2,6 @@
 import unittest
 import subprocess
 
-from cmake_format import commands
 from cmake_format import parse_funs
 
 IGNORE_LIST = [
@@ -24,7 +23,6 @@ class TestCommandDatabase(unittest.TestCase):
         stdout=subprocess.PIPE)
 
     parse_db = parse_funs.get_parse_db()
-    parse_db.update(parse_funs.get_legacy_parse(commands.get_fn_spec()).kwargs)
 
     ignore = IGNORE_LIST
     with proc.stdout as infile:

@@ -6,7 +6,6 @@ Statement parser functions
 import importlib
 import logging
 
-from cmake_format import commands
 from cmake_format import lexer
 from cmake_format.parse.additional_nodes import ShellCommandNode
 from cmake_format.parse.argument_nodes import (
@@ -21,6 +20,7 @@ from cmake_format.parse.util import (
     get_tag,
     should_break,
 )
+from cmake_format.parse_funs import standard_funs
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def split_legacy_spec(cmdspec):
       subparser = ConditionalGroupNode.parse
     elif kwarg == "COMMAND":
       subparser = ShellCommandNode.parse
-    elif isinstance(subspec, (commands.CommandSpec)):
+    elif isinstance(subspec, (standard_funs.CommandSpec)):
       subparser = get_legacy_parse(subspec)
     else:
       raise ValueError("Unexpected kwarg spec of type {}"
@@ -68,7 +68,7 @@ SUBMODULE_NAMES = [
     "miscellaneous",
     "random",
     "set",
-    "set_target_properties"
+    "set_target_properties",
 ]
 
 
@@ -94,4 +94,5 @@ def get_parse_db():
   for key in ("endfunction", "endmacro"):
     parse_db[key] = StandardParser("?")
 
+  parse_db.update(get_legacy_parse(standard_funs.get_fn_spec()).kwargs)
   return parse_db

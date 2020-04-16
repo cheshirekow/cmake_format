@@ -496,5 +496,6 @@ def stripped_patterns():
 
 CASE_SENSITIVE_REGEX = re.compile(
     "|".join(stripped_patterns()))
+
 CASE_INSENSITIVE_REGEX = re.compile(
     "|".join(stripped_patterns()), re.IGNORECASE)

@@ -205,6 +205,12 @@ list(APPEND CMAKE_Cxx_STANDARD "11")
 # expect: W0105
 message("Using C++ standard ${CMAKE_Cxx_STANDARD}")
 
+# test: almost-varref
+# expect: W0106,W0106,W0106
+message("$CMAKE_INSTALL_PREFIX}")
+message("{CMAKE_INSTALL_PREFIX}")
+message("${CMAKE_INSTALL_PREFIX")
+
 # test: missing-final-newline
 # expect: C0304
 # This file is missing a final newline
