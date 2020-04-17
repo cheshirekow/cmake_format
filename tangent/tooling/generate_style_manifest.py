@@ -120,7 +120,8 @@ def get_source_manifest(rootdir, exclude_pattern):
     else:
       dirname = directory
 
-    if dirname in REJECT_DIRS:
+    # NOTE(josh): on buildbot, the source directory is called "build"... ugh.
+    if dirname in REJECT_DIRS and directory != rootdir:
       excluded.append(relpath_dir)
       dirnames[:] = []
       continue

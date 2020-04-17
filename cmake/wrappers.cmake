@@ -32,6 +32,23 @@ macro(explode _list)
   endforeach()
 endmacro()
 
+# Join a list of strings into a single string
+#
+# usage:
+# ~~~
+# join(<outvar> [GLUE <glue>] [arg1 [arg2 [arg3 [...]]]])
+# ~~~
+function(join outvar)
+  cmake_parse_arguments(args "" "GLUE" "" ${ARGN})
+  set(joined)
+  foreach(part ${args_UNPARSED_ARGUMENTS})
+    set(joined "${joined}${args_GLUE}${part}")
+  endforeach()
+  set(${outvar}
+      "${joined}"
+      PARENT_SCOPE)
+endfunction()
+
 # Backport list(FILTER ...) to cmake < 3.6
 function(list_filter _listname)
   set(_localcopy ${${_listname}})
@@ -124,8 +141,7 @@ function(check_call)
     string(REPLACE "COMMAND%" "\n  " _cmdlines "${_cmds}")
     string(REPLACE "%" " " _cmdlines "${_cmdlines}")
     message(FATAL_ERROR " Failed to execute one or more command:\n"
-                        "  ${_cmdlines}\n"
-                        "  ${_stderr}")
+                        "  ${_cmdlines}\n" "  ${_stderr}")
   endif()
 
   if(_args_OUTPUT_VARIABLE)

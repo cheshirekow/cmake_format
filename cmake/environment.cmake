@@ -1,3 +1,11 @@
+# Detect whether or not the source tree for this build is the upstream
+# monorepository or a sparse export of it. Returns (via `<varname>`) the slug of
+# the sparse export, if detected, or `NONE` if this is the monorepo.
+#
+# Usage:
+# ~~~
+# detect_sparse_export(<varname>)
+# ~~~
 function(detect_sparse_export varname)
   if("${TANGENT_BUILD_CONTEXT}" STREQUAL DEBIAN_PACKAGE)
     set(${varname}
@@ -46,8 +54,24 @@ function(detect_sparse_export varname)
       PARENT_SCOPE)
 endfunction()
 
+# Detect the build environment that is running cmake. Returns in the calling
+# scope the following variables:
+#
+# * IS_TRAVIS_CI - TRUE if this is on travis
+# * IS_PULL_REQUEST - TRUE if this is a travis pull request build
+# * TANGENT_IS_DEBIAN_BUILD - TRUE if this is a pbuilder/pbuild or launchpad
+#   execution
+# * TANGENT_SPARSE_EXPORT - set to the slug of the sparse export or `NONE` if
+#   this is the monorepo
+#
+# Usage:
+# ~~~
+# detect_buildenv()
+# ~~~
 function(detect_buildenv)
-  set(IS_TRAVIS_CI FALSE)
+  set(IS_TRAVIS_CI
+      FALSE
+      PARENT_SCOPE)
   if(DEFINED ENV{CI}
      AND DEFINED ENV{TRAVIS}
      AND "$ENV{CI}" STREQUAL "true"
@@ -57,7 +81,9 @@ function(detect_buildenv)
         PARENT_SCOPE)
   endif()
 
-  set(IS_PULL_REQUEST FALSE)
+  set(IS_PULL_REQUEST
+      FALSE
+      PARENT_SCOPE)
   if(DEFINED ENV{TRAVIS_PULL_REQUEST} AND "$ENV{TRAVIS_PULL_REQUEST}" STREQUAL
                                           "true")
     set(IS_PULL_REQUEST
@@ -65,9 +91,13 @@ function(detect_buildenv)
         PARENT_SCOPE)
   endif()
 
-  set(TANGENT_IS_DEBIAN_BUILD FALSE)
+  set(TANGENT_IS_DEBIAN_BUILD
+      FALSE
+      PARENT_SCOPE)
   if("${TANGENT_BUILD_CONTEXT}" STREQUAL DEBIAN_PACKAGE)
-    set(TANGENT_IS_DEBIAN_BUILD TRUE)
+    set(TANGENT_IS_DEBIAN_BUILD
+        TRUE
+        PARENT_SCOPE)
   endif()
 
   detect_sparse_export(_sparse_export)

@@ -97,7 +97,7 @@ message("This code is unreachable")
 
 # cmake-lint: disable=E0109,C0321
 # foo:docstring, too many arguments
-function(foo, a0, a1, a2, a3, a4, a5)
+function(foo a0 a1 a2 a3 a4 a5)
 
   # Too many branches, too many returns
   if(blah) return()
@@ -146,5 +146,9 @@ set(CMAKE_Cxx_STANDARD "11")
 list(APPEND CMAKE_Cxx_STANDARD "11")
 
 message("Using C++ standard ${CMAKE_Cxx_STANDARD}")
+
+message("$CMAKE_INSTALL_PREFIX}")
+message("{CMAKE_INSTALL_PREFIX}")
+message("${CMAKE_INSTALL_PREFIX")
 
 # This file is missing a final newline

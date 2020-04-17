@@ -1,3 +1,11 @@
+with section("lint"):
+  disabled_codes = [
+    # A custom command with one output doesn't really need a comment because
+    # the default "generating XXX" is a good message already.
+    "C0113",
+  ]
+
+
 with section("parse"):
   additional_commands = {
     # Wrappers.cmake
@@ -111,14 +119,16 @@ with section("parse"):
       "pargs": "1+",
       "kwargs": {
         "VARS": "+"
-      }
+      },
+      "spelling": "IMPORTVARS"
     },
 
     "exportvars": {
       "pargs": "1+",
       "kwargs": {
         "VARS": "+"
-      }
+      },
+      "spelling": "EXPORTVARS"
     },
 
     "stage_files": {
@@ -127,6 +137,6 @@ with section("parse"):
         "STAGE": 1,
         "SOURCEDIR": 1,
         "FILES": "*"
-      }
+      },
     }
   }

@@ -1893,7 +1893,7 @@ FUNSPECS = {
       "nargs": 0
     },
     "kwargs": {
-      "COMPATABILITY": 1,
+      "COMPATIBILITY": 1,
       "VERSION": 1
     }
   },

@@ -48,6 +48,7 @@ py_test(
 
 py_test(
   name = "validate_database_py3",
+  timeout = "long",
   srcs = ["validate_database.py"],
   main = "validate_database.py",
   python_version = "PY3",

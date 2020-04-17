@@ -355,25 +355,32 @@ class LintChecker(object):
     self.check_name_against_pattern(defn_node, name_pattern)
     self.check_argument_names(defn_node)
 
+    # TODO(josh): I guess logically the following checks should really be
+    # part of check_body... in the case that the body within a function.
+    # I'm not sure what the best way to organize that flow. In any case
+    # we'll report the following errors at the first line following the
+    # opening statement, which is where the body starts
+    body_line = defn_node.get_tokens()[-1].get_location().line + 1
+
     block = defn_node.parent.get_block_with(defn_node)
     return_count = sum(
         1 for _ in find_statements_in_subtree(block.body, ("return",)))
     if return_count > cfg.lint.max_returns:
       local_ctx.record_lint("R0911", return_count, cfg.lint.max_returns,
-                            location=defn_node.get_location())
+                            location=(body_line,))
 
     branch_count = sum(
         1 for _ in find_statements_in_subtree(
             block.body, ("if", "elseif", "else")))
     if branch_count > cfg.lint.max_branches:
       local_ctx.record_lint("R0912", branch_count, cfg.lint.max_branches,
-                            location=defn_node.get_location())
+                            location=(body_line,))
 
     stmt_count = sum(
         1 for _ in find_nodes_in_subtree(block.body, StatementNode))
     if stmt_count > cfg.lint.max_statements:
       local_ctx.record_lint("R0915", stmt_count, cfg.lint.max_statements,
-                            location=defn_node.get_location())
+                            location=(body_line,))
 
   def check_fundef(self, node):
     """Perform checks on a function definition"""
@@ -412,7 +419,7 @@ class LintChecker(object):
     for child in node.children:
       self.check_tree(child)
 
-  def parse_pragmas_from_token(self, content, row, col, supressions):
+  def parse_pragmas_from_token(self, content, row, col, suppressions):
     """Parse any cmake-lint directives (pragmas) from line-comment
       tokens at the current scope."""
 
@@ -429,7 +436,7 @@ class LintChecker(object):
         idlist = value.split(",")
         for idstr in idlist:
           if local_ctx.is_idstr(idstr):
-            supressions.append(idstr)
+            suppressions.append(idstr)
           else:
             local_ctx.record_lint(
                 "E0012", idstr, location=(row, col))
@@ -440,7 +447,7 @@ class LintChecker(object):
   def parse_pragmas_from_comment(self, node):
     """Parse any cmake-lint directives (pragmas) from line comment tokens within
       the comment node."""
-    supressions = []
+    suppressions = []
     for child in node.children:
       if not isinstance(child, Token):
         continue
@@ -454,14 +461,14 @@ class LintChecker(object):
       row, col, _ = token.get_location()
       content = token.spelling[len(pragma_prefix):]
       col += len(pragma_prefix)
-      self.parse_pragmas_from_token(content, row, col, supressions)
+      self.parse_pragmas_from_token(content, row, col, suppressions)
 
-    return supressions
+    return suppressions
 
   def check_body(self, node):
     """Perform checks on a body node."""
     (cfg, local_ctx) = self.context
-    supressions = []
+    suppressions = []
     prevchild = [None, None]
     for idx, child in enumerate(node.children):
       if not isinstance(child, TreeNode):
@@ -469,10 +476,11 @@ class LintChecker(object):
         continue
 
       if child.node_type is NodeType.COMMENT:
-        requested_supressions = self.parse_pragmas_from_comment(child)
-        if requested_supressions:
-          new_supressions = local_ctx.supress(requested_supressions)
-          supressions.extend(new_supressions)
+        requested_suppressions = self.parse_pragmas_from_comment(child)
+        if requested_suppressions:
+          lineno = child.get_tokens()[0].get_location().line
+          new_suppressions = local_ctx.suppress(lineno, requested_suppressions)
+          suppressions.extend(new_suppressions)
 
       # Check for docstrings
       # TODO(josh): move into flow-control or fundef/macrodef checkers? Would
@@ -514,7 +522,9 @@ class LintChecker(object):
       self.check_tree(child)
       prevchild[1] = prevchild[0]
       prevchild[0] = child
-    local_ctx.unsupress(supressions)
+
+    lineno = node.get_tokens()[-1].get_location().line
+    local_ctx.unsuppress(lineno, suppressions)
 
   def check_arggroup(self, node):
     (_, local_ctx) = self.context
@@ -548,21 +558,25 @@ class LintChecker(object):
     """Ensure that a break() or continue() statement has a foreach() or
       while() node in it's ancestry."""
     (_, local_ctx) = self.context
+    prevparent = node
     parent = node.parent
 
     while parent:
       if not isinstance(parent, FlowControlNode):
+        prevparent = parent
         parent = parent.parent
         continue
 
-      block = parent.get_block_with(node)
+      block = parent.get_block_with(prevparent)
       if block is None:
+        prevparent = parent
         parent = parent.parent
         continue
 
       if block.open_stmt.get_funname() in ("foreach", "while"):
         return True
 
+      prevparent = parent
       parent = parent.parent
     local_ctx.record_lint(
         "E0103", node.get_funname(), location=node.get_location())

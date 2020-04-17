@@ -75,6 +75,10 @@ def setup_argparse(argparser):
   )
 
   argparser.add_argument(
+      "--suppress-decorations", action="store_true",
+      help="Suppress the file title decoration and summary statistics")
+
+  argparser.add_argument(
       '-c', '--config-files', nargs='+',
       help='path to configuration file(s)')
   argparser.add_argument('infilepaths', nargs='*')
@@ -157,13 +161,16 @@ def inner_main():
 
     local_ctx = global_ctx.get_file_ctx(infile_path, cfg)
     process_file(cfg, local_ctx, intext)
-    outfile.write("{}\n{}\n".format(infile_path, "=" * len(infile_path)))
+    if not args.suppress_decorations:
+      outfile.write("{}\n{}\n".format(infile_path, "=" * len(infile_path)))
     local_ctx.writeout(outfile)
-    outfile.write("\n")
+    if not args.suppress_decorations:
+      outfile.write("\n")
     if local_ctx.has_lint():
       returncode = 1
 
-  global_ctx.write_summary(outfile)
+  if not args.suppress_decorations:
+    global_ctx.write_summary(outfile)
   outfile.close()
   return returncode
 

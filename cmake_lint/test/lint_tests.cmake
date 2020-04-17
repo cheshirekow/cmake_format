@@ -144,10 +144,10 @@ return()
 message("This code is unreachable")
 
 # test: refactor-fun
-# expect: R0911,R0912,R0913,R0915
+# expect: R0913,R0911,R0912,R0915
 # cmake-lint: disable=E0109,C0321
 # foo:docstring, too many arguments
-function(foo, a0, a1, a2, a3, a4, a5)
+function(foo a0 a1 a2 a3 a4 a5)
 
   # Too many branches, too many returns
   if(blah) return()

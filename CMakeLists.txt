@@ -187,3 +187,13 @@ add_dependencies(pre-push lint chkfmt)
 
 add_custom_target(pre-release)
 add_dependencies(pre-release better-test doc lint chkfmt)
+
+# Inform vscode where the buildtree is
+foreach(filename c_cpp_properties.json tasks.json)
+  if(EXISTS ${CMAKE_SOURCE_DIR}/.vscode/${filename})
+    file(READ ${CMAKE_SOURCE_DIR}/.vscode/${filename} _content)
+    string(REGEX REPLACE "\\$\{cmakeBinaryDir\}" "${CMAKE_BINARY_DIR}" _content
+                         "${_content}")
+    file(WRITE ${CMAKE_SOURCE_DIR}/.vscode/${filename} "${_content}")
+  endif()
+endforeach()

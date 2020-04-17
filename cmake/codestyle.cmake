@@ -37,10 +37,26 @@
 # ~~~
 if(EXISTS ${CMAKE_SOURCE_DIR}/cmake_format)
   set(CMAKE_FORMAT_CMD python -Bm cmake_format)
+  set(CMAKE_LINT_CMD python -Bm cmake_lint)
 else()
   set(CMAKE_FORMAT_CMD cmake-format)
+  set(CMAKE_LINT_CMD cmake-lint)
 endif()
 
+# Generate targets to format or lint the list of files
+#
+# Usage:
+# ~~~
+# format_and_lint(<slug>
+#   [BZL filepath1 [filepath2 [...]]]
+#   [CMAKE filepath1 [filepath2 [...]]]
+#   [CC filepath1 [filepath2 [...]]]
+#   [CCDEPENDS filepath1 [filepath2 [...]]]
+#   [JS filepath1 [filepath2 [...]]]
+#   [PY filepath1 [filepath2 [...]]]
+#   [SHELL filepath1 [filepath2 [...]]]
+# )
+# ~~~
 function(format_and_lint slug)
   set(_multiargs
       BZL
@@ -77,6 +93,25 @@ function(format_and_lint slug)
     endif()
   endforeach()
 
+  # NOTE(josh): we create this dummy target which touches a dummy file that all
+  # the rules below depend on. This gives us a synchronization point where we
+  # can add dependencies and ensure these dependencies happen before any of the
+  # rules below.
+  set(lintdep_witness ${CMAKE_CURRENT_BINARY_DIR}/lint-${slug}-deps.witness)
+  add_custom_target(
+    lint-${slug}-deps
+    COMMAND touch -a ${lintdep_witness}
+    BYPRODUCTS ${lintdep_witness}
+    COMMENT "Dependency fence for lint-${slug}")
+
+  if(NOT CMAKE_GENERATOR STREQUAL "Ninja")
+    add_custom_command(
+      OUTPUT ${lintdep_witness}
+      COMMAND true
+      DEPENDS lint-${slug}-deps
+      COMMENT "Makefile stub for lint-${slug} dependency fence")
+  endif()
+
   set(_bzl_lintdeps)
   set(_bzl_fmtdeps)
   set(_bzl_chkfmtdeps)
@@ -91,7 +126,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename}
+      DEPENDS ${_filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     list(APPEND _bzl_lintdeps
          ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
@@ -128,14 +163,11 @@ function(format_and_lint slug)
 
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      # NOTE(josh): disabled for now
-      # ~~~
-      # COMMAND cmake-lint ${_filename}
-      # ~~~
+      # COMMAND ${CMAKE_LINT_CMD} --suppress-decorations ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename}
+      DEPENDS ${_filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND _cmake_lintdeps
          ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
@@ -183,7 +215,7 @@ function(format_and_lint slug)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
         COMMAND ${CMAKE_COMMAND} -E touch
                 ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.tidy
-        DEPENDS ${_filename} ${_args_CCDEPENDS}
+        DEPENDS ${_filename} ${_args_CCDEPENDS} ${lintdep_witness}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
       list(APPEND _cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.tidy)
     endif()
@@ -194,7 +226,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.cpplint
-      DEPENDS ${_filename} ${_args_CCDEPENDS}
+      DEPENDS ${_filename} ${_args_CCDEPENDS} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     list(APPEND _cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.cpplint)
 
@@ -235,7 +267,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename}
+      DEPENDS ${_filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND _js_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
 
@@ -286,7 +318,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename}
+      DEPENDS ${_filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     list(APPEND _py_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
 
@@ -325,7 +357,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename}
+      DEPENDS ${_filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     list(APPEND _shell_lintdeps
          ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)

@@ -145,3 +145,6 @@ class KwargBreaker(object):
 
   def __call__(self, token):
     return token.spelling.upper() in self.kwargs
+
+  def __repr__(self):
+    return "KwargBreaker({})".format(",".join(self.kwargs))

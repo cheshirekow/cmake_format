@@ -17,6 +17,10 @@ third_party/.*/.*
 tangent/util/stdio_filebuf.h
 vultk/BUILD.py
 
+# buildbot poop in source tree
+build
+venv
+
 # TODO(josh): fix errors and remove these from the whitelist
 argue/bash_completion.d/argue-argcomplete
 buildsteps

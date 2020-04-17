@@ -441,6 +441,9 @@ def get_argdict(args):
     # Remove cmake-format command line arguments
     if key in ["dump", "check", "in_place"]:
       continue
+    # Remove cmake-lint command line arguments
+    if key in ["suppress_decorations"]:
+      continue
     if value is None:
       continue
     out[key] = value

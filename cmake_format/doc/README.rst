@@ -126,6 +126,9 @@ Usage
                             comments in the output
       --no-default          When used with --dump-config, will omit any unmodified
                             configuration value.
+      --suppress-decorations
+                            Suppress the file title decoration and summary
+                            statistics
       -c CONFIG_FILES [CONFIG_FILES ...], --config-files CONFIG_FILES [CONFIG_FILES ...]
                             path to configuration file(s)
 
