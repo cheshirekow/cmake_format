@@ -58,7 +58,8 @@ endif()
 # )
 # ~~~
 function(format_and_lint slug)
-  set(_multiargs
+  # cmake-lint: disable=R0912,R0915
+  set(multiargs
       BZL
       CMAKE
       CC
@@ -66,30 +67,30 @@ function(format_and_lint slug)
       JS
       PY
       SHELL)
-  cmake_parse_arguments(_args "" "" "${_multiargs}" ${ARGN})
-  set(_unknown_files)
-  foreach(_arg ${_args_UNPARSED_ARGUMENTS})
-    if("${_arg}" MATCHES ".*\\.bzl$"
-       OR "${_arg}" MATCHES "(.*/)?BUILD"
-       OR "${_arg}" MATCHES "(.*/)?WORKSPACE")
-      list(APPEND _args_BZL ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.cmake$" OR "${_arg}" MATCHES
-                                              ".*CMakeLists.txt")
-      list(APPEND _args_CMAKE ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.py$")
-      list(APPEND _args_PY ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.(h|(hh)|(hpp))$")
-      list(APPEND _args_CC ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.tcc$")
-      list(APPEND _args_CC ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.(c|(cc)|(cpp))$")
-      list(APPEND _args_CC ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.js(\\.tpl)?$")
-      list(APPEND _args_JS ${_arg})
-    elseif("${_arg}" MATCHES ".*\\.sh$")
-      list(APPEND _args_SHELL ${_arg})
+  cmake_parse_arguments(_args "" "" "${multiargs}" ${ARGN})
+  set(unknown_files)
+  foreach(arg ${_args_UNPARSED_ARGUMENTS})
+    if("${arg}" MATCHES ".*\\.bzl$"
+       OR "${arg}" MATCHES "(.*/)?BUILD"
+       OR "${arg}" MATCHES "(.*/)?WORKSPACE")
+      list(APPEND _args_BZL ${arg})
+    elseif("${arg}" MATCHES ".*\\.cmake$" OR "${arg}" MATCHES
+                                             ".*CMakeLists.txt")
+      list(APPEND _args_CMAKE ${arg})
+    elseif("${arg}" MATCHES ".*\\.py$")
+      list(APPEND _args_PY ${arg})
+    elseif("${arg}" MATCHES ".*\\.(h|(hh)|(hpp))$")
+      list(APPEND _args_CC ${arg})
+    elseif("${arg}" MATCHES ".*\\.tcc$")
+      list(APPEND _args_CC ${arg})
+    elseif("${arg}" MATCHES ".*\\.(c|(cc)|(cpp))$")
+      list(APPEND _args_CC ${arg})
+    elseif("${arg}" MATCHES ".*\\.js(\\.tpl)?$")
+      list(APPEND _args_JS ${arg})
+    elseif("${arg}" MATCHES ".*\\.sh$")
+      list(APPEND _args_SHELL ${arg})
     else()
-      list(APPEND _unknown_files ${_arg})
+      list(APPEND unknown_files ${arg})
     endif()
   endforeach()
 
@@ -112,196 +113,192 @@ function(format_and_lint slug)
       COMMENT "Makefile stub for lint-${slug} dependency fence")
   endif()
 
-  set(_bzl_lintdeps)
-  set(_bzl_fmtdeps)
-  set(_bzl_chkfmtdeps)
-  foreach(_filename ${_args_BZL})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(bzl_lintdeps)
+  set(bzl_fmtdeps)
+  set(bzl_chkfmtdeps)
+  foreach(filename ${_args_BZL})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
       COMMAND buildifier -indent 2 -mode check
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      DEPENDS ${filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _bzl_lintdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
+    list(APPEND bzl_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
       COMMAND buildifier -indent 2 -mode fix
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _bzl_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    list(APPEND bzl_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
       COMMAND buildifier -indent 2 -mode check
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _bzl_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    list(APPEND bzl_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
   endforeach()
 
-  set(_cmake_lintdeps)
-  set(_cmake_fmtdeps)
-  set(_cmake_chkfmtdeps)
-  foreach(_filename ${_args_CMAKE})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(cmake_lintdeps)
+  set(cmake_fmtdeps)
+  set(cmake_chkfmtdeps)
+  foreach(filename ${_args_CMAKE})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      # COMMAND ${CMAKE_LINT_CMD} --suppress-decorations ${filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      COMMAND ${CMAKE_LINT_CMD} --suppress-decorations ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      DEPENDS ${filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _cmake_lintdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
+    list(APPEND cmake_lintdeps
+         ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      COMMAND ${CMAKE_FORMAT_CMD} -i ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      COMMAND ${CMAKE_FORMAT_CMD} -i ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _cmake_fmtdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    list(APPEND cmake_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
       COMMAND ${CMAKE_FORMAT_CMD} --check
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _cmake_chkfmtdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    list(APPEND cmake_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
   endforeach()
 
-  set(_cc_lintdeps)
-  set(_cc_fmtdeps)
-  set(_cc_chkfmtdeps)
-  foreach(_filename ${_args_CC})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(cc_lintdeps)
+  set(cc_fmtdeps)
+  set(cc_chkfmtdeps)
+  foreach(filename ${_args_CC})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
-    if("${_filename}" MATCHES ".*\\.(c|(cc)|(cpp))$")
+    if("${filename}" MATCHES ".*\\.(c|(cc)|(cpp))$")
       # NOTE(josh): clang-tidy doesn't work on header files. It will check
       # headers that it finds in the inclusion of translation units it
       # understands
       add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.tidy
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.tidy
         COMMAND
           clang-tidy-8 -p ${CMAKE_BINARY_DIR} -header-filter=${CMAKE_SOURCE_DIR}
-          ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+          ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
         COMMAND ${CMAKE_COMMAND} -E touch
-                ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.tidy
-        DEPENDS ${_filename} ${_args_CCDEPENDS} ${lintdep_witness}
+                ${CMAKE_CURRENT_BINARY_DIR}/${filename}.tidy
+        DEPENDS ${filename} ${_args_CCDEPENDS} ${lintdep_witness}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-      list(APPEND _cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.tidy)
+      list(APPEND cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.tidy)
     endif()
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.cpplint
-      COMMAND cpplint ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.cpplint
+      COMMAND cpplint ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.cpplint
-      DEPENDS ${_filename} ${_args_CCDEPENDS} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.cpplint
+      DEPENDS ${filename} ${_args_CCDEPENDS} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.cpplint)
+    list(APPEND cc_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.cpplint)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      COMMAND clang-format-8 -style file -i ${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      COMMAND clang-format-8 -style file -i ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename} ${_args_CCDEPENDS}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      DEPENDS ${filename} ${_args_CCDEPENDS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _cc_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    list(APPEND cc_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
       COMMAND
-      COMMAND
-        clang-format-8 -style file ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} "|"
-        diff -u ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} -
+      COMMAND clang-format-8 -style file ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+              "|" diff -u ${CMAKE_CURRENT_SOURCE_DIR}/${filename} -
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename} ${_args_CCDEPENDS}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      DEPENDS ${filename} ${_args_CCDEPENDS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _cc_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    list(APPEND cc_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
   endforeach()
 
-  set(_js_lintdeps)
-  set(_js_fmtdeps)
-  set(_js_chkfmtdeps)
-  foreach(_filename ${_args_JS})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(js_lintdeps)
+  set(js_fmtdeps)
+  set(js_chkfmtdeps)
+  foreach(filename ${_args_JS})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      COMMAND eslint ${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      COMMAND eslint ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      DEPENDS ${filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _js_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
+    list(APPEND js_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      COMMAND js-beautify -r ${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      COMMAND js-beautify -r ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _js_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    list(APPEND js_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      COMMAND js-beautify ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} "|" diff -u
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} -
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      COMMAND js-beautify ${CMAKE_CURRENT_SOURCE_DIR}/${filename} "|" diff -u
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename} -
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _js_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    list(APPEND js_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
   endforeach()
 
-  set(_py_lintdeps)
-  set(_py_fmtdeps)
-  set(_py_chkfmtdeps)
-  foreach(_filename ${_args_PY})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(py_lintdeps)
+  set(py_fmtdeps)
+  set(py_chkfmtdeps)
+  foreach(filename ${_args_PY})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
              # NOTE(josh): --rcfile= is required because some of our python
              # files are note entirely within the package tree from the root of
              # the repository. As such pylint will not match the rcfile in the
@@ -309,127 +306,130 @@ function(format_and_lint slug)
       COMMAND
         env PYTHONPATH=${CMAKE_SOURCE_DIR} pylint
         --rcfile=${CMAKE_SOURCE_DIR}/pylintrc -sn -rn
-        ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+        ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
         # NOTE(josh): flake8 tries to use semaphores which fail in our
         # containers https://bugs.python.org/issue3770 (probably due to
         # /proc/shmem or something not being mounted)
       COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR} flake8 --jobs 1
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _py_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
+    list(APPEND py_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      COMMAND autopep8 -i ${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      COMMAND autopep8 -i ${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    list(APPEND _py_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    list(APPEND py_fmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      COMMAND autopep8 ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} "|" diff -u
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename} -
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      COMMAND autopep8 ${CMAKE_CURRENT_SOURCE_DIR}/${filename} "|" diff -u
+              ${CMAKE_CURRENT_SOURCE_DIR}/${filename} -
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+      DEPENDS ${filename}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _py_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    list(APPEND py_chkfmtdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
   endforeach()
 
-  set(_shell_lintdeps)
-  set(_shell_fmtdeps)
-  set(_shell_chkfmtdeps)
-  foreach(_filename ${_args_SHELL})
-    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
+  set(shell_lintdeps)
+  set(shell_fmtdeps)
+  set(shell_chkfmtdeps)
+  foreach(filename ${_args_SHELL})
+    get_filename_component(_dirpath ${CMAKE_CURRENT_BINARY_DIR}/${filename}
                            DIRECTORY)
 
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      COMMAND shellcheck ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      COMMAND shellcheck ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp
-      DEPENDS ${_filename} ${lintdep_witness}
+              ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
+      DEPENDS ${filename} ${lintdep_witness}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _shell_lintdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
+    list(APPEND shell_lintdeps
+         ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
     # NOTE(josh): beautysh is broken. It destroys shell scripts
     # ~~~
     # add_custom_command(
-    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-    #   COMMAND beautysh --indent-size=2 ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+    #   COMMAND beautysh --indent-size=2 ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
     #   COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
     #   COMMAND ${CMAKE_COMMAND} -E touch
-    #           ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-    #   DEPENDS ${_filename}
+    #           ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp
+    #   DEPENDS ${filename}
     #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    # list(APPEND _shell_fmtdeps
-    #      ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    # list(APPEND shell_fmtdeps
+    #      ${CMAKE_CURRENT_BINARY_DIR}/${filename}.fmtstamp)
     #
     # add_custom_command(
-    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
     #   COMMAND beautysh --indent-size=2 --check
-    #           ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+    #           ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
     #   COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
     #   COMMAND ${CMAKE_COMMAND} -E touch
-    #           ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-    #   DEPENDS ${_filename}
+    #           ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt
+    #   DEPENDS ${filename}
     #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    # list(APPEND _shell_chkfmtdeps
-    #      ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    # list(APPEND shell_chkfmtdeps
+    #      ${CMAKE_CURRENT_BINARY_DIR}/${filename}.chkfmt)
     # ~~~
   endforeach()
 
-  if(_unknown_files)
-    string(REPLACE ";" "\n  " filelist_ "${_unknown_files}")
+  if(unknown_files)
+    string(REPLACE ";" "\n  " filelist "${unknown_files}")
     message(
       WARNING "The following files will not be linted/formatted because their"
-              " extension is not recognized: \n  ${filelist_}")
+              " extension is not recognized: \n  ${filelist}")
   endif()
 
   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${slug}.lint-manifest "")
-  foreach(listname_ _args_CC _args_CMAKE _args_JS _args_PY _args_SHELL)
-    if(${listname_})
-      string(REPLACE ";" "\n" filenames_ "${${listname_}}")
+  foreach(listname _args_CC _args_CMAKE _args_JS _args_PY _args_SHELL)
+    if(${listname})
+      string(REPLACE ";" "\n" filenames "${${listname}}")
       file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${slug}.lint-manifest
-           "${filenames_}\n")
+           "${filenames}\n")
     endif()
   endforeach()
 
-  set(_slugs bzl cc cmake js py shell)
+  set(langslugs bzl cc cmake js py shell)
   add_custom_target(lint-${slug})
   add_dependencies(lint lint-${slug})
-  foreach(_slug ${_slugs})
-    if(_${_slug}_lintdeps)
-      add_custom_target(lint-${_slug}-${slug} DEPENDS ${_${_slug}_lintdeps})
-      add_dependencies(lint-${slug} lint-${_slug}-${slug})
+  foreach(langslug ${langslugs})
+    if(${langslug}_lintdeps)
+      add_custom_target(lint-${langslug}-${slug}
+                        DEPENDS ${${langslug}_lintdeps})
+      add_dependencies(lint-${slug} lint-${langslug}-${slug})
     endif()
   endforeach()
 
   add_custom_target(format-${slug})
   add_dependencies(format format-${slug})
-  foreach(_slug ${_slugs})
-    if(_${_slug}_fmtdeps)
-      add_custom_target(format-${_slug}-${slug} DEPENDS ${_${_slug}_fmtdeps})
-      add_dependencies(format-${slug} format-${_slug}-${slug})
+  foreach(langslug ${langslugs})
+    if(${langslug}_fmtdeps)
+      add_custom_target(format-${langslug}-${slug}
+                        DEPENDS ${${langslug}_fmtdeps})
+      add_dependencies(format-${slug} format-${langslug}-${slug})
     endif()
   endforeach()
 
   add_custom_target(chkfmt-${slug})
   add_dependencies(chkfmt chkfmt-${slug})
-  foreach(_slug ${_slugs})
-    if(_${_slug}_chkfmtdeps)
-      add_custom_target(chkfmt-${_slug}-${slug} DEPENDS ${_${_slug}_chkfmtdeps})
-      add_dependencies(chkfmt-${slug} chkfmt-${_slug}-${slug})
+  foreach(langslug ${langslugs})
+    if(${langslug}_chkfmtdeps)
+      add_custom_target(chkfmt-${langslug}-${slug}
+                        DEPENDS ${${langslug}_chkfmtdeps})
+      add_dependencies(chkfmt-${slug} chkfmt-${langslug}-${slug})
     endif()
   endforeach()
 endfunction()

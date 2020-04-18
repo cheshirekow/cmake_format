@@ -3,7 +3,7 @@
 # Example:
 # ~~~
 # set(_mylist foo bar baz 1 2 3)
-# explode(_mylist _var1 _var2 _var3)
+# EXPLODE(_mylist _var1 _var2 _var3)
 # message(" var1: ${_var1}\n" " var2: ${_var2}\n" " var3: ${_var3}\n")
 # ~~~
 #
@@ -13,21 +13,21 @@
 #  var2: bar
 #  var3: baz
 # ~~~
-macro(explode _list)
+macro(EXPLODE listname)
   set(_args ${ARGN})
-  list(LENGTH "${_list}" _list_len)
+  list(LENGTH "${listname}" _list_len)
   list(LENGTH _args _args_len)
 
   if("${_args_len}" LESS "${_list_len}")
     message(
       FATAL_ERROR
-        " Can't explode ${_args_len} elements into ${_list_len} elements:\n"
+        " Can't EXPLODE ${_args_len} elements into ${_list_len} elements:\n"
         " ${_args}")
   endif()
 
   set(_idx "0")
-  foreach(_varname ${ARGN})
-    list(GET ${_list} ${_idx} ${_varname})
+  foreach(varname ${ARGN})
+    list(GET ${listname} ${_idx} ${varname})
     math(EXPR _idx "${_idx} + 1}")
   endforeach()
 endmacro()
@@ -50,32 +50,33 @@ function(join outvar)
 endfunction()
 
 # Backport list(FILTER ...) to cmake < 3.6
-function(list_filter _listname)
-  set(_localcopy ${${_listname}})
+function(list_filter listname)
+  set(localcopy ${${listname}})
   if("${CMAKE_VERSION}" VERSION_GREATER "3.5.999")
-    list(FILTER _localcopy ${ARGN})
+    # cmake-lint: disable=E1120
+    list(FILTER localcopy ${ARGN})
   else()
     cmake_parse_arguments(_args "" "REGEX" "" ${ARGN})
     explode(_args_UNPARSED_ARGUMENTS _mode)
 
-    set(_buffer)
+    set(buffer)
     if("${_mode}" STREQUAL "INCLUDE")
-      foreach(_elem ${_localcopy})
-        if("${_elem}" MATCHES "${_args_REGEX}")
-          list(APPEND _buffer "${_elem}")
+      foreach(elem ${localcopy})
+        if("${elem}" MATCHES "${_args_REGEX}")
+          list(APPEND buffer "${elem}")
         endif()
       endforeach()
     else()
-      foreach(_elem ${_localcopy})
-        if(NOT "${_elem}" MATCHES "${_args_REGEX}")
-          list(APPEND _buffer "${_elem}")
+      foreach(elem ${localcopy})
+        if(NOT "${elem}" MATCHES "${_args_REGEX}")
+          list(APPEND buffer "${elem}")
         endif()
       endforeach()
     endif()
-    set(_localcopy ${_buffer})
+    set(localcopy ${buffer})
   endif()
-  set(${_listname}
-      ${_localcopy}
+  set(${listname}
+      ${localcopy}
       PARENT_SCOPE)
 endfunction()
 
@@ -84,19 +85,19 @@ endfunction()
 function(check_call)
   cmake_parse_arguments(_args "" "OUTPUT_VARIABLE;ERROR_VARIABLE" "" ${ARGN})
 
-  set(_request_results_list)
+  set(request_results_list)
   if("${CMAKE_VERSION}" VERSION_GREATER "3.9.999")
-    set(_request_results_list RESULTS_VARIABLE _results)
+    set(request_results_list RESULTS_VARIABLE results)
   endif()
 
-  set(_results)
+  set(results)
   execute_process(
     ${_args_UNPARSED_ARGUMENTS}
-    OUTPUT_VARIABLE _stdout
-    ERROR_VARIABLE _stderr
-    RESULT_VARIABLE _result ${_request_results_list})
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+    RESULT_VARIABLE result ${request_results_list})
 
-  set(_kwargs
+  set(kwargs
       COMMAND
       WORKING_DIRECTORY
       TIMEOUT
@@ -112,46 +113,46 @@ function(check_call)
       OUTPUT_STRIP_TRAILING_WHITESPACE
       ERROR_STRIP_TRAILING_WHITESPACE
       ENCODING)
-  string(REPLACE ";" "|" _kwargs "${_kwargs}")
-  set(_buffer ${_args_UNPARSED_ARGUMENTS})
+  string(REPLACE ";" "|" kwargs "${kwargs}")
+  set(buffer ${_args_UNPARSED_ARGUMENTS})
 
   # Turn the cmake list into a regular string with '%' as an item separator
-  string(REPLACE ";" "%" _buffer "${_buffer}")
+  string(REPLACE ";" "%" buffer "${buffer}")
   # Split the string at keyword boundaries
-  string(REGEX REPLACE "\\%(${_kwargs})\\%" ";\\1%" _buffer "${_buffer}")
+  string(REGEX REPLACE "\\%(${kwargs})\\%" ";\\1%" buffer "${buffer}")
   # Remove list items that aren't COMMAND
-  set(_buffer2 ${_buffer})
-  list_filter(_buffer2 INCLUDE REGEX "COMMAND%.*")
+  set(buffer2 ${buffer})
+  list_filter(buffer2 INCLUDE REGEX "COMMAND%.*")
   # Save the list of commands
-  set(_cmds "${_buffer2}")
+  set(cmds "${buffer2}")
 
-  set(_idx "0")
-  foreach(_result ${_results})
-    if(NOT "${_result}" EQUAL "0")
-      list(GET _cmds ${_idx} _cmdstr)
-      string(REPLACE "COMMAND%" "" _cmdstr "${_cmdstr}")
-      string(REPLACE "%" " " _cmdstr "${_cmdstr}")
-      message(FATAL_ERROR " Failed to execute command ${_idx}:\n"
-                          "   ${_cmdstr}\n   ${_stderr}")
+  set(idx "0")
+  foreach(result ${results})
+    if(NOT "${result}" EQUAL "0")
+      list(GET cmds ${idx} cmdstr)
+      string(REPLACE "COMMAND%" "" cmdstr "${cmdstr}")
+      string(REPLACE "%" " " cmdstr "${cmdstr}")
+      message(FATAL_ERROR " Failed to execute command ${idx}:\n"
+                          "   ${cmdstr}\n   ${stderr}")
     endif()
-    math(EXPR _idx "${_idx} + 1}")
+    math(EXPR idx "${idx} + 1}")
   endforeach()
 
-  if(NOT "${_result}" EQUAL "0")
-    string(REPLACE "COMMAND%" "\n  " _cmdlines "${_cmds}")
-    string(REPLACE "%" " " _cmdlines "${_cmdlines}")
+  if(NOT "${result}" EQUAL "0")
+    string(REPLACE "COMMAND%" "\n  " cmdlines "${cmds}")
+    string(REPLACE "%" " " cmdlines "${cmdlines}")
     message(FATAL_ERROR " Failed to execute one or more command:\n"
-                        "  ${_cmdlines}\n" "  ${_stderr}")
+                        "  ${cmdlines}\n" "  ${stderr}")
   endif()
 
   if(_args_OUTPUT_VARIABLE)
     set(${_args_OUTPUT_VARIABLE}
-        ${_stdout}
+        ${stdout}
         PARENT_SCOPE)
   endif()
   if(_args_ERROR_VARIABLE)
     set(${_args_ERROR_VARIABLE}
-        ${_stderr}
+        ${stderr}
         PARENT_SCOPE)
   endif()
 endfunction()
@@ -183,10 +184,10 @@ set(KNOWN_PROPERTIES ${_propslist})
 # *PKGDEPS*: A list of pkg-config names that are dependencies of this
 # executable. They are passed as positional arguments to target_pkg_depends
 function(cc_library target_name)
-  set(_flags)
-  set(_oneargs)
-  set(_multiargs SRCS DEPS PKGDEPS PROPERTIES)
-  cmake_parse_arguments(_args "${_flags}" "${_oneargs}" "${_multiargs}" ${ARGN})
+  set(flags)
+  set(oneargs)
+  set(multiargs SRCS DEPS PKGDEPS PROPERTIES)
+  cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_library(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
   if(_args_DEPS)
@@ -196,6 +197,7 @@ function(cc_library target_name)
     target_pkg_depends(${target_name} ${_args_PKGDEPS})
   endif()
   if(_args_PROPERTIES)
+    # cmake-lint: disable=E1120
     set_target_properties(${target_name} PROPERTIES ${_args_PROPERTIES})
   endif()
 endfunction()
@@ -221,10 +223,10 @@ endfunction()
 # *PKGDEPS*: A list of pkg-config names that are dependencies of this
 # executable. They are passed as positional arguments to target_pkg_depends
 function(cc_binary target_name)
-  set(_flags)
-  set(_oneargs)
-  set(_multiargs SRCS DEPS PKGDEPS PROPERTIES)
-  cmake_parse_arguments(_args "${_flags}" "${_oneargs}" "${_multiargs}" ${ARGN})
+  set(flags)
+  set(oneargs)
+  set(multiargs SRCS DEPS PKGDEPS PROPERTIES)
+  cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_executable(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
   if(_args_DEPS)
@@ -234,6 +236,7 @@ function(cc_binary target_name)
     target_pkg_depends(${target_name} ${_args_PKGDEPS})
   endif()
   if(_args_PROPERTIES)
+    # cmake-lint: disable=E1120
     set_target_properties(${target_name} PROPERTIES ${_args_PROPERTIES})
   endif()
 endfunction()
@@ -269,43 +272,45 @@ endfunction()
 #
 # *LABELS*: a list of ctest labels pased to set_property(TEST ...)
 function(cc_test target_name)
-  set(_flags)
-  set(_oneargs WORKING_DIRECTORY)
-  set(_multiargs ARGV TEST_DEPS LABELS)
-  cmake_parse_arguments(_args "${_flags}" "${_oneargs}" "${_multiargs}" ${ARGN})
+  set(flags)
+  set(oneargs WORKING_DIRECTORY)
+  set(multiargs ARGV TEST_DEPS LABELS)
+  cmake_parse_arguments(args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
-  set(_cmd $<TARGET_FILE:${target_name}> ${_args_ARGV})
-  cc_binary(${target_name} ${_args_UNPARSED_ARGUMENTS})
+  set(cmd $<TARGET_FILE:${target_name}> ${args_ARGV})
+  cc_binary(${target_name} ${args_UNPARSED_ARGUMENTS})
 
-  if(NOT _args_WORKING_DIRECTORY)
-    set(_args_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  if(NOT args_WORKING_DIRECTORY)
+    set(args_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   endif()
 
-  if(_args_TEST_DEPS)
+  if(args_TEST_DEPS)
     add_custom_target(testdeps.${target_name} DEPENDS ${TEST_DEPS})
     add_dependencies(testdeps testdeps.${target_name})
   endif()
 
   add_custom_target(
     run.${target_name}
-    COMMAND ${_cmd}
-    DEPENDS ${_args_TEST_DEPS}
-    WORKING_DIRECTORY ${_args_WORKING_DIRECTORY})
+    COMMAND ${cmd}
+    DEPENDS ${args_TEST_DEPS}
+    WORKING_DIRECTORY ${args_WORKING_DIRECTORY})
 
   add_test(
     NAME ${target_name}
-    COMMAND ${_cmd}
-    WORKING_DIRECTORY ${_args_WORKING_DIRECTORY})
+    COMMAND ${cmd}
+    WORKING_DIRECTORY ${args_WORKING_DIRECTORY})
 
-  if(_args_LABELS)
+  if(args_LABELS)
     set_property(
       TEST ${target_name}
       APPEND
-      PROPERTY LABELS ${_args_LABELS})
+      PROPERTY LABELS ${args_LABELS})
   endif()
 endfunction()
 
-macro(returnvars)
+# Given a list of variables in the current scope, assign their value to a
+# variable of the same name in the parent scope
+macro(RETURNVARS)
   foreach(varname ${ARGN})
     set(${varname}
         "${${varname}}"
@@ -313,6 +318,7 @@ macro(returnvars)
   endforeach()
 endmacro()
 
+set_property(GLOBAL PROPERTY SEMVER_INCLUDENO 0)
 # Get the version string by parsing a C++ header file. The version is expected
 # to be in the form of:
 #
@@ -328,19 +334,18 @@ endmacro()
 #
 # Assigns into the calling scope a variable witht the same name as `${macro}`
 # the value of the version
-set_property(GLOBAL PROPERTY SEMVER_INCLUDENO 0)
 function(get_version_from_header headerpath macro)
   get_property(_includeno GLOBAL PROPERTY SEMVER_INCLUDENO)
   math(EXPR _includeno "${_includeno} + 1")
   set_property(GLOBAL PROPERTY SEMVER_INCLUDENO ${_includeno})
-  set(_stubfile ${CMAKE_CURRENT_BINARY_DIR}/semver-${_includeno}.cmake)
+  set(stubfile ${CMAKE_CURRENT_BINARY_DIR}/semver-${_includeno}.cmake)
 
   if(NOT IS_ABSOLUTE ${headerpath})
     set(headerpath ${CMAKE_CURRENT_SOURCE_DIR}/${headerpath})
   endif()
 
   execute_process(
-    COMMAND python -Bsm cmake.get_version_from_header --outfile ${_stubfile}
+    COMMAND python -Bsm cmake.get_version_from_header --outfile ${stubfile}
             ${macro} ${headerpath}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE _retcode
@@ -351,18 +356,18 @@ function(get_version_from_header headerpath macro)
       FATAL_ERROR " Failed to extract version number from"
                   " ${headerpath}: ${_retcode}\n" " ${_stdout}\n" " ${_stderr}")
   endif()
-  include(${_stubfile} RESULT_VARIABLE _result)
+  include(${stubfile} RESULT_VARIABLE _result)
   if(_result STREQUAL NOTFOUND)
-    message(FATAL_ERROR "Failed to include stubfile ${_stubfile}")
+    message(FATAL_ERROR "Failed to include stubfile ${stubfile}")
   endif()
 
   string(REGEX MATCH "(.*)_VERSION" _match "${macro}")
   if(_match)
-    set(_prefix ${CMAKE_MATCH_1})
+    set(prefix ${CMAKE_MATCH_1})
   else()
     message(
       FATAL_ERROR "Header version macro '${macro}' does not end in _VERSION")
   endif()
 
-  returnvars(${_prefix}_VERSION ${_prefix}_API_VERSION ${_prefix}_SO_VERSION)
+  returnvars(${prefix}_VERSION ${prefix}_API_VERSION ${prefix}_SO_VERSION)
 endfunction()

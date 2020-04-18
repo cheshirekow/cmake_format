@@ -34,6 +34,8 @@ v0.6.10
 * implement W0106 looks like a variable reference missing a brace
 * fix name checks shouldn't be applied to variable references
 
+* enable cmake-lint during build/CI
+
 * Closes: `#170`_: Comment is wrong
 * Closes: `#171`_: Crash when running `cmake-lint --dump-config`
 * Closes: `#172`_: Possibly false positives for too many newlines

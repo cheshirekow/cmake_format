@@ -92,6 +92,10 @@ with section("parse"):
         "DEPS": "*"
       }
     },
+    "debhelp": {
+      "pargs": ["1+", ],
+      "spelling": "DEBHELP"
+    },
     "get_debs": {
       "pargs": [3, "*"],
     },

@@ -381,7 +381,7 @@ custom command would look something like this:
        BAR BAZ)
 
 
-.. __: https://cmake-format.rtfd.io/custom_parsers
+.. __: https://cmake-format.rtfd.io/en/latest/custom_parsers.html
 .. dynamic: features-end
 
 ---------------------------------
@@ -407,7 +407,7 @@ Developers
 If you want to hack on ``cmake-format``, please see the `documentation`__ for
 contribution rules and guidelines.
 
-.. __: https://cmake-format.rtfd.io/contributing.html
+.. __: https://cmake-format.rtfd.io/en/latest/contributing.html
 
 -------
 Example

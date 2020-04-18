@@ -7,7 +7,8 @@ set(_genbits)
 add_custom_command(
   OUTPUT ${_stage}/bits
   COMMAND ${CMAKE_COMMAND} -E make_directory ${_stage}/bits
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Creating directory ${_stage}/bits")
 
 set(_config_deps
     ../__main__.py #
@@ -204,28 +205,28 @@ list(APPEND _genbits ${_stage}/configopts.rst)
 # TODO(josh): remove this iteration for just one file.
 set(_genfiles)
 set(_insource_genfiles README.rst)
-foreach(_genfile ${_insource_genfiles})
+foreach(genfile ${_insource_genfiles})
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     COMMAND python -Bm cmake_format.doc.gendoc --bits ${_stage}/bits
-            ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     # TODO(josh): not every file depends on every bit, so this is overkill, but
     # whatever... it's fine for now. We'll need more complicated code if we want
     # to actually declare which bits each file depends on.
     DEPENDS ${_genbits} gendoc.py
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile})
+  list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${genfile})
 
   add_custom_target(
-    run.cmake_format-doc-verify-${_genfile}
+    run.cmake_format-doc-verify-${genfile}
     COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
-            ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_test(
-    NAME cmake_format-doc-verify-${_genfile}
+    NAME cmake_format-doc-verify-${genfile}
     COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
-            ${CMAKE_CURRENT_SOURCE_DIR}/${_genfile}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endforeach()
 add_custom_target(genbits-cmake_format DEPENDS ${_genbits})
@@ -266,13 +267,13 @@ set(_docsources
     release_notes.rst
     release_process.rst
     release-pipeline.svg)
-foreach(_docsource ${_docsources})
+foreach(docsource ${_docsources})
   add_custom_command(
-    OUTPUT ${_stage}/${_docsource}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${_docsource}
-            ${_stage}/${_docsource}
-    DEPENDS ${_docsource} ${_stage}/bits)
-  list(APPEND _copyfiles ${_stage}/${_docsource})
+    OUTPUT ${_stage}/${docsource}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${docsource}
+            ${_stage}/${docsource}
+    DEPENDS ${docsource} ${_stage}/bits)
+  list(APPEND _copyfiles ${_stage}/${docsource})
 endforeach()
 
 # For the subproject build, also copy some of the common files into the build
@@ -295,7 +296,7 @@ list(APPEND _copyfiles ${_stage}/sphinx-static/css/cheshire_theme.css)
 add_custom_command(
   OUTPUT ${_stage}/rtd-requirements.txt
   COMMAND python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
-          ${_version} -o ${_stage}/rtd-requirements.txt
+          ${_src_version} -o ${_stage}/rtd-requirements.txt
   DEPENDS ${CMAKE_SOURCE_DIR}/cmake_format/tools/gen_rtd_requirements.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/rtd-requirements.txt)

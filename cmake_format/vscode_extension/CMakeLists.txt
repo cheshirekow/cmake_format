@@ -11,14 +11,14 @@ set(_copysrcs
     tslint.json)
 
 set(_copyfiles)
-foreach(_filename ${_copysrcs})
+foreach(filename ${_copysrcs})
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
-            ${CMAKE_CURRENT_BINARY_DIR}/${_filename}
-    DEPENDS ${_filename}
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+            ${CMAKE_CURRENT_BINARY_DIR}/${filename}
+    DEPENDS ${filename}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  list(APPEND _copyfiles ${CMAKE_CURRENT_BINARY_DIR}/${_filename})
+  list(APPEND _copyfiles ${CMAKE_CURRENT_BINARY_DIR}/${filename})
 endforeach()
 
 # TODO(josh): glob the output tree so we can catch changes and accidental

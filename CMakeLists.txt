@@ -25,8 +25,8 @@ set(_tangent_modules
     doctools.cmake
     pkgconfig.cmake
     re2-config.cmake)
-foreach(_module ${_tangent_modules})
-  include(${CMAKE_SOURCE_DIR}/cmake/${_module})
+foreach(module ${_tangent_modules})
+  include(${CMAKE_SOURCE_DIR}/cmake/${module})
 endforeach()
 
 detect_buildenv()
@@ -42,11 +42,12 @@ endif()
 
 if(TANGENT_SPARSE_EXPORT OR TANGENT_IS_DEBIAN_BUILD)
   # NOTE(josh): The order must be topological in dependency graph
-  foreach(_exportname libtangent-util libtangent-json argue)
-    find_package(${_exportname} QUIET CONFIG)
+  foreach(exportname libtangent-util libtangent-json argue)
+    find_package(${exportname} QUIET CONFIG)
   endforeach()
 endif()
 
+# cmake-lint: disable=E1122
 pkg_find(
   PKG eigen3
   PKG fontconfig
@@ -187,13 +188,3 @@ add_dependencies(pre-push lint chkfmt)
 
 add_custom_target(pre-release)
 add_dependencies(pre-release better-test doc lint chkfmt)
-
-# Inform vscode where the buildtree is
-foreach(filename c_cpp_properties.json tasks.json)
-  if(EXISTS ${CMAKE_SOURCE_DIR}/.vscode/${filename})
-    file(READ ${CMAKE_SOURCE_DIR}/.vscode/${filename} _content)
-    string(REGEX REPLACE "\\$\{cmakeBinaryDir\}" "${CMAKE_BINARY_DIR}" _content
-                         "${_content}")
-    file(WRITE ${CMAKE_SOURCE_DIR}/.vscode/${filename} "${_content}")
-  endif()
-endforeach()

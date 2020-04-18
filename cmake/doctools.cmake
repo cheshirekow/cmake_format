@@ -38,11 +38,11 @@ endfunction()
 # )
 # ~~~
 function(autosphinx module)
-  set(_options)
-  set(_one_value_args)
-  set(_multi_value_args ADDITIONAL_SOURCES)
-  cmake_parse_arguments(arg "${_options}" "${_one_value_args}"
-                        "${_multi_value_args}" ${ARGN})
+  set(options)
+  set(one_value_args)
+  set(multi_value_args ADDITIONAL_SOURCES)
+  cmake_parse_arguments(arg "${options}" "${one_value_args}"
+                        "${multi_value_args}" ${ARGN})
 
   add_custom_target(
     scanrst-${module}-doc
@@ -58,6 +58,7 @@ function(autosphinx module)
   if(NOT CMAKE_GENERATOR STREQUAL "Ninja")
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rst_manifest.txt
+      COMMAND true
       DEPENDS scanrst-${module}_docs
       COMMENT "Stubbing RST scan for ${module}_doc")
   endif()
@@ -89,23 +90,23 @@ endfunction()
 # Generate rules to copy a list of files into a common directory at build time
 function(stage_files)
   cmake_parse_arguments(_args "" "SOURCEDIR;STAGE;LIST" "FILES" ${ARGN})
-  set(_copyfiles ${${_args_LIST}})
-  foreach(_copyfile ${_args_FILES})
-    if("${_copyfile}" MATCHES "([^:]+):([^:]+)")
-      set(_srcfile ${CMAKE_MATCH_1})
-      set(_tgtfile ${CMAKE_MATCH_2})
+  set(copyfiles ${${_args_LIST}})
+  foreach(copyfile ${_args_FILES})
+    if("${copyfile}" MATCHES "([^:]+):([^:]+)")
+      set(srcfile ${CMAKE_MATCH_1})
+      set(tgtfile ${CMAKE_MATCH_2})
     else()
-      set(_srcfile "${_copyfile}")
-      set(_tgtfile "${_copyfile}")
+      set(srcfile "${copyfile}")
+      set(tgtfile "${copyfile}")
     endif()
     add_custom_command(
-      OUTPUT ${_args_STAGE}/${_tgtfile}
-      COMMAND ${CMAKE_COMMAND} -E copy ${_args_SOURCEDIR}/${_srcfile}
-              ${_args_STAGE}/${_tgtfile}
-      DEPENDS ${_args_SOURCEDIR}/${_srcfile})
-    list(APPEND _copyfiles ${_args_STAGE}/${_tgtfile})
+      OUTPUT ${_args_STAGE}/${tgtfile}
+      COMMAND ${CMAKE_COMMAND} -E copy ${_args_SOURCEDIR}/${srcfile}
+              ${_args_STAGE}/${tgtfile}
+      DEPENDS ${_args_SOURCEDIR}/${srcfile})
+    list(APPEND copyfiles ${_args_STAGE}/${tgtfile})
   endforeach()
   set(${_args_LIST}
-      ${_copyfiles}
+      ${copyfiles}
       PARENT_SCOPE)
 endfunction()

@@ -22,8 +22,8 @@ function(detect_sparse_export varname)
     return()
   endif()
 
-  set(_exportsdir ${CMAKE_SOURCE_DIR}/tangent/tooling/sparse-exports/)
-  if(EXISTS ${_exportsdir}/iamgroot.txt)
+  set(exportsdir ${CMAKE_SOURCE_DIR}/tangent/tooling/sparse-exports/)
+  if(EXISTS ${exportsdir}/iamgroot.txt)
     set(${varname}
         "groot"
         PARENT_SCOPE)
@@ -32,25 +32,25 @@ function(detect_sparse_export varname)
 
   file(
     GLOB _children
-    RELATIVE ${_exportsdir}
-    ${_exportsdir}/*)
-  list(LENGTH _children _num_children)
+    RELATIVE ${exportsdir}
+    ${exportsdir}/*)
+  list(LENGTH _children num_children)
 
-  if("${_num_children}" EQUAL 0)
-    message(FATAL_ERROR " Invalid sparse export. ${_exportsdir} is empty"
+  if("${num_children}" EQUAL 0)
+    message(FATAL_ERROR " Invalid sparse export. ${exportsdir} is empty"
                         " and .sparse-export is  missing")
     return()
   endif()
 
-  if("${_num_children}" GREATER 1)
+  if("${num_children}" GREATER 1)
     string(REPLACE ";" "\n  " "${_children}")
-    message(FATAL_ERROR " Invalid sparse export. ${_exportsdir} contains"
+    message(FATAL_ERROR " Invalid sparse export. ${exportsdir} contains"
                         " too many children:\n  ${_children}")
   endif()
 
-  list(GET _children 0 _this_export)
+  list(GET _children 0 this_export)
   set(${varname}
-      ${_this_export}
+      ${this_export}
       PARENT_SCOPE)
 endfunction()
 

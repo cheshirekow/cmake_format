@@ -1,18 +1,18 @@
 set(_testnames invocation_tests layout_tests lexer_tests markup_tests
                parser_tests)
 
-foreach(_testname ${_testnames})
+foreach(testname ${_testnames})
   add_test(
-    NAME cmake_format-${_testname}
-    COMMAND python -Bm cmake_format.${_testname}
+    NAME cmake_format-${testname}
+    COMMAND python -Bm cmake_format.${testname}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endforeach()
 
 if(NOT IS_TRAVIS_CI)
-  foreach(_testname ${_testnames})
+  foreach(testname ${_testnames})
     add_test(
-      NAME cmake_format-${_testname}_py3
-      COMMAND python3 -Bm cmake_format.${_testname}
+      NAME cmake_format-${testname}_py3
+      COMMAND python3 -Bm cmake_format.${testname}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   endforeach()
 endif()
@@ -48,7 +48,7 @@ execute_process(
   COMMAND python -Bm cmake_format --version
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   RESULT_VARIABLE _resultcode
-  OUTPUT_VARIABLE _version
+  OUTPUT_VARIABLE _src_version
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 if(NOT _resultcode EQUAL 0)
   message(
@@ -57,7 +57,7 @@ endif()
 
 # NOTE(josh): python uses dot to separate pre-release while node uses dash
 string(REGEX REPLACE "([0-9]+\\.[0-9]+\\.[0-9]+)\\.(.*)" "\\1-\\2"
-                     _extension_version "${_version}")
+                     _extension_version "${_src_version}")
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/.egg
@@ -66,8 +66,8 @@ add_custom_command(
 
 set(_distdir ${CMAKE_CURRENT_BINARY_DIR}/dist)
 add_custom_command(
-  OUTPUT ${_distdir}/cmake_format-${_version}.tar.gz
-         ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  OUTPUT ${_distdir}/cmake_format-${_src_version}.tar.gz
+         ${_distdir}/cmake_format-${_src_version}-py3-none-any.whl
   COMMAND
     # cmake-format: off
     python cmake_format/pypi/setup.py
@@ -81,25 +81,27 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/.egg
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_custom_target(cmake_format-wheel
-                  DEPENDS ${_distdir}/cmake_format-${_version}-py3-none-any.whl)
+add_custom_target(
+  cmake_format-wheel
+  DEPENDS ${_distdir}/cmake_format-${_src_version}-py3-none-any.whl)
 add_dependencies(wheels cmake_format-wheel)
 
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
   COMMAND
     python -Bm tangent.tooling.get_release_notes
     cmake_format/doc/release_notes.rst \$\${TRAVIS_TAG} -o
-    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
   DEPENDS doc/release_notes.rst
           ${CMAKE_SOURCE_DIR}/tangent/tooling/get_release_notes.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
-  COMMAND pandoc -s -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
-          ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.rst
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.md
+  COMMAND
+    pandoc -s -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.md
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_subdirectory(command_tests)
@@ -114,15 +116,15 @@ add_custom_target(
   COMMAND
     # cmake-format: off
     python -Bm tangent.tooling.github push-release
-      --message ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
+      --message ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.md
       cheshirekow/cmake_format \$\${TRAVIS_TAG}
-      ${_distdir}/cmake_format-${_version}.tar.gz
-      ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+      ${_distdir}/cmake_format-${_src_version}.tar.gz
+      ${_distdir}/cmake_format-${_src_version}-py3-none-any.whl
       ${_vscedir}/cmake-format-${_extension_version}.vsix
     # cmake-format: on
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_version}.md
-          ${_distdir}/cmake_format-${_version}.tar.gz
-          ${_distdir}/cmake_format-${_version}-py3-none-any.whl
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.md
+          ${_distdir}/cmake_format-${_src_version}.tar.gz
+          ${_distdir}/cmake_format-${_src_version}-py3-none-any.whl
           # ${_vscedir}/cmake-format-${_extension_version}.vsix
   COMMENT "Uploading release artifacts"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

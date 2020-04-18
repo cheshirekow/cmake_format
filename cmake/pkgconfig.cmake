@@ -20,7 +20,7 @@ function(_pkg_query outvar arg)
   # Convert space-separated list to semicolon-separated cmake-list
   string(REGEX REPLACE " +" ";" _include_list "${_include_dirs}")
 
-  set(pkg_${outvar}_includedirs
+  set(PKG_${outvar}_INCLUDEDIRS
       ${_include_list}
       CACHE STRING "include directories for ${outvar}" FORCE)
 
@@ -43,7 +43,7 @@ function(_pkg_query outvar arg)
   string(REGEX REPLACE "(-std=[^;]+)" "$<$<COMPILE_LANGUAGE:CXX>:\\1>" _cflags
                        "${_cflags}")
 
-  set(pkg_${outvar}_cflags
+  set(PKG_${outvar}_CFLAGS
       ${_cflags}
       CACHE STRING "cflags directories for ${outvar}" FORCE)
 
@@ -58,7 +58,7 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
-  set(pkg_${outvar}_libdirs
+  set(PKG_${outvar}_LIBDIRS
       ${_pkg_out}
       CACHE STRING "library directories for ${outvar}" FORCE)
 
@@ -73,11 +73,11 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
-  set(pkg_${outvar}_libs
+  set(PKG_${outvar}_LIBS
       ${_pkg_out}
       CACHE STRING "library directories for ${outvar}" FORCE)
 
-  set(pkg_${outvar}_name
+  set(PKG_${outvar}_NAME
       ${arg}
       CACHE STRING "selected name which worked as an argument to pkg-config"
             FORCE)
@@ -90,7 +90,7 @@ endfunction()
 # Execute pkg-config for each name in the list Usage
 # _pkg_query_loop(<canonical_name> [<alt1> [<alt2> [...]]])
 function(_pkg_query_loop name)
-  if(pkg_${outvar}_found)
+  if(PKG_${outvar}_FOUND)
     return()
   endif()
   set(outvar ${name})
@@ -100,17 +100,17 @@ function(_pkg_query_loop name)
   endif()
 
   set(pkg_errno 1)
-  foreach(_qname ${names})
-    _pkg_query(${outvar} ${_qname})
+  foreach(qname ${names})
+    _pkg_query(${outvar} ${qname})
     if(pkg_errno EQUAL 0)
-      set(pkg_${outvar}_found
+      set(PKG_${outvar}_FOUND
           TRUE
           CACHE BOOL "${outvar} was found" FORCE)
       return()
     endif()
   endforeach()
 
-  set(pkg_${outvar}_found
+  set(PKG_${outvar}_FOUND
       FALSE
       CACHE BOOL "${outvar} was not found" FORCE)
 endfunction()
@@ -132,6 +132,7 @@ endfunction()
 # attempted (so duplicate it if you want to). `<name>` will be used for the key
 # in the pkg-config database cache.
 function(pkg_find)
+  # cmake-lint: disable=C0201,R0912
   set(state_ "PARSE_PKG")
   set(name_)
   set(names_)
@@ -185,39 +186,39 @@ endfunction()
 # pkg-config. Asserts that the given pkg-config packages were found
 function(target_pkg_depends target pkg0)
   foreach(pkgname ${pkg0} ${ARGN})
-    if(NOT pkg_${pkgname}_found)
+    if(NOT PKG_${pkgname}_FOUND)
       message(FATAL_ERROR "pkg-config package ${pkgname} is not enumerated, but"
                           " required by ${target}")
     endif()
-    if(NOT ${pkg_${pkgname}_found})
+    if(NOT ${PKG_${pkgname}_FOUND})
       message(FATAL_ERROR "pkg-config package ${pkgname} is not found, but"
                           " required by ${target}")
     endif()
-    if(pkg_${pkgname}_includedirs)
+    if(PKG_${pkgname}_INCLUDEDIRS)
       # TODO(josh): passthrough things like SYSTEM, BEFORE,
       # INTERFACE|PUBLIC|PRIVATE
       target_include_directories(${target} SYSTEM
-                                 PUBLIC ${pkg_${pkgname}_includedirs})
+                                 PUBLIC ${PKG_${pkgname}_INCLUDEDIRS})
     endif()
-    if(pkg_${pkgname}_cflags)
+    if(PKG_${pkgname}_CFLAGS)
       # TODO(josh): passthrough things like BEFORE, INTERFACE|PUBLIC|PRIVATE
-      target_compile_options(${target} PUBLIC ${pkg_${pkgname}_cflags})
+      target_compile_options(${target} PUBLIC ${PKG_${pkgname}_CFLAGS})
     endif()
-    if(pkg_${pkgname}_libdirs)
+    if(PKG_${pkgname}_LIBDIRS)
       get_target_property(lflags_ ${target} LINK_FLAGS)
       if(lflags_)
-        list(APPEND lflags_ ${pkg_${pkgname}_lflags})
+        list(APPEND lflags_ ${PKG_${pkgname}_lflags})
         set_target_properties(${target} PROPERTIES LINK_FLAGS ${lflags_})
       else()
         set_target_properties(${target} PROPERTIES LINK_FLAGS
-                                                   ${pkg_${pkgname}_lflags})
+                                                   ${PKG_${pkgname}_lflags})
       endif()
 
     endif()
-    if(pkg_${pkgname}_libs)
+    if(PKG_${pkgname}_LIBS)
       # Passthrough options like INTERFACE|PUBLIC|PRIVATE and
       # debug|optimized|general
-      target_link_libraries(${target} PUBLIC ${pkg_${pkgname}_libs})
+      target_link_libraries(${target} PUBLIC ${PKG_${pkgname}_LIBS})
     endif()
   endforeach()
 endfunction()

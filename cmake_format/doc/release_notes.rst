@@ -12,7 +12,19 @@ v0.6 series
 v0.6.10
 -------
 
+This release fixes a number of issues with `cmake-lint` and activates
+`cmake-lint` as part of the lint build step in CI for this project and
+the upstream repository. There is still a lot of work to do on `cmake-lint`
+but at this point it is in a less experimental state and I am sufficiently
+confident in it enough to suggest that you start using it. Feel free to
+report any issues you encounter with it.
 
+This release also includes some cleanup work under the hood of `cmake-format`
+and the parsing code. Most notably, the command specifications for all of the
+cmake functions and macros defined in standard modules have been generated
+using `genparsers` and are now included by default. I have not audited all
+of them so the detected specifications are probably not all correct. Please
+let me know if you observe any problems with them.
 
 ------
 v0.6.9
