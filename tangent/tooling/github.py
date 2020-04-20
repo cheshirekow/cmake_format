@@ -365,6 +365,8 @@ def main():
     tag = argdict.pop("tag")
     if tag.startswith("pseudo-"):
       argdict["branch"] = tag[len("pseudo-"):]
+    else:
+      argdict["tag"] = tag
     sync_doc_artifacts(**argdict)
   elif command == "push-release":
     push_release(args.reposlug, args.tag, args.message, args.files)
