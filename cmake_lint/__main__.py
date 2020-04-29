@@ -188,12 +188,12 @@ def main():
     return 2
   except AssertionError as ex:
     logger.exception(
-        "An internal error occured. Please consider filing a bug report at "
+        "An internal error occurred. Please consider filing a bug report at "
         "github.com/cheshirekow/cmake_format/issues")
     return 2
   except:  # pylint: disable=bare-except
     logger.exception(
-        "An internal error occured. Please consider filing a bug report at "
+        "An internal error occurred. Please consider filing a bug report at "
         "github.com/cheshirekow/cmake_format/issues")
     return 2
 

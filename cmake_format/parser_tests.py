@@ -61,7 +61,7 @@ def assert_tree_type(test, nodes, tups, tree=None, history=None):
     if isinstance(node, lexer.Token):
       continue
     message = ("For node {} at\n {} within \n{}. "
-               "If this is infact correct, copy-paste this:\n\n{}"
+               "If this is in fact correct, copy-paste this:\n\n{}"
                .format(node, tree_string([node]),
                        tree_string(tree, history),
                        test_string(tree)))
