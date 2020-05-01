@@ -107,17 +107,26 @@ def setup_argparser(arg_parser):
   arg_parser.add_argument('infilepaths', nargs='*')
 
 
+def get_argparser():
+  argparser = argparse.ArgumentParser(
+      prog='cmake-annotate',
+      description=__doc__,
+      formatter_class=argparse.RawDescriptionHelpFormatter,
+      usage=USAGE_STRING)
+
+  setattr(argparser, 'man_short_description', __doc__.strip().splitlines()[0])
+
+  setup_argparser(argparser)
+  return argparser
+
+
 def main():
   """Parse arguments, open files, start work."""
 
   # set up main logger, which logs everything. We'll leave this one logging
   # to the console
   logging.basicConfig(level=logging.INFO)
-  arg_parser = argparse.ArgumentParser(
-      description=__doc__,
-      formatter_class=argparse.RawDescriptionHelpFormatter,
-      usage=USAGE_STRING)
-  setup_argparser(arg_parser)
+  arg_parser = get_argparser()
   args = arg_parser.parse_args()
 
   assert (len(args.infilepaths) == 1

@@ -566,15 +566,22 @@ def onefile_main(infile_path, args, argparse_dict):
     shutil.move(tempfile_path, infile_path)
 
 
-def inner_main():
-  """Parse arguments, open files, start work."""
-
+def get_argparser():
   arg_parser = argparse.ArgumentParser(
+      prog='cmake-format',
       description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter,
       usage=USAGE_STRING)
 
+  setattr(arg_parser, 'man_short_description', __doc__.strip().splitlines()[0])
+
   setup_argparser(arg_parser)
+  return arg_parser
+
+def inner_main():
+  """Parse arguments, open files, start work."""
+
+  arg_parser = get_argparser()
   try:
     import argcomplete
     argcomplete.autocomplete(arg_parser)
