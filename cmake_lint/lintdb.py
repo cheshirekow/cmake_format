@@ -167,6 +167,15 @@ While cmake itself does not enforce a particular line ending, it is good
 practice for a project to be consist with their line endings.
 """
 }), (
+"C0328", "Usage of file(GLOB ...)", {
+"description": """\
+Appears when file(GLOB ...) command is used.
+""",
+"explain": """\
+GLOB is I/O heavy and introduces additional non-determinism in CMake configuration
+process. It is advised to list all CMake input files explicitly.
+"""
+}), (
 "E0011", "Unrecognized file option {:s}", {
 "description": """\
 Used when an unrecognized pragma is encountered.

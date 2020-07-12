@@ -648,12 +648,34 @@ class LintChecker(object):
             "C0103", "directory variable", varname.spelling, pattern,
             location=varname.get_location())
 
+  def check_glob(self, node):
+    """Checks if file() command is called with GLOB"""
+    (cfg, local_ctx) = self.context
+
+    if not cfg.lint.forbid_glob:
+      return
+
+    def walk_tree(root):
+      if isinstance(root, TreeNode):
+        for child in root.children:
+          walk_tree(child)
+      elif isinstance(root, Token):
+        if root.type == TokenType.WORD:
+          if root.content in ["GLOB", "GLOB_RECURSE"]:
+            local_ctx.record_lint(
+              "C0328", "forbidden keyword", root.content,
+              location=root.get_location())
+
+    walk_tree(node.argtree)
+
   def check_statement(self, node):
     """Perform checks on a statement."""
     if node.get_funname() in ("break", "continue"):
       self.check_is_in_loop(node)
     elif node.get_funname() in ["set", "list"]:
       self.check_assignment(node)
+    elif node.get_funname() == "file":
+      self.check_glob(node)
     for child in node.children:
       self.check_tree(child)
 

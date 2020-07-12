@@ -83,6 +83,14 @@ file(${form} foo.py)
 # expect: E1126
 file(TOUCHE foo.py)
 
+# test: file-forbid-glob-1
+# expect: C0328
+file(GLOB foo LIST_DIRECTORIES false *)
+
+# test: file-forbid-glob-2
+# expect: C0328
+file(GLOB_RECURSE foo CONFIGURE_DEPENDS *.cpp)
+
 # test: break-not-in-loop
 # expect: E0103
 break()

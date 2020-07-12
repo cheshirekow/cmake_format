@@ -53,6 +53,10 @@ file(${form} foo.py)
 
 file(TOUCHE foo.py)
 
+file(GLOB foo LIST_DIRECTORIES false *)
+
+file(GLOB_RECURSE foo CONFIGURE_DEPENDS *.cpp)
+
 break()
 
 continue()

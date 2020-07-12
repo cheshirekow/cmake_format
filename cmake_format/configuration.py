@@ -175,6 +175,8 @@ class LinterConfig(ConfigObject):
   max_localvars = FieldDescriptor(15,)
   max_statements = FieldDescriptor(50,)
 
+  forbid_glob = FieldDescriptor(True, "Forbid file(GLOB) command")
+
 
 ADDITIONAL_COMMANDS_DEMO = {
     'foo': {
