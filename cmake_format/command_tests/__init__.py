@@ -445,7 +445,7 @@ class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
         })
 
     self.parse_ctx.parse_db.update(
-        parse_funs.get_legacy_parse(self.config.parse.fn_spec).kwargs)
+        parse_funs.get_funtree(self.config.parse.fn_spec))
 
   @contextlib.contextmanager
   def subTest(self, msg=None, **params):

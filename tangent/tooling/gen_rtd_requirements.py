@@ -7,25 +7,25 @@ import io
 import os
 import sys
 
-TEMPLATE = "\n".join([
-    ("https://github.com/cheshirekow/cmake_format/releases/download/"
-     "{_tag}/cmake_format-{_version}-py3-none-any.whl"),
-    "PyYAML==5.3"
-]) + "\n"
-
 
 def main():
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument("tag")
-  parser.add_argument("version")
+  parser.add_argument("--tag", required=True)
+  parser.add_argument("--version", required=True)
   parser.add_argument("-o", "--outfile-path", default="-")
+  parser.add_argument("template")
 
   args = parser.parse_args()
+  if args.tag == "from-travis":
+    args.tag = os.environ["TRAVIS_TAG"]
+
   if args.outfile_path == "-":
     args.outfile_path = os.dup(sys.stdout.fileno())
 
   outfile = io.open(args.outfile_path, "w", encoding="utf-8")
-  content = TEMPLATE.format(_tag=args.tag, _version=args.version)
+  with io.open(args.template, "r", encoding="utf-8") as infile:
+    template = infile.read()
+  content = template.format(_tag=args.tag, _version=args.version)
   outfile.write(content)
 
 

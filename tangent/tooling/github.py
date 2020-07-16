@@ -15,8 +15,13 @@ import subprocess
 import sys
 import tempfile
 
-import github
-import magic
+if True:
+
+  if os.path.samefile(sys.path[0], os.path.dirname(__file__)):
+    sys.path.pop(0)
+
+  import github
+  import magic
 
 logger = logging.getLogger(__name__)
 
@@ -327,8 +332,8 @@ def setup_argparser(argparser):
   subparser.add_argument(
       "-m", "--message",
       help="path to a file containing release notes message")
-  subparser.add_argument("reposlug")
-  subparser.add_argument("tag", help="the tag we are deploying")
+  subparser.add_argument("--repo-slug", required=True)
+  subparser.add_argument("--tag", help="the tag we are deploying")
   subparser.add_argument("files", nargs="*", help="files to upload")
 
 
@@ -356,6 +361,11 @@ def main():
     pass
 
   args = argparser.parse_args()
+
+  if hasattr(args, "tag"):
+    if getattr(args, "tag") == "from-travis":
+      setattr(args, "tag", os.environ["TRAVIS_TAG"])
+
   argdict = get_argdict(args)
   command = argdict.pop("command")
 
@@ -365,9 +375,11 @@ def main():
     tag = argdict.pop("tag")
     if tag.startswith("pseudo-"):
       argdict["branch"] = tag[len("pseudo-"):]
+    else:
+      argdict["tag"] = tag
     sync_doc_artifacts(**argdict)
   elif command == "push-release":
-    push_release(args.reposlug, args.tag, args.message, args.files)
+    push_release(args.repo_slug, args.tag, args.message, args.files)
   else:
     logger.error("Unknown command %s", command)
     sys.exit(1)

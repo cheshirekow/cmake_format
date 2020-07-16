@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 import logging
 
 from cmake_format import lexer
+from cmake_format.common import InternalError
+from cmake_format.parse.printer import dump_tree_tostr
 from cmake_format.parse.util import (
     comment_belongs_up_tree,
     get_normalized_kwarg,
@@ -13,6 +15,7 @@ from cmake_format.parse.util import (
     npargs_is_exact,
     pargs_are_full,
     IMPLICIT_PARG_TYPES,
+    CommandSpec,
     PositionalSpec,
     WHITESPACE_TOKENS,
     should_break,
@@ -52,6 +55,7 @@ class StandardArgTree(ArgGroupNode):
     super(StandardArgTree, self).__init__()
     self.parg_groups = []
     self.kwarg_groups = []
+    self.cmdspec = None
 
   def check_required_kwargs(self, lint_ctx, required_kwargs):
     for kwargnode in self.kwarg_groups:
@@ -70,7 +74,7 @@ class StandardArgTree(ArgGroupNode):
         lint_ctx.record_lint(lintid, word, location=location)
 
   @classmethod
-  def parse2(cls, ctx, tokens, pargspecs, kwargs, breakstack):
+  def parse2(cls, ctx, tokens, cmdspec, kwargs, breakstack):
     """
     Standard parser for the commands in the form of::
 
@@ -84,7 +88,10 @@ class StandardArgTree(ArgGroupNode):
     a flag than a new flag parser is pushed onto the stack.
     """
 
+    # NOTE(josh): we will pop things off this list, so let's make a copy
+    pargspecs = list(cmdspec.pargs)
     tree = cls()
+    tree.cmdspec = cmdspec
 
     # If it is a whitespace token then put it directly in the parse tree at
     # the current depth
@@ -92,27 +99,25 @@ class StandardArgTree(ArgGroupNode):
       tree.children.append(tokens.pop(0))
       continue
 
-    # NOTE(josh): if there is only one legacy specification then we reuse that
-    # specification for any additional positional arguments that we pick up.
-    # This is to maintain the current/legacy behavior of simple positional
-    # argument specifications
+    # NOTE(josh): if there is only one non-exact legacy specification then we
+    # reuse that specification for any additional positional arguments that we
+    # pick up. This is to maintain the current/legacy behavior of simple
+    # positional argument specifications
+    # TODO(josh): double check the reasoning for this. I think it might be
+    # mistaken and unnecessary
     default_spec = DEFAULT_PSPEC
-    if len(pargspecs) == 1 and pargspecs[0].legacy:
+    if (len(pargspecs) == 1 and pargspecs[0].legacy
+        and not npargs_is_exact(pargspecs[0].nargs)):
       default_spec = pargspecs.pop(0)
 
     all_flags = list(default_spec.flags)
     for pspec in pargspecs:
       all_flags.extend(pspec.flags)
+
     kwarg_breakstack = breakstack + [
         KwargBreaker(list(kwargs.keys()) + all_flags)]
 
     while tokens:
-      # Break if the next token belongs to a parent parser, i.e. if it
-      # matches a keyword argument of something higher in the stack, or if
-      # it closes a parent group.
-      if should_break(tokens[0], breakstack):
-        break
-
       # If it is a whitespace token then put it directly in the parse tree at
       # the current depth
       if tokens[0].type in WHITESPACE_TOKENS:
@@ -132,6 +137,28 @@ class StandardArgTree(ArgGroupNode):
                             lexer.TokenType.FORMAT_ON):
         tree.children.append(OnOffNode.consume(ctx, tokens))
         continue
+
+      # Break if the next token belongs to a parent parser, i.e. if it
+      # matches a keyword argument of something higher in the stack, or if
+      # it closes a parent group.
+      if should_break(tokens[0], breakstack):
+        # NOTE(josh): if spec.nargs is an exact number of arguments, then we
+        # shouldn't break on kwarg match from a parent parser. Instead, we
+        # should consume that many tokens. This is a hack to deal with
+        # ```install(RUNTIME COMPONENT runtime)``. In this case the second
+        # occurance of "runtime" should not match the ``RUNTIME`` keyword
+        # and should not break the positional parser.
+        # TODO(josh): this is kind of hacky because it will force the positional
+        # parser to consume a right parenthesis and will lead to parse errors
+        # in the event of a missing positional argument. Such errors will be
+        # difficult to debug for the user.
+        if pargspecs:
+          pspec = pargspecs[0]
+        else:
+          pspec = default_spec
+
+        if not npargs_is_exact(pspec.nargs) or pspec.nargs == 0:
+          break
 
       ntokens = len(tokens)
       word = get_normalized_kwarg(tokens[0])
@@ -156,12 +183,14 @@ class StandardArgTree(ArgGroupNode):
             KwargBreaker(list(kwargs.keys()) + other_flags)]
 
         with ctx.pusharg(tree):
-          subtree = PositionalGroupNode.parse(
-              ctx, tokens, pspec.nargs, pspec.flags, positional_breakstack)
-          subtree.tags.extend(pspec.tags)
+          subtree = PositionalGroupNode.parse2(
+              ctx, tokens, pspec, positional_breakstack)
           tree.parg_groups.append(subtree)
 
-      assert len(tokens) < ntokens, "parsed an empty subtree"
+      if len(tokens) >= ntokens:
+        raise InternalError(
+            "parsed an empty subtree at {}:\n  {}\n pspec: {}"
+            .format(tokens[0], dump_tree_tostr([tree]), pspec))
       tree.children.append(subtree)
     return tree
 
@@ -180,7 +209,6 @@ class StandardArgTree(ArgGroupNode):
     a keyword then the keyword parser is pushed on the parse stack. If it was
     a flag than a new flag parser is pushed onto the stack.
     """
-
     if isinstance(npargs, IMPLICIT_PARG_TYPES):
       pargspecs = [PositionalSpec(npargs, flags=flags, legacy=True)]
     else:
@@ -192,7 +220,8 @@ class StandardArgTree(ArgGroupNode):
           " positional group specifications")
       pargspecs = npargs
 
-    return cls.parse2(ctx, tokens, pargspecs, kwargs, breakstack)
+    return cls.parse2(
+        ctx, tokens, CommandSpec("<none>", pargspecs), kwargs, breakstack)
 
 
 class StandardParser(object):
@@ -215,19 +244,27 @@ class StandardParser(object):
 
 
 class StandardParser2(object):
-  def __init__(self, pspec=None, kwargs=None, doc=None):
-    if pspec is None:
-      pspec = PositionalSpec("*")
-    if kwargs is None:
-      kwargs = {}
+  def __init__(self, cmdspec=None, funtree=None, doc=None):
+    if cmdspec is None:
+      cmdspec = ("<none>", "*")
+    if funtree is None:
+      funtree = {}
 
-    self.pspec = pspec
-    self.kwargs = kwargs
+    self.cmdspec = cmdspec
+    self.funtree = funtree
     self.doc = doc
+
+  @property
+  def pspec(self):
+    return self.cmdspec.pargs
+
+  @property
+  def kwargs(self):
+    return self.funtree
 
   def __call__(self, ctx, tokens, breakstack):
     return StandardArgTree.parse2(
-        ctx, tokens, self.pspec, self.kwargs, breakstack)
+        ctx, tokens, self.cmdspec, self.funtree, breakstack)
 
 
 class KeywordNode(TreeNode):
@@ -324,6 +361,7 @@ class PositionalGroupNode(TreeNode):
       tree.sortable = False
 
     while tokens:
+
       # Break if we have consumed   enough positional arguments
       if pargs_are_full(spec.nargs, nconsumed):
         break

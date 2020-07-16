@@ -192,7 +192,7 @@ def process_file(config, infile_content):
 
   tokens = lexer.tokenize(infile_content)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
+  parse_db.update(parse_funs.get_funtree(config.parse.fn_spec))
   ctx = parse.ParseContext(parse_db, config=config)
   parse_tree = parse.parse(tokens, ctx)
   parse_tree.build_ancestry()

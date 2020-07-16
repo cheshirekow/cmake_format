@@ -11,6 +11,7 @@ with section("parse"):
     # Wrappers.cmake
     "cc_binary": {
       "pargs": "1+",
+      "flags": ["ADD_RUNTARGET"],
       "kwargs": {
           "SRCS": "*",
           "DEPS": "*",
@@ -27,16 +28,42 @@ with section("parse"):
       "pargs": "1+",
       "flags": ["STATIC", "SHARED"],
       "kwargs": {
+          "INC": {
+            "pargs": 0,
+            "kwargs": {
+                "PUBLIC": "*",
+                "PRIVATE": "*",
+                "INTERFACE": "*",
+            }
+          },
+          "LIBDIRS": {
+            "pargs": "*",
+            "kwargs": {
+                "PUBLIC": "*",
+                "PRIVATE": "*",
+                "INTERFACE": "*",
+            }
+          },
           "SRCS": "*",
-          "DEPS": "*",
+          "DEPS": {
+            "pargs": "*",
+            "kwargs": {
+                "PUBLIC": "*",
+                "PRIVATE": "*",
+                "INTERFACE": "*",
+            }
+          },
           "PKGDEPS": "*",
           "PROPERTIES": {
             "kwargs": {
-              "LIBRARY_OUTPUT_NAME": 1,
-              "VERSION": 1,
-              "SOVERSION": 1,
+              "ARCHIVE_OUTPUT_NAME": 1,
               "EXPORT_NAME": 1,
               "INTERFACE_INCLUDE_DIRECTORIES": 1,
+              "LIBRARY_OUTPUT_NAME": 1,
+              "OUTPUT_NAME": 1,
+              "SOVERSION": 1,
+              "SUFFIX": 1,
+              "VERSION": 1,
             }
           }
       }
@@ -73,6 +100,12 @@ with section("parse"):
         "OUTPUT_STRIP_TRAILING_WHITESPACE",
         "ERROR_STRIP_TRAILING_WHITESPACE",
       ]
+    },
+    "join": {
+      "pargs": [1, "+"],
+      "kwargs": {
+          "GLUE": 1,
+      }
     },
 
     # debian.cmake
@@ -142,5 +175,19 @@ with section("parse"):
         "SOURCEDIR": 1,
         "FILES": "*"
       },
-    }
+    },
+
+    # GtkDocConfig.cmake
+    "gtk_doc_add_module": {
+      "pargs": 1,
+      "kwargs": {
+        "FIXREFOPTS": "*",
+        "IGNOREHEADERS": "*",
+        "LIBRARIES": "*",
+        "LIBRARY_DIRS": "*",
+        "SOURCE": "*",
+        "SUFFIXES": "*",
+        "XML": 1,
+      },
+    },
   }

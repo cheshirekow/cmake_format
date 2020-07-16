@@ -208,25 +208,25 @@ set(_insource_genfiles README.rst)
 foreach(genfile ${_insource_genfiles})
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
-    COMMAND python -Bm cmake_format.doc.gendoc --bits ${_stage}/bits
+    COMMAND python -B ${TANGENT_TOOLING}/gendoc.py --bits ${_stage}/bits
             ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     # TODO(josh): not every file depends on every bit, so this is overkill, but
     # whatever... it's fine for now. We'll need more complicated code if we want
     # to actually declare which bits each file depends on.
-    DEPENDS ${_genbits} gendoc.py
+    DEPENDS ${_genbits} ${TANGENT_TOOLING}/gendoc.py
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${genfile})
 
   add_custom_target(
     run.cmake_format-doc-verify-${genfile}
-    COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
-            ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
+    COMMAND python -B ${TANGENT_TOOLING}/gendoc.py --verify --bits
+            ${_stage}/bits ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_test(
     NAME cmake_format-doc-verify-${genfile}
-    COMMAND python -Bm cmake_format.doc.gendoc --verify --bits ${_stage}/bits
-            ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
+    COMMAND python -B ${TANGENT_TOOLING}/gendoc.py --verify --bits
+            ${_stage}/bits ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endforeach()
 add_custom_target(genbits-cmake_format DEPENDS ${_genbits})
@@ -257,6 +257,7 @@ set(_docsources
     index.rst
     installation.rst
     lint-example.rst
+    lint-inline.rst
     lint-notes.rst
     lint-summary.rst
     lint-usage.rst
@@ -295,9 +296,12 @@ list(APPEND _copyfiles ${_stage}/sphinx-static/css/cheshire_theme.css)
 
 add_custom_command(
   OUTPUT ${_stage}/rtd-requirements.txt
-  COMMAND python -Bm cmake_format.tools.gen_rtd_requirements \$\${TRAVIS_TAG}
-          ${_src_version} -o ${_stage}/rtd-requirements.txt
-  DEPENDS ${CMAKE_SOURCE_DIR}/cmake_format/tools/gen_rtd_requirements.py
+  COMMAND
+    python -B ${TANGENT_TOOLING}/gen_rtd_requirements.py --tag from-travis
+    --version ${_src_version} -o ${_stage}/rtd-requirements.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/rtd-requirements.txt.in
+  DEPENDS ${TANGENT_TOOLING}/gen_rtd_requirements.py
+          ${CMAKE_CURRENT_SOURCE_DIR}/rtd-requirements.txt.in
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 list(APPEND _genbits ${_stage}/rtd-requirements.txt)
 
@@ -315,7 +319,7 @@ configure_file(MANIFEST.in ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST
 add_custom_target(
   clean-cmake_format-sphinx-stage
   DEPENDS ${_sphinx_manifest} ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST
-  COMMAND python -Bm tangent.tooling.clean_stage
+  COMMAND python -B ${TANGENT_TOOLING}/clean_stage.py
           ${CMAKE_CURRENT_BINARY_DIR}/MANIFEST ${_stage}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Cleaning cmake_format/doc/stage")
@@ -341,12 +345,14 @@ add_custom_target(
 add_dependencies(doc doc-cmake_format)
 set_property(GLOBAL APPEND PROPERTY global_doc_files ${_sphinx_manifest})
 
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-                                       ${_copyfiles} ${_genbits})
+set_property(
+  DIRECTORY
+  APPEND
+  PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${_copyfiles} ${_genbits})
 
 add_custom_target(
   push-cmake_format-github-pseudorelease-tag
-  COMMAND python -Bm tangent.tooling.github create-pseudorelease-tag
+  COMMAND python -B ${TANGENT_TOOLING}/github.py create-pseudorelease-tag
           cheshirekow/cmake_format \$\${TRAVIS_BRANCH}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Pushing psuedo-release tag")
@@ -374,13 +380,13 @@ add_custom_target(
   push-cmake_format-rtd-repo
   COMMAND
     # cmake-format: off
-    python -Bm tangent.tooling.github sync-doc-artifacts
+    python -B ${TANGENT_TOOLING}/github.py sync-doc-artifacts
       --doc-repo git@github.com:cheshirekow/cmake-tools-rtd.git
       --repo-dir ${CMAKE_CURRENT_BINARY_DIR}/cmake-tools-rtd.git
       --scratch-tree ${CMAKE_CURRENT_BINARY_DIR}/scratch-tree
       --stage ${_stage}
       --deploy-key "${_deploykey}"
-      --tag \$\${TRAVIS_TAG}
+      --tag from-travis
     # cmake-format: on
   DEPENDS clean-cmake_format-sphinx-stage ${_sphinx_manifest} ${_deploykey}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

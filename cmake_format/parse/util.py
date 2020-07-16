@@ -9,8 +9,12 @@ import re
 import sys
 
 from cmake_format import lexer
+from cmake_format.common import UserError, InternalError
 
 logger = logging.getLogger(__name__)
+
+ZERO_OR_MORE = '*'
+ONE_OR_MORE = '+'
 
 if sys.version_info[0] < 3:
   STRING_TYPES = (str, unicode)
@@ -54,12 +58,15 @@ class PositionalSpec(tuple):
   variable...
   """
 
-  def __new__(cls, nargs, sortable=False, tags=None, flags=None, legacy=False):
+  def __new__(cls, nargs, sortable=False, tags=None, flags=None, legacy=False,
+              max_pargs_hwrap=None, always_wrap=None):
     if not tags:
       tags = []
     if not flags:
       flags = []
-    return tuple.__new__(cls, (nargs, sortable, tags, flags, legacy))
+    return tuple.__new__(
+        cls, (nargs, sortable, tags, flags, legacy, max_pargs_hwrap,
+              always_wrap))
 
   nargs = property(_itemgetter(0))
   npargs = property(_itemgetter(0))
@@ -67,6 +74,21 @@ class PositionalSpec(tuple):
   tags = property(_itemgetter(2))
   flags = property(_itemgetter(3))
   legacy = property(_itemgetter(4))
+  max_pargs_hwrap = property(_itemgetter(5))
+  always_wrap = property(_itemgetter(6))
+
+  def replace(self, **kwargs):
+    selfdict = {
+        "nargs": self.nargs,
+        "sortable": self.sortable,
+        "tags": list(self.tags),
+        "flags": list(self.flags),
+        "legacy": self.legacy,
+        "max_pargs_hwrap": self.max_pargs_hwrap,
+        "always_wrap": self.always_wrap
+    }
+    selfdict.update(kwargs)
+    return PositionalSpec(**selfdict)
 
 
 def is_whitespace_token(token):
@@ -388,3 +410,176 @@ def comment_belongs_up_tree(ctx, tokens, node, breakstack):
     return False
 
   return tokens[0].get_location().col < node.get_location().col
+
+
+def parse_pspec(pargs, flags):
+  """
+  Parse a positional argument specification.
+  """
+  out = []
+
+  # Default pargs is "*"
+  if pargs is None:
+    pargs = ZERO_OR_MORE
+
+  # If we only have one scalar specification, return a legacy specification
+  # TODO(josh): should we only do this if we also have flags?
+  if isinstance(pargs, STRING_TYPES + (int,)):
+    return [PositionalSpec(pargs, flags=flags, legacy=True)]
+
+  if flags:
+    raise UserError(
+        "Illegal use of top-level 'flags' keyword with new-style positional"
+        " argument declaration")
+
+  # If we only have one dictionary specification, then put it in a dictionary
+  # so that we can do the rest consistently
+  if isinstance(pargs, dict):
+    pargs = [pargs]
+
+  for pargdecl in pargs:
+    if isinstance(pargdecl, STRING_TYPES + (int,)):
+      # A scalar declaration is interpreted as npargs
+      out.append(PositionalSpec(pargdecl))
+      continue
+
+    if isinstance(pargdecl, dict):
+        # A dictionary is interpreted as init kwargs
+      if "npargs" not in pargdecl:
+        pargdecl = dict(pargdecl)
+        pargdecl["nargs"] = ZERO_OR_MORE
+      out.append(PositionalSpec(**pargdecl))
+      continue
+
+    if isinstance(pargdecl, (list, tuple)):
+        # A list or tuple is interpreted as (*args, [kwargs])
+      args = list(pargdecl)
+      kwargs = {}
+      if isinstance(args[-1], dict):
+        kwargs = args.pop(-1)
+      out.append(PositionalSpec(*args, **kwargs))
+
+  return out
+
+
+class CommandSpec(object):
+  """
+  A command specification is composed of a sequence of positional argument
+  specifications, and a dictionary mapping keyword arguments to (nested)
+  command specifications. It also includes a command (or keyword) name.
+  """
+
+  def __init__(self, name, pargs=None, flags=None, kwargs=None, spelling=None,
+               max_subgroups_hwrap=None, always_wrap=None):
+    super(CommandSpec, self).__init__()
+    scalar_types = (int,) + STRING_TYPES
+
+    self.name = name
+    self.spelling = spelling
+    if spelling is None:
+      self.spelling = name
+    self.max_subgroups_hwrap = max_subgroups_hwrap
+    self.always_wrap = always_wrap
+
+    try:
+      self.pargs = parse_pspec(pargs, flags)
+    except (TypeError, UserError) as ex:
+      message = (
+          "Invalid user-supplied specification for positional arguments of "
+          "{}:\n{}".format(name, ex))
+      raise UserError(message)
+
+    self.kwargs = {}
+
+    if kwargs is not None:
+      if isinstance(kwargs, dict):
+        items = kwargs.items()
+      elif isinstance(kwargs, (list, tuple)):
+        items = list(kwargs)
+      else:
+        raise ValueError(
+            "Invalid type {} for kwargs of {}: {}"
+            .format(type(kwargs), name, kwargs))
+
+      for keyword, spec in items:
+        if isinstance(spec, scalar_types):
+          self.kwargs[keyword] = CommandSpec(name=keyword, pargs=spec)
+        elif isinstance(spec, CommandSpec):
+          self.kwargs[keyword] = spec
+        elif isinstance(spec, dict):
+          self.kwargs[keyword] = CommandSpec(name=keyword, **spec)
+        else:
+          raise ValueError("Unexpected type '{}' for kwargs"
+                           .format(type(kwargs)))
+
+  def is_flag(self, key):
+    return self.kwargs.get(key, None) == 0
+
+  def is_kwarg(self, key):
+    subspec = self.kwargs.get(key, None)
+    if subspec is None:
+      return False
+    if isinstance(subspec, int):
+      return subspec != 0
+    if isinstance(subspec, STRING_TYPES + (CommandSpec,)):
+      return True
+    raise ValueError("Unexpected kwargspec for {}: {}"
+                     .format(key, type(subspec)))
+
+  def add(self, name, pargs=None, flags=None, kwargs=None, **extra):
+    self.kwargs[name.lower()] = CommandSpec(
+        name, pargs, flags, kwargs, **extra)
+
+
+def apply_overrides(spectree, pathkeystr, value):
+  """Apply command specification overrides to a previously constructed
+     parse function tree."""
+
+  if "." not in pathkeystr:
+    raise UserError("Invalid override key {}".format(pathkeystr))
+  pathstr, keystr = pathkeystr.rsplit(".", 1)
+
+  pathparts = pathstr.split("/")
+
+  while pathparts:
+    if not isinstance(spectree, CommandSpec):
+      raise InternalError("Invalid spectree entry of type {}"
+                          .format(type(spectree)))
+
+    pathkey = pathparts.pop(0)
+    if pathkey.startswith("parg"):
+      if pathparts:
+        raise UserError(
+            "Invalid override key {} contains path components after pspec"
+            .format(pathkeystr))
+      try:
+        idx = int(pathkey[len("parg"):].strip("[]"))
+      except ValueError:
+        raise UserError(
+            "Invalid override key {} contains non-int pspec"
+            .format(pathkeystr))
+      if idx > len(spectree.pargs):
+        raise UserError(
+            "Invalid override key {} is out of bounds"
+            .format(pathkeystr))
+
+      repl = {keystr: value}
+      spectree.pargs[idx] = spectree.pargs[idx].replace(**repl)
+      return
+
+    if pathkey not in spectree.kwargs:
+      raise UserError(
+          "Invalid override key {} at {}".format(pathkeystr, pathkey))
+    spectree = spectree.kwargs[pathkey]
+
+  if not hasattr(spectree, keystr):
+    raise UserError(
+        "Invalid override key {}, keypart {} is not valid for type {}"
+        .format(pathkeystr, keystr, type(spectree)))
+
+  try:
+    setattr(spectree, keystr, value)
+  except AttributeError:
+    raise UserError(
+        "Invalid override key {}, can't set attribute {} for type {}"
+        .format(pathkeystr, keystr, type(spectree)))

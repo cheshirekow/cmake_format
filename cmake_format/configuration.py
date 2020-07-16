@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import logging
 import re
 
+from cmake_format.parse import util as parse_util
 from cmake_format.parse_funs import standard_funs
 from cmake_format import markup
 from cmake_format.config_util import (
@@ -193,6 +194,11 @@ class FormattingConfig(ConfigObject):
 
   _field_registry = []
 
+  disable = FieldDescriptor(
+      False,
+      "Disable formatting entirely, making cmake-format a no-op"
+  )
+
   line_width = FieldDescriptor(
       80,
       "How wide to allow formatted cmake files"
@@ -359,11 +365,15 @@ class ParseConfig(ConfigObject):
       "Specify structure for custom cmake functions"
   )
 
+  override_spec = FieldDescriptor(
+      {},
+      "Override configurations per-command where available")
+
   vartags = FieldDescriptor([], "Specify variable tags.")
   proptags = FieldDescriptor([], "Specify property tags.")
 
   def __init__(self, **kwargs):  # pylint: disable=W0613
-    self.fn_spec = standard_funs.CommandSpec("<root>")
+    self.fn_spec = parse_util.CommandSpec("<root>")
     self.vartags_ = []
     self.proptags_ = []
     super(ParseConfig, self).__init__(**kwargs)
@@ -372,6 +382,9 @@ class ParseConfig(ConfigObject):
     if self.additional_commands is not None:
       for command_name, spec in self.additional_commands.items():
         self.fn_spec.add(command_name, **spec)
+
+    for pathkeystr, value in self.override_spec.items():
+      parse_util.apply_overrides(self.fn_spec, pathkeystr, value)
 
     self.vartags_ = [
         (re.compile(pattern, re.IGNORECASE), tags) for pattern, tags in

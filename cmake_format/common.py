@@ -117,3 +117,15 @@ class InternalError(Exception):
 
   def __repr__(self):
     return self.msg
+
+
+class FormatError(Exception):
+  """Raised during format or format --check indicating that the program should
+     exit with nonzero status code."""
+
+  def __init__(self, msg=None):
+    super(FormatError, self).__init__()
+    self.msg = msg
+
+  def __repr__(self):
+    return self.msg

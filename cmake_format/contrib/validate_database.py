@@ -58,24 +58,32 @@ class TestContributorAgreements(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestContributorAgreements, self).__init__(*args, **kwargs)
     self.homedir = None
+    self.rmtrees = []
 
   def setUp(self):
-    self.homedir = tempfile.mkdtemp(prefix="gpgtmp")
+    usual_homedir = os.path.expanduser("~/.gnupg")
+    pubring_path = os.path.join(usual_homedir, "pubring.kbx")
+    if os.path.exists(pubring_path):
+      self.homedir = usual_homedir
+    else:
+      self.homedir = tempfile.mkdtemp(prefix="gpgtmp_")
+      self.rmtrees.append(self.homedir)
 
   def tearDown(self):
-    for _ in range(3):
-      try:
-        # NOTE(josh): for some reason we see
-        # `FileNotFoundError:
-        #   [Errno 2] No such file or directory: 'S.gpg-agent.browser'`
-        # My guess is that the file is deleted after the directory scan but
-        # before the unlink.
-        shutil.rmtree(self.homedir)
-        break
-      except FileNotFoundError:
-        continue
-    else:
-      self.fail("FileNotFoundError after several retries")
+    for dirpath in self.rmtrees:
+      for _ in range(3):
+        try:
+          # NOTE(josh): for some reason we see
+          # `FileNotFoundError:
+          #   [Errno 2] No such file or directory: 'S.gpg-agent.browser'`
+          # My guess is that the file is deleted after the directory scan but
+          # before the unlink.
+          shutil.rmtree(dirpath)
+          break
+        except FileNotFoundError:
+          continue
+      else:
+        self.fail("FileNotFoundError after several retries")
 
   def test_signatures(self):
     """

@@ -10,6 +10,56 @@ function isEmpty(obj: any) {
   return true;
 }
 
+function getWorkspaceFolder(): string | undefined {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showErrorMessage(
+      "Unable to get the location of cmake-format executable"
+      + " - no active workspace selected");
+    return undefined;
+  }
+
+  if (!vscode.workspace.workspaceFolders) {
+    vscode.window.showErrorMessage(
+      "Unable to get the location of clang-format executable"
+      + " - no workspaces available");
+    return undefined
+  }
+
+  const currentDocumentUri = editor.document.uri
+  let workspacePath = vscode.workspace.getWorkspaceFolder(currentDocumentUri);
+  if (!workspacePath) {
+    const fallbackWorkspace = vscode.workspace.workspaceFolders[0];
+    vscode.window.showWarningMessage(
+      "Unable to deduce the location of clang-format executable for file"
+      + "outside the workspace - expanding \${workspaceFolder} to "
+      + `'${fallbackWorkspace.name}' path`);
+    workspacePath = fallbackWorkspace;
+  }
+  return workspacePath.uri.path;
+}
+
+function varSub(value: string): string {
+  if (vscode.workspace.rootPath !== undefined) {
+    value = value.replace(/\${workspaceRoot}/g, vscode.workspace.rootPath)
+  }
+  var workspaceFolder = getWorkspaceFolder();
+  if (workspaceFolder !== undefined) {
+    value = value.replace(/\${workspaceFolder}/g, workspaceFolder);
+  }
+
+  return value
+    .replace(/\${cwd}/g, process.cwd())
+    .replace(/\${env\.([^}]+)}/g, (sub: string, envName: string) => {
+      var value = process.env[envName];
+      if (value === undefined) {
+        return "";
+      } else {
+        return value;
+      }
+    });
+}
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('"cmake-format" extension is now active!');
 
@@ -31,12 +81,21 @@ export function activate(context: vscode.ExtensionContext) {
       }
       args = args.concat(["-"]);
 
+      var args2: string[] = []
+      for (var idx = 0; idx < args.length; idx++) {
+        args2.push(varSub(args[idx]));
+      }
+      args = args2;
+
       var opts: any = {
         input: document.getText(),
         encoding: 'utf-8'
       };
 
-      var cwd = config.get("cwd");
+      var cwd = config.get<string>("cwd");
+      if (cwd != null) {
+        cwd = varSub(cwd);
+      }
       if (cwd == null && document.uri.fsPath != null) {
         cwd = path.dirname(document.uri.fsPath)
         console.log("No cwd configured, using: " + cwd);
@@ -100,3 +159,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 }
+
+

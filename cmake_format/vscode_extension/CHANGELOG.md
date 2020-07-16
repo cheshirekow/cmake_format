@@ -3,6 +3,11 @@
 Note that the vscode extension release version matches the
 cmake-format release version on [pypi][2].
 
+### 0.6.11
+
+- Add variable substitution for ${workspaceFolder} and ${workspaceRoot} to
+  configuration entries
+
 ### 0.6.10
 
 - Fix typos in environment handling

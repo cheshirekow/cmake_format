@@ -2,11 +2,34 @@
 Release Notes
 =============
 
+.. default-role:: literal
+
 Details of changes can be found in the changelog, but this file will contain
 some high level notes and highlights from each release.
 
 v0.6 series
 ===========
+
+-------
+v0.6.11
+-------
+
+This release adds `argcomplete`__ handling to enable automatic shell
+completion to `cmake-format` and `cmake-lint`. `argcomplete` is not an
+installation dependency so if you wish to enable completion please install
+`argcomplete` (e.g. via pip) and then activate it (see the documentation for
+argcomplete).
+
+.. __: https://pypi.org/project/argcomplete/
+
+The visual studio code extension now supports variable substitution for things
+like `${workspaceRoot}` and `${workspaceFolder}` in the `args` and `cwd`
+configuration options.
+
+There is a new configuration option to `disable` formatting. This can be
+specified in a config file to conveniently no-op formatting within a
+subdirectory (such as third-party source code) of a project.
+
 
 -------
 v0.6.10

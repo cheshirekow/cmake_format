@@ -1,3 +1,8 @@
+filegroup(
+  name = "lsb-release",
+  srcs = ["etc/lsb-release"],
+)
+
 cc_library(
   name = "dl",
   includes = ["usr/include"],
@@ -67,13 +72,13 @@ cc_library(
 )
 
 cc_library(
-  name = "libpng16",
+  name = "libpng12",
   includes = ["usr/include"],
   srcs = [
-    "usr/lib/x86_64-linux-gnu/libpng16.a",
-    "usr/lib/x86_64-linux-gnu/libpng16.so",
+    "usr/lib/x86_64-linux-gnu/libpng12.a",
+    "usr/lib/x86_64-linux-gnu/libpng12.so",
   ],
-  hdrs = glob(["usr/include/libpng16/*.h"]),
+  hdrs = glob(["usr/include/libpng12/*.h"]),
   strip_include_prefix = "usr/include",
   visibility = ["//visibility:public"],
 )
@@ -98,7 +103,7 @@ cc_library(
     "usr/lib/x86_64-linux-gnu/libfreetype.so",
   ],
   hdrs = glob(["usr/include/freetype2/**"]),
-  deps = [":libpng16", ":zlib"],
+  deps = [":libpng12", ":zlib"],
   strip_include_prefix = "usr/include/freetype2",
   visibility = ["//visibility:public"],
 )
@@ -172,7 +177,7 @@ cc_library(
 cc_library(
   name = "libudev",
   includes = ["usr/include"],
-  srcs = ["lib/x86_64-linux-gnu/libudev.so"],
+  srcs = ["usr/lib/x86_64-linux-gnu/libudev.so"],
   hdrs = ["usr/include/libudev.h"],
   strip_include_prefix = "usr/include",
   visibility = ["//visibility:public"],
@@ -317,7 +322,7 @@ cc_library(
   includes = ["usr/include/cairo"],
   hdrs = glob(["usr/include/cairo/**/*.h"]),
   srcs = glob(["usr/lib/x86_64-linux-gnu/libcairo.*"]),
-  deps = [":freetype2", "glib-2.0", ":libpng16", ":pixman-1"],
+  deps = [":freetype2", "glib-2.0", ":libpng12", ":pixman-1"],
   visibility = ["//visibility:public"],
 )
 
@@ -347,10 +352,11 @@ cc_library(
   includes = ["usr/include/gtk-3.0"],
   hdrs = glob(["usr/include/gtk-3.0/gdk/**/*.h"]),
   srcs = glob(["usr/lib/x86_64-linux-gnu/libgdk-3*"]),
+  linkopts = ["-pthread"],
   deps = [
     ":cairo",
     ":cairo-gobject",
-    "gdk-pixbuf-2.0",
+    ":gdk-pixbuf-2.0",
     ":pango-1.0",
     ":pangocairo-1.0",
     ":pangoft2-1.0",
@@ -480,7 +486,7 @@ cc_library(
     ":freetype2",
     ":glib-2.0",
     ":harfbuzz",
-    ":libpng16",
+    ":libpng12",
     ":pango-1.0",
     ":pixman-1",
   ],
@@ -571,6 +577,50 @@ cc_library(
   ]),
   srcs = glob(["usr/lib/x86_64-linux-gnu/libglibmm-2.4.*"]),
   visibility = ["//visibility:public"],
+)
+
+filegroup(
+  name = "glibmm-2.4-m4",
+  srcs = glob(["usr/lib/x86_64-linux-gnu/glibmm-2.4/proc/m4/*"]),
+)
+
+filegroup(
+  name = "atkmm-1.6-m4",
+  srcs = glob(["usr/lib/x86_64-linux-gnu/atkmm-1.6/proc/m4/*"]),
+)
+
+filegroup(
+  name = "pangomm-1.4-m4",
+  srcs = glob(["usr/lib/x86_64-linux-gnu/pangomm-1.4/proc/m4/*"]),
+)
+
+filegroup(
+  name = "gtkmm-3.0-m4",
+  srcs = glob(["usr/lib/x86_64-linux-gnu/gtkmm-3.0/proc/m4/*"]),
+)
+
+filegroup(
+  name = "glibmm-2.4-pm",
+  srcs = glob(["usr/lib/x86_64-linux-gnu/glibmm-2.4/proc/pm/*"]),
+)
+
+sh_binary(
+  name = "gmmproc",
+  srcs = ["usr/lib/x86_64-linux-gnu/glibmm-2.4/proc/gmmproc"],
+  data = [
+    ":glibmm-2.5-m4",
+    ":glibmm-2.5-pm",
+    ":atkmm-1.6-m4",
+    ":pangomm-1.4-m4",
+    ":gtkmm-3.0-m5",
+  ],
+)
+
+sh_binary(
+  name = "gmmproc-generate_wrap_init",
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/glibmm-2.4/proc/generate_wrap_init.pl",
+  ],
 )
 
 cc_library(

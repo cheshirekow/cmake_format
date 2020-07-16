@@ -15,10 +15,15 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
-  # Strip "-I" from include directories in the form of "-I/path/to"
-  string(REGEX REPLACE "-I" "" _include_dirs "${_pkg_out}")
   # Convert space-separated list to semicolon-separated cmake-list
-  string(REGEX REPLACE " +" ";" _include_list "${_include_dirs}")
+  string(REGEX REPLACE " +" ";" _includes_raw "${_pkg_out}")
+
+  set(PKG_${outvar}_INCLUDEDIRS_RAW
+      ${_includes_raw}
+      CACHE STRING "include directories for ${outvar}" FORCE)
+
+  # Strip "-I" from include directories in the form of "-I/path/to"
+  string(REGEX REPLACE "-I" "" _include_list "${_includes_raw}")
 
   set(PKG_${outvar}_INCLUDEDIRS
       ${_include_list}
@@ -27,7 +32,8 @@ function(_pkg_query outvar arg)
   execute_process(
     COMMAND pkg-config --cflags-only-other ${arg}
     RESULT_VARIABLE _pkg_err
-    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    OUTPUT_VARIABLE _pkg_out
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno
         1
@@ -36,21 +42,31 @@ function(_pkg_query outvar arg)
   endif()
 
   # Convert space-separated list to semicolon-separated cmake-list
-  string(REGEX REPLACE " +" ";" _cflags "${_pkg_out}")
+  string(REGEX REPLACE " +" ";" _cflags_raw "${_pkg_out}")
+
+  set(PKG_${outvar}_CFLAGS_RAW
+      ${_cflags}
+      CACHE STRING "cflags directories for ${outvar}" FORCE)
+
   # Convert some C++ specific flags into a generator expression that will
   # nullify during C compiles. Specifically match replace strings like
   # "-std=c++11" to "$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>".
   string(REGEX REPLACE "(-std=[^;]+)" "$<$<COMPILE_LANGUAGE:CXX>:\\1>" _cflags
-                       "${_cflags}")
+                       "${_cflags_raw}")
 
   set(PKG_${outvar}_CFLAGS
       ${_cflags}
-      CACHE STRING "cflags directories for ${outvar}" FORCE)
+      CACHE STRING "cflags for ${outvar}" FORCE)
+
+  set(PKG_${outvar}_CFLAGS_RAW
+      ${_includes_raw} ${_cflags_raw}
+      CACHE STRING "raw cflags for ${outvar}" FORCE)
 
   execute_process(
     COMMAND pkg-config --libs-only-L ${arg}
     RESULT_VARIABLE _pkg_err
-    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    OUTPUT_VARIABLE _pkg_out
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno
         1
@@ -58,14 +74,21 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
+  # Convert space-separated list to semicolon-separated cmake-list
+  string(REGEX REPLACE " +" ";" _libdirs_raw "${_pkg_out}")
+
+  # Remove -L prefix
+  string(REGEX REPLACE "-L" "" _libdirs "${_libdirs_raw}")
+
   set(PKG_${outvar}_LIBDIRS
-      ${_pkg_out}
+      ${_libdirs}
       CACHE STRING "library directories for ${outvar}" FORCE)
 
   execute_process(
     COMMAND pkg-config --libs-only-l ${arg}
     RESULT_VARIABLE _pkg_err
-    OUTPUT_VARIABLE _pkg_out OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    OUTPUT_VARIABLE _pkg_out
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno
         1
@@ -73,14 +96,27 @@ function(_pkg_query outvar arg)
     return()
   endif()
 
+  # Convert space-separated list to semicolon-separated cmake-list
+  string(REGEX REPLACE " +" ";" _libs_raw "${_pkg_out}")
+
+  # Convert space-separated list to semicolon-separated cmake-list Strip "-l"
+  # from libraries in the form of "-lfilename" so that they are just "filename".
+  # Cmake will add the -l.
+  string(REGEX REPLACE "-l" "" _libs "${_libs_raw}")
+
   set(PKG_${outvar}_LIBS
-      ${_pkg_out}
+      ${_libs}
       CACHE STRING "library directories for ${outvar}" FORCE)
+  message(STATUS "PKG_${outvar}_LIBS: ${PKG_${outvar}_LIBS}")
 
   set(PKG_${outvar}_NAME
       ${arg}
       CACHE STRING "selected name which worked as an argument to pkg-config"
             FORCE)
+
+  set(PKG_${outvar}_LDFLAGS_RAW
+      ${_libdirs_raw} ${_libs_raw}
+      CACHE STRING "raw ldflags for ${outvar}" FORCE)
 
   set(pkg_errno
       0

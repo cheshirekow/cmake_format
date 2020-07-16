@@ -1,6 +1,7 @@
 .*/doc/stage
 .*\.jinja.py
 .*-config.cmake
+.eslintrc.js
 .gitu
 build-.*
 cmake/node_modules/.*
@@ -8,18 +9,27 @@ semver-.*\.cmake
 cmake_format/command_tests/.*\.cmake
 cmake_format/test/.*\.cmake
 cmake_lint/test/.*\.cmake
-gr-tuya/receive_gui.py
-gr-tuya/receive_nogui.py
-tangent/json/test/test_types.*
-mbus/dlmalloc.*
 linkhash/testproject/.*
-third_party/.*/.*
+
+# third party stuff
+mbus/dlmalloc.*
+third_party/.*?/.*
 tangent/util/stdio_filebuf.h
-vultk/BUILD.py
+
+# javascript poop
+cmake_format/vscode_extension/node_modules/.*
+cmake_format/vscode_extension/out/.*
 
 # buildbot poop in source tree
 build
 venv
+
+# generated files
+gtangent/messages\.pb.*
+gtangentmm/gencache/.*
+pynix/clone_constants.h
+pynix/prctl_constants.h
+tangent/json/test/test_types.*
 
 # TODO(josh): fix errors and remove these from the whitelist
 argue/bash_completion.d/argue-argcomplete
@@ -40,6 +50,8 @@ gphoto/gphoto.py
 gr-tuya/gr_tuya.py
 gr-tuya/grfh.cc
 gr-tuya/ook2bin.py
+gr-tuya/receive_gui.py
+gr-tuya/receive_nogui.py
 linkhash/linkhash.cc
 linkhash/linkcache.py
 linkhash/test_linkcache.py
@@ -61,3 +73,4 @@ tangent/tooling/generate_style_manifest.py
 tangent/tooling/github.py
 tangent/tooling/install_debug_symbols.py
 tangent/util/elf_file.h
+vultk/BUILD.py

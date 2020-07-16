@@ -86,8 +86,12 @@ def should_include(patterns, relpath, query_flags=0):
 
 def gentree(sourcedir, patterns):
   exclude = re.compile("|".join("({})".format(pat) for pat in [
-      r"\.build",
+      # Git directories
       r"\.git",
+      r"\.gitu",
+      # build artifacts
+      r"\.build",
+      # IDE poop
       r"\.vscode",
       # python poop
       r"__pycache__",
@@ -99,7 +103,8 @@ def gentree(sourcedir, patterns):
       "WORKSPACE",
       # python packaging
       r".*\.egg-info",
-      "build",
+      "build/bdist.*",
+      "build/lib",
       "dist",
       # node poop
       "node_modules",
@@ -253,9 +258,12 @@ def setup_argparse(parser):
             " changed, then touch the manifest file"))
   mutex = subparser.add_mutually_exclusive_group()
   mutex.add_argument(
-      "--patterns-from", help="File containing a  list of pattenrs")
+      "--patterns-from", action="append", default=[],
+      help="File containing a  list of patterns. Can be specified multiple"
+           " times")
   mutex.add_argument(
-      "--patterns", nargs="*", help="Patterns on the command line")
+      "--patterns", nargs="*", default=[],
+      help="Patterns on the command line")
   subparser.add_argument("sourcedir")
 
   subparser = subparsers.add_parser(
@@ -283,11 +291,12 @@ def parse_changelog_cmdfn(args):
 
 
 def check_manifest_cmdfn(args):
-  if args.patterns_from:
-    lines = get_patterns_from(args.patterns_from)
-  else:
-    lines = args.patterns
-  patterns = translate_patterns(lines)
+  raw_patterns = list(args.patterns)
+  for filepath in args.patterns_from:
+    lines = get_patterns_from(filepath)
+    raw_patterns.extend(lines)
+
+  patterns = translate_patterns(raw_patterns)
   for _, pattern in patterns:
     logger.debug("%s", pattern)
   treegen = gentree(args.sourcedir, patterns)

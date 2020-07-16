@@ -43,6 +43,11 @@ else()
   set(CMAKE_LINT_CMD cmake-lint)
 endif()
 
+# TODO(josh): need to build this dynamically over the course of the
+# configure-time, and then build the format and lint commands after we
+# know all of the python path that needs to be included
+set(_pythonpath "${CMAKE_SOURCE_DIR}:${CMAKE_BINARY_DIR}/pynix")
+
 # Generate targets to format or lint the list of files
 #
 # Usage:
@@ -304,13 +309,13 @@ function(format_and_lint slug)
              # the repository. As such pylint will not match the rcfile in the
              # root of the repository.
       COMMAND
-        env PYTHONPATH=${CMAKE_SOURCE_DIR} pylint
+        env PYTHONPATH=${_pythonpath} pylint
         --rcfile=${CMAKE_SOURCE_DIR}/pylintrc -sn -rn
         ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
         # NOTE(josh): flake8 tries to use semaphores which fail in our
         # containers https://bugs.python.org/issue3770 (probably due to
         # /proc/shmem or something not being mounted)
-      COMMAND env PYTHONPATH=${CMAKE_SOURCE_DIR} flake8 --jobs 1
+      COMMAND env PYTHONPATH=${_pythonpath} flake8 --jobs 1
               ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch

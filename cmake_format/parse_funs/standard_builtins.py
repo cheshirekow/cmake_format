@@ -313,13 +313,16 @@ FUNSPECS = {
     }
   },
   "try_compile": {
+    "pargs": [2, "+"],
     "kwargs": {
       "CMAKE_FLAGS": "*",
       "COMPILE_DEFINITIONS": "*",
       "COPY_FILE": "*",
+      "LINK_OPTIONS": "*",
       "LINK_LIBRARIES": "*",
       "OUTPUT_VARIABLE": "*",
-      "RESULT_VAR": "*"
+      "RESULT_VAR": "*",
+      "SOURCES": "*"
     }
   },
   "target_compile_options": {

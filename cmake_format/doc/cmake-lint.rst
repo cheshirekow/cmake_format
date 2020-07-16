@@ -10,6 +10,7 @@ common mistakes, and anti-patterns.
    :maxdepth: 2
 
    lint-usage
+   lint-inline
    lint-example
    lint-summary
    lint-implemented

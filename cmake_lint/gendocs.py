@@ -13,8 +13,8 @@ import sys
 import textwrap
 
 import cmake_format
-from cmake_format.doc.gendoc import format_directive
 from cmake_lint import lintdb
+from tangent.tooling.gendoc import format_directive
 
 HEADER = """
 .. _lint-checks:

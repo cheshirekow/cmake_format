@@ -174,6 +174,9 @@ set(KNOWN_PROPERTIES ${_propslist})
 #
 # Keyword Arguments:
 #
+# *INCS*: a list of include directories that should be added using
+# target_include_dirs
+#
 # *SRCS*: a list of source files that go into compilation. These translate to
 # the positional arguments of add_library().
 #
@@ -186,12 +189,19 @@ set(KNOWN_PROPERTIES ${_propslist})
 function(cc_library target_name)
   set(flags)
   set(oneargs)
-  set(multiargs SRCS DEPS PKGDEPS PROPERTIES)
+  set(multiargs INC SRCS DEPS PKGDEPS PROPERTIES)
   cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_library(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
+  if(_args_INC)
+    target_include_directories(${target_name} ${_args_INC})
+  endif()
   if(_args_DEPS)
-    target_link_libraries(${target_name} PUBLIC ${_args_DEPS})
+    list(GET _args_DEPS 0 dep0)
+    if(NOT "${_dep0}" MATCHES "(PUBLIC)|(PRIVATE)|(INTERFACE)")
+      list(INSERT _args_DEPS 0 "PUBLIC")
+    endif()
+    target_link_libraries(${target_name} ${_args_DEPS})
   endif()
   if(_args_PKGDEPS)
     target_pkg_depends(${target_name} ${_args_PKGDEPS})
@@ -223,9 +233,9 @@ endfunction()
 # *PKGDEPS*: A list of pkg-config names that are dependencies of this
 # executable. They are passed as positional arguments to target_pkg_depends
 function(cc_binary target_name)
-  set(flags)
+  set(flags ADD_RUNTARGET)
   set(oneargs)
-  set(multiargs SRCS DEPS PKGDEPS PROPERTIES)
+  set(multiargs SRCS DEFS DEPS PKGDEPS PROPERTIES)
   cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_executable(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
@@ -238,6 +248,16 @@ function(cc_binary target_name)
   if(_args_PROPERTIES)
     # cmake-lint: disable=E1120
     set_target_properties(${target_name} PROPERTIES ${_args_PROPERTIES})
+  endif()
+  if(_args_DEFS)
+    target_compile_definitions(${target_name} ${_args_DEFS})
+  endif()
+
+  if(_args_ADD_RUNTARGET)
+    add_custom_target(
+      run.${target_name}
+      COMMAND ${target_name}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   endif()
 endfunction()
 
@@ -345,8 +365,8 @@ function(get_version_from_header headerpath macro)
   endif()
 
   execute_process(
-    COMMAND python -Bsm cmake.get_version_from_header --outfile ${stubfile}
-            ${macro} ${headerpath}
+    COMMAND python -B ${TANGENT_TOOLING}/get_version_from_header.py #
+            --outfile ${stubfile} ${macro} ${headerpath}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE _retcode
     OUTPUT_VARIABLE _stdout
@@ -370,4 +390,60 @@ function(get_version_from_header headerpath macro)
   endif()
 
   returnvars(${prefix}_VERSION ${prefix}_API_VERSION ${prefix}_SO_VERSION)
+endfunction()
+
+# map package name to source directory
+set(_package_pairs
+    "argue\;argue" #
+    "libtangent-util\;tangent/util" #
+    "libtangent-json\;tangent/json" #
+    "gtangent\;gtangent" #
+    "gtangentmm\;gtangentmm" #
+)
+foreach(pair ${_package_pairs})
+  explode(pair _package_name _repodir)
+  set(TANGENT_PACKAGE_SOURCEDIR_${_package_name} ${_repodir})
+endforeach()
+
+# Wraps a call to find_package() for a tangent supplied cmake package and
+# pre-empt the call to find_package() if the package exists locally in the
+# sparse checkout,
+function(find_tangent_package package_name)
+  set(repodir ${TANGENT_PACKAGE_SOURCEDIR_${package_name}})
+  if(EXISTS ${CMAKE_SOURCE_DIR}/${repodir})
+    return()
+  endif()
+  find_package(${package_name} ${ARGN})
+endfunction()
+
+# Tunable verbose logging
+function(vlog level)
+  if(NOT DEFINED TANGENT_VERBOSE_LEVEL)
+    return()
+  endif()
+  if("${level}" GREATER ${TANGENT_VERBOSE_LEVEL})
+    return()
+  endif()
+  message(STATUS ${ARGN})
+endfunction()
+
+# Glob the current source directory for any children that have listfiles, and
+# add them.
+function(glob_subdirs)
+  # NOTE(josh): search through the list of child directories and add any that
+  # actually contain a listfile. While globs are evil, this is necessary for
+  # sparse checkouts. We can and should correctly add dependencies for this glob
+  # in order to retrigger cmake.
+  file(
+    GLOB children
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/*)
+  foreach(child ${children})
+    set(candidate ${CMAKE_CURRENT_SOURCE_DIR}/${child}/CMakeLists.txt)
+    if(EXISTS ${candidate})
+      file(RELATIVE_PATH relpath_candidate "${CMAKE_SOURCE_DIR}" "${candidate}")
+      vlog(1 "Enabling subdirectory ${relpath_candidate}")
+      add_subdirectory(${child})
+    endif()
+  endforeach()
 endfunction()

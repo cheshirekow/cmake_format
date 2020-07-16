@@ -25,32 +25,23 @@ from cmake_format.parse_funs import standard_funs
 logger = logging.getLogger(__name__)
 
 
-def split_legacy_spec(cmdspec):
-  """
-  Split a legacy specification object into pargs, kwargs, and flags
-  """
+def get_funtree(cmdspec):
   kwargs = {}
+
   for kwarg, subspec in cmdspec.kwargs.items():
     if kwarg in ("if", "elseif", "while"):
       subparser = ConditionalGroupNode.parse
     elif kwarg == "COMMAND":
       subparser = ShellCommandNode.parse
     elif isinstance(subspec, (standard_funs.CommandSpec)):
-      subparser = get_legacy_parse(subspec)
+      subparser = StandardParser2(subspec, get_funtree(subspec))
     else:
       raise ValueError("Unexpected kwarg spec of type {}"
                        .format(type(subspec)))
+
     kwargs[kwarg] = subparser
 
-  return cmdspec.pargs, kwargs
-
-
-def get_legacy_parse(cmdspec):
-  """
-  Construct a parse tree from a legacy command specification
-  """
-  pspec, kwargs = split_legacy_spec(cmdspec)
-  return StandardParser2(pspec, kwargs)
+  return kwargs
 
 
 SUBMODULE_NAMES = [
@@ -94,5 +85,5 @@ def get_parse_db():
   for key in ("endfunction", "endmacro"):
     parse_db[key] = StandardParser("?")
 
-  parse_db.update(get_legacy_parse(standard_funs.get_fn_spec()).kwargs)
+  parse_db.update(get_funtree(standard_funs.get_fn_spec()))
   return parse_db

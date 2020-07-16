@@ -112,7 +112,7 @@ class TestCanonicalLayout(unittest.TestCase):
         })
 
     self.parse_ctx.parse_db.update(
-        parse_funs.get_legacy_parse(self.config.parse.fn_spec).kwargs)
+        parse_funs.get_funtree(self.config.parse.fn_spec))
 
   def tearDown(self):
     pass

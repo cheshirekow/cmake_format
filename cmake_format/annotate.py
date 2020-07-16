@@ -53,7 +53,7 @@ def annotate_file(config, infile, outfile, outfmt=None):
     config.format.set_line_ending(detected)
   tokens = lexer.tokenize(infile_content)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
+  parse_db.update(parse_funs.get_funtree(config.parse.fn_spec))
   ctx = parse.ParseContext(parse_db)
   parse_tree = parse.parse(tokens, ctx)
 

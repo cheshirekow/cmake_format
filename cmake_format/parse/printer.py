@@ -44,6 +44,12 @@ def dump_tree(nodes, outfile=None, indent=None):
       dump_tree(node.children, outfile, indent + '│   ')
 
 
+def dump_tree_tostr(nodes, indent=None):
+  outfile = io.StringIO()
+  dump_tree(nodes, outfile, indent)
+  return outfile.getvalue()
+
+
 def dump_tree_upto(nodes, history, outfile=None, indent=None):
   """
   Print a tree of node objects for debugging purposes

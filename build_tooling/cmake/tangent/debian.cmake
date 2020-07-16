@@ -1,46 +1,22 @@
 set(SUPPORTED_DISTRIBUTIONS xenial bionic eoan focal)
 set(SUPPORTED_ARCHITECTURES amd64 arm64 i386)
 
-set(_this_distro)
-if(EXISTS "/etc/lsb-release")
-  file(STRINGS "/etc/lsb-release" _lines)
-  foreach(line ${_lines})
-    if("${line}" MATCHES "^([^=]+)=(.+)")
-      if("${CMAKE_MATCH_1}" STREQUAL "DISTRIB_CODENAME")
-        set(_this_distro "${CMAKE_MATCH_2}")
-        break()
-      endif()
-    endif()
-  endforeach()
-else()
-  message(INFO "Can't query lsb-release")
-endif()
-set_property(GLOBAL PROPERTY NATIVE_DISTRIBUTION ${_this_distro})
-
-execute_process(
-  COMMAND dpkg --print-architecture
-  RESULT_VARIABLE _returncode
-  OUTPUT_VARIABLE _this_arch
-  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-if(NOT _returncode EQUAL 0)
-  message(WARNING "Failed to query current distribution architecture")
-endif()
-set_property(GLOBAL PROPERTY NATIVE_ARCHITECTURE ${_this_arch})
-
 foreach(distro ${SUPPORTED_DISTRIBUTIONS})
   add_custom_target(${distro}-source-packages)
   foreach(arch ${SUPPORTED_ARCHITECTURES})
     add_custom_target(debs-${distro}-${arch})
   endforeach()
-  if(_this_arch)
+  if(BUILDENV_DPKG_ARCHITECTURE)
     add_custom_target(debs-${distro})
-    add_dependencies(debs-${distro} debs-${distro}-${_this_arch})
+    add_dependencies(debs-${distro}
+                     debs-${distro}-${BUILDENV_DPKG_ARCHITECTURE})
   endif()
 endforeach()
 
-if(_this_distro AND _this_arch)
+if(BUILDENV_DISTRIB_CODENAME AND BUILDENV_DPKG_ARCHITECTURE)
   add_custom_target(debs)
-  add_dependencies(debs debs-${_this_distro}-${_this_arch})
+  add_dependencies(
+    debs debs-${BUILDENV_DISTRIB_CODENAME}-${BUILDENV_DPKG_ARCHITECTURE})
 endif()
 
 check_call(COMMAND id -u OUTPUT_VARIABLE _uid)
@@ -118,12 +94,18 @@ function(get_pbuilder_basetgz outvar distro arch)
       PARENT_SCOPE)
 endfunction()
 
+add_custom_target(
+  check-pbuilder-rc
+  COMMAND python -B ${TANGENT_TOOLING}/check_pbuilderrc.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # Add a rule to generate the pbuilder base image tarball for the given `distro`
 # and `arch`.
 function(pbuilder_create distro arch)
   get_pbuilder_basetgz(_basetgz ${distro} ${arch})
   add_custom_command(
     OUTPUT ${_basetgz}
+    DEPENDS check-pbuilder-rc
     COMMAND
       ${_sudo} pbuilder create --distribution ${distro} #
       --architecture ${arch} --basetgz ${_basetgz} #
@@ -149,7 +131,7 @@ macro(DEBHELP command)
 
   set(_stubfile ${CMAKE_BINARY_DIR}/debian/debhelp-${_includeno}.cmake)
   execute_process(
-    COMMAND python -Bm tangent.tooling.debhelp -o ${_stubfile} ${command}
+    COMMAND python -B ${TANGENT_TOOLING}/debhelp.py -o ${_stubfile} ${command}
             ${ARGN}
     RESULT_VARIABLE _returncode
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -197,6 +179,8 @@ endfunction()
 function(create_debian_tarball name)
   importvars(DIRECTORY VARS ${name}_package ${name}_version ${name}_debversion)
   set(basename ${${name}_package}_${${name}_version})
+  set(common_patterns_path
+      ${CMAKE_CURRENT_SOURCE_DIR}/common/debian/sources.txt)
   set(patterns_path
       ${CMAKE_CURRENT_SOURCE_DIR}/exports/${name}/debian/sources.txt)
   set(manifest_path ${CMAKE_CURRENT_BINARY_DIR}/${name}.manifest)
@@ -207,9 +191,11 @@ function(create_debian_tarball name)
   add_custom_target(
     deb-chkmanifest-${name}
     COMMAND
-      python -Bm tangent.tooling.debhelp #
+      python -B ${TANGENT_TOOLING}/debhelp.py #
       --outpath ${manifest_path} #
-      check-manifest --patterns-from ${patterns_path} ${CMAKE_SOURCE_DIR}
+      check-manifest
+      --patterns-from ${common_patterns_path}
+      --patterns-from ${patterns_path} ${CMAKE_SOURCE_DIR}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     BYPRODUCTS ${manifest_path}
     COMMENT "Checking source manifest for ${name}")
@@ -227,7 +213,7 @@ function(create_debian_tarball name)
   add_custom_target(
     deb-chkdebfiles-${name}
     COMMAND
-      python -Bm tangent.tooling.debhelp #
+      python -B ${TANGENT_TOOLING}/debhelp.py #
       --outpath ${debfiles_path} #
       check-manifest --patterns common/debian/* exports/${name}/debian/* --
       ${CMAKE_CURRENT_SOURCE_DIR}
@@ -308,7 +294,7 @@ function(create_debian_source_package name distro)
     # Copy the changelog to the distro-specific destination and replace the
     # distribution name
     COMMAND
-      python -Bm tangent.tooling.debhelp translate-changelog #
+      python -B ${TANGENT_TOOLING}/debhelp.py translate-changelog #
       --src ${changelog} #
       --tgt ${outdir}/${basename}/debian/changelog #
       --distro ${distro}
@@ -340,7 +326,7 @@ endfunction()
 function(create_debian_binary_packages tag distro arch)
   cmake_parse_arguments(_args "FORCE_PBUILDER" "" "OUTPUTS;DEPS" ${ARGN})
 
-  importvars(GLOBAL VARS NATIVE_DISTRIBUTION NATIVE_ARCHITECTURE)
+  importvars(GLOBAL VARS NATIVE_ARCHITECTURE)
   set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${distro})
   set(basename "${${tag}_package}_${${tag}_version}")
   set(version "${${tag}_version}-${${tag}_debversion}~${distro}")
@@ -400,7 +386,7 @@ function(create_debian_binary_packages tag distro arch)
     list(APPEND outputs ${outdir}/${debname})
   endforeach()
 
-  if("${distro}" STREQUAL "${NATIVE_DISTRIBUTION}" #
+  if("${distro}" STREQUAL "${BUILDENV_DISTRIB_CODENAME}" #
      AND "${arch}" STREQUAL "${NATIVE_ARCHITECTURE}"
      AND NOT ${_args_FORCE_PBUILDER}
      AND NOT _args_DEPS)
@@ -431,7 +417,7 @@ function(create_debian_binary_packages tag distro arch)
         || (cat ${outdir}/${basename}.pbuild.log && false)
       DEPENDS ${outdir}/${basename}.orig.tar.gz
               ${outdir}/${basename}-${${tag}_debversion}~${distro}.dsc
-              ${_basetgz} ${depsrepo}/deps/Packages
+              ${_basetgz} ${depsrepo}/deps/Packages check-pbuilder-rc
       COMMENT "Creating ${distro}/${arch} (pbuilder) binary pkgs for ${tag}")
   endif()
 

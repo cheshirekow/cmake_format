@@ -82,7 +82,7 @@ Usage
       --dump-config [{yaml,json,python}]
                             If specified, print the default configuration to
                             stdout and exit
-      --dump {lex,parse,layout,markup}
+      --dump {lex,parse,parsedb,layout,markup}
       --no-help             When used with --dump-config, will omit helptext
                             comments in the output
       --no-default          When used with --dump-config, will omit any unmodified

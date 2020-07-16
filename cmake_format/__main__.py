@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 """
 Parse cmake listfiles and format them nicely.
 
@@ -36,6 +37,7 @@ from cmake_format import lexer
 from cmake_format import markup
 from cmake_format import parse
 from cmake_format import parse_funs
+from cmake_format.parse.argument_nodes import StandardParser2
 from cmake_format.parse.common import NodeType, TreeNode
 from cmake_format.parse.printer import dump_tree as dump_parse
 from cmake_format.parse_funs import standard_funs
@@ -101,6 +103,35 @@ def dump_markup(nodes, config, outfile=None, indent=None):
       dump_markup(node.children, config, outfile, indent + '│   ')
 
 
+def dump_parsedb(parsedb, outfile=None, indent=None):
+  """
+  Dump the parse database to a file
+  """
+
+  if indent is None:
+    indent = ''
+
+  if outfile is None:
+    outfile = sys.stdout
+
+  items = list(sorted(parsedb.items()))
+  for idx, (name, value) in enumerate(items):
+    outfile.write(indent)
+    if idx + 1 == len(items):
+      outfile.write('└─ ')
+      subindent = indent + "   "
+    else:
+      outfile.write('├─ ')
+      subindent = indent + "|  "
+
+    outfile.write(name)
+    if isinstance(value, StandardParser2):
+      outfile.write(": {}\n".format(repr(value.cmdspec.pargs)))
+      dump_parsedb(value.funtree, outfile, subindent)
+    else:
+      outfile.write(": {}\n".format(type(value)))
+
+
 def process_file(config, infile_content, dump=None):
   """
   Parse the input cmake file, re-format it, and print to the output file.
@@ -118,7 +149,12 @@ def process_file(config, infile_content, dump=None):
     return outfile.getvalue(), True
   first_token = lexer.get_first_non_whitespace_token(tokens)
   parse_db = parse_funs.get_parse_db()
-  parse_db.update(parse_funs.get_legacy_parse(config.parse.fn_spec).kwargs)
+  parse_db.update(parse_funs.get_funtree(config.parse.fn_spec))
+
+  if dump == "parsedb":
+    dump_parsedb(parse_db, outfile)
+    return outfile.getvalue(), True
+
   ctx = parse.ParseContext(parse_db, config=config)
   parse_tree = parse.parse(tokens, ctx)
   if dump == "parse":
@@ -389,8 +425,9 @@ def setup_argparser(argparser):
                      default=None, const='python', nargs='?',
                      help='If specified, print the default configuration to '
                           'stdout and exit')
-  mutex.add_argument('--dump', choices=['lex', 'parse', 'layout', 'markup'],
-                     default=None)
+  mutex.add_argument(
+      '--dump', choices=['lex', 'parse', 'parsedb', 'layout', 'markup'],
+      default=None)
 
   argparser.add_argument(
       "--no-help", action="store_false", dest="with_help",
@@ -451,6 +488,75 @@ def get_argdict(args):
   return out
 
 
+def onefile_main(infile_path, args, argparse_dict):
+  """
+  Find config, open file, process, write result
+  """
+  # NOTE(josh): have to load config once for every file, because we may pick
+  # up a new config file location for each path
+  if infile_path == '-':
+    config_dict = get_config(os.getcwd(), args.config_files)
+  else:
+    config_dict = get_config(infile_path, args.config_files)
+
+  cfg = configuration.Configuration(**config_dict)
+  cfg.legacy_consume(argparse_dict)
+
+  if cfg.format.disable:
+    return
+
+  if infile_path == '-':
+    infile = io.open(os.dup(sys.stdin.fileno()),
+                     mode='r', encoding=cfg.encode.input_encoding, newline='')
+  else:
+    infile = io.open(
+        infile_path, 'r', encoding=cfg.encode.input_encoding, newline='')
+  with infile:
+    intext = infile.read()
+
+  try:
+    outtext, reflow_valid = process_file(cfg, intext, args.dump)
+    if cfg.format.require_valid_layout and not reflow_valid:
+      raise common.FormatError("Failed to format {}".format(infile_path))
+  except:
+    logger.warning('While processing %s', infile_path)
+    raise
+
+  if args.check:
+    if intext != outtext:
+      raise common.FormatError("Check failed: {}".format(infile_path))
+
+  if args.in_place:
+    if intext == outtext:
+      logger.debug("No delta for %s", infile_path)
+      return
+    tempfile_path = infile_path + ".cmf-temp"
+    outfile = io.open(
+        tempfile_path, 'w', encoding=cfg.encode.output_encoding, newline='')
+  else:
+    if args.outfile_path == '-':
+      # NOTE(josh): The behavior of sys.stdout is different in python2 and
+      # python3. sys.stdout is opened in 'w' mode which means that write()
+      # takes strings in python2 and python3 and, in particular, in python3
+      # it does not take byte arrays. io.StreamWriter will write to
+      # it with byte arrays (assuming it was opened with 'wb'). So we use
+      # io.open instead of open in this case
+      outfile = io.open(
+          os.dup(sys.stdout.fileno()),
+          mode='w', encoding=cfg.encode.output_encoding, newline='')
+    else:
+      outfile = io.open(
+          args.outfile_path, 'w', encoding=cfg.encode.output_encoding,
+          newline='')
+
+  with outfile:
+    outfile.write(outtext)
+
+  if args.in_place:
+    shutil.copymode(infile_path, tempfile_path)
+    shutil.move(tempfile_path, infile_path)
+
+
 def inner_main():
   """Parse arguments, open files, start work."""
 
@@ -460,6 +566,11 @@ def inner_main():
       usage=USAGE_STRING)
 
   setup_argparser(arg_parser)
+  try:
+    import argcomplete
+    argcomplete.autocomplete(arg_parser)
+  except ImportError:
+    pass
   args = arg_parser.parse_args()
   logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
@@ -492,68 +603,11 @@ def inner_main():
 
   returncode = 0
   for infile_path in args.infilepaths:
-    # NOTE(josh): have to load config once for every file, because we may pick
-    # up a new config file location for each path
-    if infile_path == '-':
-      config_dict = get_config(os.getcwd(), args.config_files)
-    else:
-      config_dict = get_config(infile_path, args.config_files)
-
-    cfg = configuration.Configuration(**config_dict)
-    cfg.legacy_consume(argparse_dict)
-    if infile_path == '-':
-      infile = io.open(os.dup(sys.stdin.fileno()),
-                       mode='r', encoding=cfg.encode.input_encoding, newline='')
-    else:
-      infile = io.open(
-          infile_path, 'r', encoding=cfg.encode.input_encoding, newline='')
-    with infile:
-      intext = infile.read()
-
     try:
-      outtext, reflow_valid = process_file(cfg, intext, args.dump)
-      if cfg.format.require_valid_layout and not reflow_valid:
-        logger.error("Failed to format %s", infile_path)
-        returncode = 1
-        continue
-    except:
-      logger.warning('While processing %s', infile_path)
-      raise
-
-    if args.check:
-      if intext != outtext:
-        returncode = 1
-      continue
-
-    if args.in_place:
-      if intext == outtext:
-        logger.debug("No delta for %s", infile_path)
-        continue
-      tempfile_path = infile_path + ".cmf-temp"
-      outfile = io.open(
-          tempfile_path, 'w', encoding=cfg.encode.output_encoding, newline='')
-    else:
-      if args.outfile_path == '-':
-        # NOTE(josh): The behavior of sys.stdout is different in python2 and
-        # python3. sys.stdout is opened in 'w' mode which means that write()
-        # takes strings in python2 and python3 and, in particular, in python3
-        # it does not take byte arrays. io.StreamWriter will write to
-        # it with byte arrays (assuming it was opened with 'wb'). So we use
-        # io.open instead of open in this case
-        outfile = io.open(
-            os.dup(sys.stdout.fileno()),
-            mode='w', encoding=cfg.encode.output_encoding, newline='')
-      else:
-        outfile = io.open(
-            args.outfile_path, 'w', encoding=cfg.encode.output_encoding,
-            newline='')
-
-    with outfile:
-      outfile.write(outtext)
-
-    if args.in_place:
-      shutil.copymode(infile_path, tempfile_path)
-      shutil.move(tempfile_path, infile_path)
+      onefile_main(infile_path, args, argparse_dict)
+    except common.FormatError as ex:
+      logger.error(ex.msg)
+      returncode = 1
 
   return returncode
 

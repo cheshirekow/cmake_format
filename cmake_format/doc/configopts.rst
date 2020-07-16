@@ -65,6 +65,32 @@ your configuration. Use the configuration variable to add new rules.
 format
 ------
 
+disable_format
+==============
+
+``disable_format`` turns ``cmake-format`` into a no-op, emitting exactly the
+same content as was input. The intention is that you can use this to disable
+formatting within a subdirectory of your project tree so long as you
+``cmake-format`` is using automatic config file discovery. Consider the
+following project tree, for example:
+
+.. code::
+
+  project/
+  ├ .cmake-format.py    (1)
+  ├ CMakeLists.txt
+  ├ 3rdparty/
+  │ ├ .cmake-format.py  (2)
+  │ ├ foo
+  │ │ └ CMakeLists.txt
+  │ └ ...
+  └ src/
+    └ ...
+
+In this case, you may specify ``disable_format=True`` in the config file (2)
+to prevent cmake-format from touching files in 3rdparty, such as
+3rdparty/foo/CMakeLists.txt.
+
 line_width
 ==========
 

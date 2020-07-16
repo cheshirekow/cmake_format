@@ -2,9 +2,46 @@
 Changelog
 =========
 
+.. default-role:: literal
+
 -----------
 v0.6 series
 -----------
+
+v0.6.11
+-------
+
+* Fix tag handling in release pipeline
+* Fix positional specification removed from global configuration on first
+  parse of legacy commands
+* Add argcomplete to frontend commands enabling bash completion
+* Parse template listfiles that contain `@atword@` tokens at the statement
+  level (e.g. `@PACKAGE_INIT@`).
+* Simplify path specification for `always_wrap` to omit `BodyNode`, and
+  number `PargGroupNode[#]`.
+* Fix spelling configuration option not plumbed through to the formatter
+* Add a config option to disable formatting (e.g. in a subdirectory)
+* Add documentation for cmake-lint disable
+
+* Closes: `#109`_: Formatting of files containing @VARIABLE@ fails
+* Closes: `#177`_: vscode extension: add support for variable substitution ...
+* Closes: `#179`_: Official docker image
+* Closes: `#180`_: ... regarding `always_wrap`
+* Closes: `#191`_: Inconsistent formatting for ...
+* Closes: `#202`_: Spelling not accounted for
+* Closes: `#207`_: Add DisableFormat option
+* Closes: `#211`_: Add documentation for "cmake-lint:disable"
+
+.. _#109: https://github.com/cheshirekow/cmake_format/issues/109
+.. _#177: https://github.com/cheshirekow/cmake_format/issues/177
+.. _#179: https://github.com/cheshirekow/cmake_format/issues/179
+.. _#180: https://github.com/cheshirekow/cmake_format/issues/180
+.. _#191: https://github.com/cheshirekow/cmake_format/issues/191
+.. _#202: https://github.com/cheshirekow/cmake_format/issues/202
+.. _#207: https://github.com/cheshirekow/cmake_format/issues/207
+.. _#211: https://github.com/cheshirekow/cmake_format/issues/211
+
+* Closes: f0fcbce
 
 v0.6.10
 -------

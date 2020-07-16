@@ -21,11 +21,12 @@ from cmake_format.parse import simple_nodes
 logger = logging.getLogger(__name__)
 
 BLOCK_TYPES = (NodeType.FLOW_CONTROL, NodeType.BODY, NodeType.COMMENT,
-               NodeType.STATEMENT, NodeType.WHITESPACE, NodeType.ONOFFSWITCH)
+               NodeType.STATEMENT, NodeType.WHITESPACE, NodeType.ONOFFSWITCH,
+               NodeType.ATWORDSTATEMENT)
 GROUP_TYPES = (NodeType.ARGGROUP, NodeType.KWARGGROUP, NodeType.PARGGROUP,
                NodeType.FLAGGROUP, NodeType.PARENGROUP)
 SCALAR_TYPES = (NodeType.FUNNAME, NodeType.ARGUMENT, NodeType.KEYWORD,
-                NodeType.FLAG)
+                NodeType.FLAG, NodeType.ATWORD)
 PAREN_TYPES = (NodeType.LPAREN, NodeType.RPAREN)
 
 MATCH_TYPES = BLOCK_TYPES + GROUP_TYPES + SCALAR_TYPES + PAREN_TYPES
@@ -141,6 +142,37 @@ def is_line_comment(node):
     return False
 
   return node.children[-1].type == TokenType.COMMENT
+
+
+def get_pathstr(node_path):
+  """Given a list of nodes, construct a path string that can be used to
+     identify that node in the tree."""
+
+  pathcopy = []
+  for node in node_path:
+    if isinstance(node, BodyNode):
+      continue
+    if isinstance(node, ArgGroupNode):
+      continue
+    pathcopy.append(node)
+
+  # Construct names
+  names = []
+  for node in pathcopy:
+    if isinstance(node, PargGroupNode):
+      count = 0
+      # pylint: disable=protected-access
+      for sibling in node._parent.children:
+        if sibling is node:
+          break
+        if isinstance(sibling, PargGroupNode):
+          count += 1
+      name = "{}[{}]".format(node.name, count)
+    else:
+      name = node.name
+    names.append(name)
+
+  return "/".join(names)
 
 
 class Cursor(object):
@@ -458,7 +490,7 @@ class LayoutNode(object):
           return False
 
       # Or if this nodepath is marked to always be vertical layout
-      pathstr = "/".join(node.name for node in stack_context.node_path)
+      pathstr = get_pathstr(stack_context.node_path)
       if pathstr in config.format.always_wrap:
         return False
 
@@ -517,6 +549,8 @@ class LayoutNode(object):
       return OnOffSwitchNode(pnode)
     if pnode.node_type == NodeType.STATEMENT:
       return StatementNode(pnode)
+    if pnode.node_type == NodeType.ATWORDSTATEMENT:
+      return AtWordStatementNode(pnode)
     if pnode.node_type == NodeType.KWARGGROUP:
       return KwargGroupNode(pnode)
     if pnode.node_type == NodeType.ARGGROUP:
@@ -634,8 +668,12 @@ class ScalarNode(LayoutNode):
       if command_case in ("lower", "upper"):
         spelling = getattr(token.spelling, command_case)()
       elif command_case == "canonical":
-        spelling = config.resolve_for_command(
-            token.spelling, "spelling", token.spelling.lower())
+        if (self._parent.pnode.cmdspec is not None
+            and self._parent.pnode.cmdspec.spelling is not None):
+          spelling = self._parent.pnode.cmdspec.spelling
+        else:
+          spelling = config.resolve_for_command(
+              token.spelling, "spelling", token.spelling.lower())
       else:
         assert command_case == "unchanged", (
             "Unrecognized command case {}".format(command_case))
@@ -913,6 +951,71 @@ class StatementNode(LayoutNode):
     super(StatementNode, self).write(config, ctx)
 
 
+class AtWordStatementNode(LayoutNode):
+  """
+  Top-level node for an atword representing a statement. Such as
+  @PACKAGE_INIT@
+  """
+
+  def __init__(self, pnode):
+    super(AtWordStatementNode, self).__init__(pnode)
+    self._layout_passes = [
+        (0, False),
+    ]
+
+  def reflow(self, stack_context, cursor, _=0):  # pylint: disable=unused-argument
+    return super(AtWordStatementNode, self).reflow(
+        stack_context, cursor,
+        max(passno for passno, _ in self._layout_passes))
+
+  def _reflow(self, stack_context, cursor, passno):
+    # pylint: disable=too-many-statements
+    config = stack_context.config
+    start_cursor = cursor.clone()
+    self._colextent = cursor[1]
+
+    # Layout of the statement name is always the same, we just write it out
+    # at the current cursor
+    children = list(self.children)
+    assert children
+    child = children.pop(0)
+    assert child.node_type == NodeType.ATWORD
+
+    cursor = child.reflow(stack_context, cursor, passno)
+    self._reflow_valid &= child.reflow_valid
+    self._colextent = max(self._colextent, child.colextent)
+
+    # Trailing comment
+    if children:
+      cursor[1] += 1
+      child = children.pop(0)
+      assert child.node_type == NodeType.COMMENT, \
+          "Expected COMMENT after RPAREN but got {}".format(child.node_type)
+      assert not children
+      savecursor = cursor.clone()
+      cursor = child.reflow(stack_context, cursor, passno)
+
+      # If the statement trailing comment still does not fit in the current
+      # column then just move it to the next line.
+      if child.colextent > config.format.linewidth:
+        # NOTE(josh): potentially undangle the paren: if the only reason to
+        # dangle it was due to the oversized comment line, then we need to
+        # undangle it since the oversized comment didn't fit anyway.
+        cursor = child.reflow(
+            stack_context, Cursor(savecursor[0] + 1, start_cursor[1]),
+            passno)
+
+      self._reflow_valid &= child.reflow_valid
+      self._colextent = max(self._colextent, child.colextent)
+
+    return cursor
+
+  def write(self, config, ctx):
+    if not ctx.is_active():
+      return
+    super(AtWordStatementNode, self).write(config, ctx)
+
+
 class KwargGroupNode(LayoutNode):
   """
   A keyword argument group. Contains a keyword, followed by an argument group.
@@ -1061,6 +1164,7 @@ class PargGroupNode(LayoutNode):
 
   def __init__(self, pnode):
     super(PargGroupNode, self).__init__(pnode)
+    self._max_pargs_hwrap = None
     self._layout_passes = [
         (0, False),
         (1, False),
@@ -1083,6 +1187,12 @@ class PargGroupNode(LayoutNode):
       self._children = sort_arguments(self._children)
 
     super(PargGroupNode, self).lock(config, stmt_depth)
+
+    self._max_pargs_hwrap = config.format.max_pargs_hwrap
+    if (isinstance(self.pnode, PositionalGroupNode)
+        and self.pnode.spec is not None
+        and self.pnode.spec.max_pargs_hwrap is not None):
+      self._max_pargs_hwrap = self.pnode.spec.max_pargs_hwrap
 
   def _reflow(self, stack_context, cursor, passno):
     config = stack_context.config
@@ -1175,7 +1285,7 @@ class PargGroupNode(LayoutNode):
     # _vertical above.
     if is_cmdline:
       self._reflow_valid &= (rowcount <= config.format.max_rows_cmdline)
-    elif numpargs > config.format.max_pargs_hwrap:
+    elif numpargs > self._max_pargs_hwrap:
       self._reflow_valid &= self._wrap
 
     return cursor
@@ -1209,6 +1319,7 @@ class ArgGroupNode(LayoutNode):
 
   def __init__(self, pnode):
     super(ArgGroupNode, self).__init__(pnode)
+    self._max_subgroups_hwrap = None
     self._layout_passes = [
         (0, False),
         (1, False),
@@ -1217,6 +1328,15 @@ class ArgGroupNode(LayoutNode):
         (4, True),
         (5, True),
     ]
+
+  def lock(self, config, stmt_depth=0):
+    super(ArgGroupNode, self).lock(config, stmt_depth)
+    self._max_subgroups_hwrap = config.format.max_subgroups_hwrap
+    if (hasattr(self.pnode, "cmdspec")
+        and getattr(self.pnode, "cmdspec") is not None
+        and getattr(self.pnode, "cmdspec").max_subgroups_hwrap is not None):
+      self._max_subgroups_hwrap = (
+          getattr(self.pnode, "cmdspec").max_subgroups_hwrap)
 
   def has_terminal_comment(self):
     """
@@ -1302,7 +1422,7 @@ class ArgGroupNode(LayoutNode):
     # the start of this function, the parent Statement wont nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
-    if numgroups > config.format.max_subgroups_hwrap:
+    if numgroups > self._max_subgroups_hwrap:
       self._reflow_valid &= self._wrap
 
     return cursor

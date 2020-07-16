@@ -36,6 +36,8 @@ NodeType.ARGUMENT = NodeType(7)
 NodeType.KEYWORD = NodeType(8)
 NodeType.FLAG = NodeType(9)
 NodeType.ONOFFSWITCH = NodeType(11)
+NodeType.ATWORDSTATEMENT = NodeType(17)
+NodeType.ATWORD = NodeType(18)
 
 # NOTE(josh): These aren't really semantic, but they have structural
 # significance that is important in formatting. Since they will have a presence

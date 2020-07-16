@@ -89,7 +89,7 @@ add_dependencies(wheels cmake_format-wheel)
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
   COMMAND
-    python -Bm tangent.tooling.get_release_notes
+    python -B ${TANGENT_TOOLING}/get_release_notes.py
     cmake_format/doc/release_notes.rst \$\${TRAVIS_TAG} -o
     ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.rst
   DEPENDS doc/release_notes.rst
@@ -115,9 +115,10 @@ add_custom_target(
   push-cmake_format-github-release
   COMMAND
     # cmake-format: off
-    python -Bm tangent.tooling.github push-release
+    python -B ${TANGENT_TOOLING}/github.py push-release
       --message ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${_src_version}.md
-      cheshirekow/cmake_format \$\${TRAVIS_TAG}
+      --repo-slug cheshirekow/cmake_format
+      --tag from-travis
       ${_distdir}/cmake_format-${_src_version}.tar.gz
       ${_distdir}/cmake_format-${_src_version}-py3-none-any.whl
       ${_vscedir}/cmake-format-${_extension_version}.vsix

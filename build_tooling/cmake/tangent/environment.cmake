@@ -43,7 +43,7 @@ function(detect_sparse_export varname)
   endif()
 
   if("${num_children}" GREATER 1)
-    string(REPLACE ";" "\n  " "${_children}")
+    string(REPLACE ";" "\n  " _children "${_children}")
     message(FATAL_ERROR " Invalid sparse export. ${exportsdir} contains"
                         " too many children:\n  ${_children}")
   endif()
@@ -66,42 +66,56 @@ endfunction()
 #
 # Usage:
 # ~~~
-# detect_buildenv()
+# include(environment.cmake)
 # ~~~
-function(detect_buildenv)
-  set(IS_TRAVIS_CI
-      FALSE
-      PARENT_SCOPE)
-  if(DEFINED ENV{CI}
-     AND DEFINED ENV{TRAVIS}
-     AND "$ENV{CI}" STREQUAL "true"
-     AND "$ENV{TRAVIS}" STREQUAL "true")
-    set(IS_TRAVIS_CI
-        TRUE
-        PARENT_SCOPE)
-  endif()
+set(IS_TRAVIS_CI FALSE)
+if(DEFINED ENV{CI}
+   AND DEFINED ENV{TRAVIS}
+   AND "$ENV{CI}" STREQUAL "true"
+   AND "$ENV{TRAVIS}" STREQUAL "true")
+  set(IS_TRAVIS_CI TRUE)
+endif()
 
-  set(IS_PULL_REQUEST
-      FALSE
-      PARENT_SCOPE)
-  if(DEFINED ENV{TRAVIS_PULL_REQUEST} AND "$ENV{TRAVIS_PULL_REQUEST}" STREQUAL
-                                          "true")
-    set(IS_PULL_REQUEST
-        TRUE
-        PARENT_SCOPE)
-  endif()
+set(IS_PULL_REQUEST FALSE)
+if(DEFINED ENV{TRAVIS_PULL_REQUEST} AND "$ENV{TRAVIS_PULL_REQUEST}" STREQUAL
+                                        "true")
+  set(IS_PULL_REQUEST TRUE)
+endif()
 
-  set(TANGENT_IS_DEBIAN_BUILD
-      FALSE
-      PARENT_SCOPE)
-  if("${TANGENT_BUILD_CONTEXT}" STREQUAL DEBIAN_PACKAGE)
-    set(TANGENT_IS_DEBIAN_BUILD
-        TRUE
-        PARENT_SCOPE)
-  endif()
+set(TANGENT_IS_DEBIAN_BUILD FALSE)
+if("${TANGENT_BUILD_CONTEXT}" STREQUAL DEBIAN_PACKAGE)
+  set(TANGENT_IS_DEBIAN_BUILD TRUE)
+endif()
 
-  detect_sparse_export(_sparse_export)
-  set(TANGENT_SPARSE_EXPORT
-      "${_sparse_export}"
-      PARENT_SCOPE)
-endfunction()
+detect_sparse_export(_sparse_export)
+set(TANGENT_SPARSE_EXPORT "${_sparse_export}")
+
+foreach(key ID RELEASE CODENAME DESCRIPTION)
+  unset("BUILDENV_DISTRIB_${key}")
+endforeach()
+if(EXISTS "/etc/lsb-release")
+  file(STRINGS "/etc/lsb-release" _lines)
+  foreach(line ${_lines})
+    if("${line}" MATCHES "^([^=]+)=(.+)")
+      # cmake-lint: disable=C0103
+      set("BUILDENV_${CMAKE_MATCH_1}" "${CMAKE_MATCH_2}")
+      set_property(GLOBAL PROPERTY "BUILDENV_${CMAKE_MATCH_1}"
+                                   "${CMAKE_MATCH_2}")
+    endif()
+  endforeach()
+else()
+  message(WARNING "Can't query lsb-release")
+endif()
+
+unset(BUILDENV_DPKG_ARCHITECTURE)
+execute_process(
+  COMMAND dpkg --print-architecture
+  RESULT_VARIABLE _returncode
+  OUTPUT_VARIABLE _this_arch
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(_returncode EQUAL 0)
+  set(BUILDENV_DPKG_ARCHITECTURE "${_this_arch}")
+  set_property(GLOBAL PROPERTY BUILDENV_DPKG_ARCHITECTURE "${_this_arch}")
+else()
+  message(WARNING "Failed to query current distribution architecture")
+endif()

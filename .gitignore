@@ -5,7 +5,6 @@
 # sparse-export stuff
 .gitu
 .sparse-export
-tangent/tooling/.gitignore
 
 # qt creator
 *.qtc.*
@@ -15,7 +14,10 @@ tangent/tooling/.gitignore
 
 # python packaging
 *.egg-info/
-build/
+build/bdist.*
+build/lib
+build/lib.*
+build/temp.*
 dist/
 
 # pyces build

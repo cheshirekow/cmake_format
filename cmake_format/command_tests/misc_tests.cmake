@@ -347,8 +347,9 @@ cmake_parse_arguments(
 # TODO(josh): This todo should not be joined with the previous line.
 # NOTE(josh): Also this should not be joined with the todo.
 
-# test: always_wrap
+# test: always_wrap_01
 #[=[
+max_subgroups_hwrap = 100
 always_wrap = ['foo']
 ]=]
 #[==[
@@ -356,6 +357,20 @@ foo(nonkwarg_a HEADERS a.h SOURCES a.cc DEPENDS foo)
 ]==]
 foo(nonkwarg_a
     HEADERS a.h
+    SOURCES a.cc
+    DEPENDS foo)
+
+# test: always_wrap_02
+#[=[
+always_wrap = ['foo/HEADERS/PargGroupNode[0]']
+]=]
+#[==[
+foo(nonkwarg_a HEADERS a.h b.h c.h SOURCES a.cc DEPENDS foo)
+]==]
+foo(nonkwarg_a
+    HEADERS a.h
+            b.h
+            c.h
     SOURCES a.cc
     DEPENDS foo)
 
@@ -857,3 +872,22 @@ hashruler_min_length = 1000
 #
 # This stuff below here should get re-flowed like normal comments.  Across
 # multiple lines and beyond.
+
+# test: atword_statement
+@PACKAGE_INIT@
+
+
+# test: atword_with_comments
+@PACKAGE_INIT@ # This is a trailing comment that requires multiple lines and
+               # therefore should reflow.
+
+
+# test: atword_with_comment_requires_wrap
+#[==[
+@PACKAGE_INIT@ # This-is-a-trailing-comment-that-requires-multiple-lines-and-therefore
+               # should reflow.
+]==]
+@PACKAGE_INIT@
+# This-is-a-trailing-comment-that-requires-multiple-lines-and-therefore should
+# reflow.
+
