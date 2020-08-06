@@ -16,7 +16,7 @@ from cmake_format.parse.common import TreeNode
 
 def dump_html(node, outfile):
   """
-  Write to `outfile` an html annoted version of the listfile which has been
+  Write to `outfile` an html annotated version of the listfile which has been
   parsed into the parse tree rooted at `node`
   """
 
@@ -33,7 +33,7 @@ def dump_html(node, outfile):
 
 def get_html(node, fullpage=False):
   """
-  Return a string containing html markup of the annoted listfile which has
+  Return a string containing html markup of the annotated listfile which has
   been parsed into the parse tree rooted at `node`.
   """
 

@@ -61,21 +61,21 @@ convention is satisfied if the name matches the regular expression.
 "C0111", "Missing docstring on function or macro declaration", {
 "description": """\
 Used when a function or macro is defined without a documentation comment
-immediately preceeding it.
+immediately preceding it.
 
 This message belongs to the basic checker.
 """,
 "explain": """\
 So, you've written a some fancy function that makes it "easier" to declare build
-steps. Congratulations. You probably shouldn't have, but thats OK. Now that you
+steps. Congratulations. You probably shouldn't have, but that's OK. Now that you
 did, how should people use it? What arguments does it take? What are the
-semantics of those arguements? You should include documentation in a comment
+semantics of those arguments? You should include documentation in a comment
 block prior to the function declaration with this information.
 """
 }), (
 "C0112", "Empty docstring on function or macro declaration", {
 "description": """\
-Used when a function or macro is preceeded by an empty comment string, rather
+Used when a function or macro is preceded by an empty comment string, rather
 that one with useful documentation.
 
 This message belongs to the basic checker.
@@ -90,7 +90,7 @@ function/macro does and how to use it.
 }), (
 "C0114", "Form descriminator hidden behind variable dereference", {
 "description": """\
-Used when a keyword used to descriminate betwen different forms of a command is
+Used when a keyword used to discriminate between different forms of a command is
 hidden behind a variable dereference.
 
 This message is implemented by individual command checkers.
@@ -98,7 +98,7 @@ This message is implemented by individual command checkers.
 "explain": """\
 Some cmake commands have very different behavior depending on the presence of
 a particular keyword (see e.g. the `file` command). And because cmake is a
-macro languge that keyword can actually be held inside a variable. Thus the
+macro language that keyword can actually be held inside a variable. Thus the
 keyword might not actually be visible to cmake-lint (or humans). In general
 there is no reason to do this and it really hurts readability since different
 descriminator keywords yield essentially different commands.
@@ -172,7 +172,7 @@ practice for a project to be consist with their line endings.
 Used when an unrecognized pragma is encountered.
 """,
 "explain": """\
-cmake-lint allows for some inline comments to supress warnings (among other
+cmake-lint allows for some inline comments to suppress warnings (among other
 things). This lint is emitted if a bad option key is provided in such a pragma
 """
 }), (
@@ -184,7 +184,7 @@ in an invalid way.
 This message belongs to the basic checker.
 """,
 "explain": """\
-cmake-lint allows for some inline comments to supress warnings (among other
+cmake-lint allows for some inline comments to suppress warnings (among other
 things). This lint is emitted if a bad option is provided to one of these
 pragmas.
 """
@@ -225,8 +225,8 @@ general, only COMMAND is allowed more than once.
 }), (
 "E1126", "Invalid form descriminator", {
 "description": """
-Used when a keyword used to descriminate between different command forms is
-ommitted.
+Used when a keyword used to discriminate between different command forms is
+omitted.
 """
 }), (
 "R0911", "Too many return statements {:d}/{:d}", {

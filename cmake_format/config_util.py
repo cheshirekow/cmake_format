@@ -37,7 +37,7 @@ def parse_bool(string):
   if string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
     return False
 
-  logger.warning("Ambiguous truthiness of string '%s' evalutes to 'FALSE'",
+  logger.warning("Ambiguous truthiness of string '%s' evaluates to 'FALSE'",
                  string)
   return False
 
@@ -165,7 +165,7 @@ class SubtreeDescriptor(Descriptor):
 
   def get(self, obj):
     if not hasattr(obj, "_" + self.name):
-      # Unlike for config variables, for subtree objects we always instanciate
+      # Unlike for config variables, for subtree objects we always instantiate
       # the shadow member.
       setattr(obj, "_" + self.name, self.subtree_class())
 

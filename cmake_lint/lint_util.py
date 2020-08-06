@@ -54,7 +54,7 @@ class FileContext(object):
   def suppress(self, lineno, idlist):
     """
     Given a list of lint ids, enable a suppression for each one which is not
-    already supressed. Return the list of new suppressions
+    already suppressed. Return the list of new suppressions
     """
     new_suppressions = []
     for idstr in idlist:
@@ -71,7 +71,7 @@ class FileContext(object):
     for idstr in idlist:
       if idstr not in self._suppressions:
         logger.warning(
-            "Unsupressing %s which is not currently surpressed", idstr)
+            "Un-suppressing %s which is not currently suppressed", idstr)
       self._suppressions.discard(idstr)
     self._suppression_events.append(
         SuppressionEvent(lineno, "remove", list(idlist)))

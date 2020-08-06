@@ -66,7 +66,7 @@ def get_comment_lines(config, node):
         inlines.append(inline[1:])
       else:
         # Otherwise strip off extra hash chars to keep things nice and
-        # consistent (i.e. remove acciental `##`` prefixes)
+        # consistent (i.e. remove accidental `##`` prefixes)
         inlines.append(inline.lstrip('#'))
   return inlines
 
@@ -866,7 +866,7 @@ class StatementNode(LayoutNode):
     assert child.node_type == NodeType.RPAREN, \
         "Expected RPAREN but got {}".format(child.node_type)
 
-    # NOTE(josh): dangle parens if it wont fit on the current line or
+    # NOTE(josh): dangle parens if it won't fit on the current line or
     # if the user has requested us to always do so
     dangle_parens = False
     if config.format.dangle_parens and cursor[0] > start_cursor[0]:
@@ -1218,7 +1218,7 @@ class PargGroupNode(LayoutNode):
 
       if prev is None:
         # This is the first child of the arg group so the cursor is already
-        # at the right location and theres nothing for us to update
+        # at the right location and there's nothing for us to update
         rowcount = 1
       elif (is_line_comment(prev)
             or prev.has_terminal_comment()
@@ -1249,7 +1249,7 @@ class PargGroupNode(LayoutNode):
 
         # If this is the last node before the closing parenthesis of the
         # statement then we need to extra character (the closing parenthesis)
-        # on the last line. If we overlow that extra character slot, then
+        # on the last line. If we overflow that extra character slot, then
         # wrap to a new line
         if self.statement_terminal:
           if cursor[1] + 1 > config.format.linewidth:
@@ -1280,7 +1280,7 @@ class PargGroupNode(LayoutNode):
     # NOTE(josh): there is a subtle distinction between invalidating a reflow
     # and forcing mode=vertical. The difference is whether or not a parent
     # node has to advance it's decision state. If we force to vertical at
-    # the start of this function, the parent Statement wont nest this
+    # the start of this function, the parent Statement won't nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
     if is_cmdline:
@@ -1364,7 +1364,7 @@ class ArgGroupNode(LayoutNode):
 
       if prev is None:
         # This is the first child of the arg group so the cursor is already
-        # at the right location and theres nothing for us to update
+        # at the right location and there's nothing for us to update
         is_first_in_row = True
       elif (is_line_comment(prev)
             or prev.has_terminal_comment()
@@ -1419,7 +1419,7 @@ class ArgGroupNode(LayoutNode):
     # NOTE(josh): there is a subtle distinction between invalidating a reflow
     # and forcing mode=vertical. The difference is whether or not a parent
     # node has to advance it's decision state. If we force to vertical at
-    # the start of this function, the parent Statement wont nest this
+    # the start of this function, the parent Statement won't nest this
     # ArgGroup. Therefore, we must invalidate here, rather than forcing
     # _vertical above.
     if numgroups > self._max_subgroups_hwrap:
@@ -1485,7 +1485,7 @@ class ParenGroupNode(LayoutNode):
 
       if prev is None:
         # This is the first child of the arg group so the cursor is already
-        # at the right location and theres nothing for us to update
+        # at the right location and there's nothing for us to update
         pass
       elif prev.node_type == NodeType.LPAREN:
         # No space after LParen
