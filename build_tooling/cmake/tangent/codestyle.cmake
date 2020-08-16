@@ -35,9 +35,9 @@
 #   formatter: autopep8
 #   linter: pylint, flake8
 # ~~~
-if(EXISTS ${CMAKE_SOURCE_DIR}/cmake_format)
-  set(CMAKE_FORMAT_CMD python -Bm cmake_format)
-  set(CMAKE_LINT_CMD python -Bm cmake_lint)
+if(EXISTS ${CMAKE_SOURCE_DIR}/cmakelang)
+  set(CMAKE_FORMAT_CMD python -Bm cmakelang.format)
+  set(CMAKE_LINT_CMD python -Bm cmakelang.lint)
 else()
   set(CMAKE_FORMAT_CMD cmake-format)
   set(CMAKE_LINT_CMD cmake-lint)

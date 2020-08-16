@@ -1,1 +1,1 @@
-cmake_format/doc/README.rst
+cmakelang/doc/README.rst

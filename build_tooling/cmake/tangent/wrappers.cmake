@@ -157,12 +157,63 @@ function(check_call)
   endif()
 endfunction()
 
+# Executes a python oneline using `execute_process` and reports error if the
+# command failed
+function(check_pyoneline)
+  cmake_parse_arguments(_args "" "OUTPUT_VARIABLE;ERROR_VARIABLE" "" ${ARGN})
+
+  # Escape semicolons in the cmake list, the resulting string will contain \\\;
+  # for each semicolon. When we pass this into check_call the escape sequences
+  # will be interpreted, resulting in \; within the `COMMAND` argument to
+  # execute_process.
+  string(REPLACE ";" "\\\\\\;" _oneline "${_args_UNPARSED_ARGUMENTS}")
+
+  set(_pyonline ${ARGN})
+  check_call(
+    # NOTE(josh): cmake concats lines using semicolon, which is the same
+    # separator that python expects, so we don't need to do any special
+    # processing. The cmake list-concat gives us a python oneliner for free.
+    COMMAND python -Bc "${_oneline}"
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+
+  if(_args_OUTPUT_VARIABLE)
+    set(${_args_OUTPUT_VARIABLE}
+        ${stdout}
+        PARENT_SCOPE)
+  endif()
+  if(_args_ERROR_VARIABLE)
+    set(${_args_ERROR_VARIABLE}
+        ${stderr}
+        PARENT_SCOPE)
+  endif()
+endfunction()
+
 # Get a list of all known properties
 check_call(COMMAND ${CMAKE_COMMAND} --help-property-list
            OUTPUT_VARIABLE _propslist)
 # Replace newlines with list separator
 string(REGEX REPLACE "[\n ]+" ";" _propslist "${_propslist}")
 set(KNOWN_PROPERTIES ${_propslist})
+
+function(tangent_addtest)
+  cmake_parse_arguments(_args "" "NAME;WORKING_DIRECTORY"
+                        "COMMAND;CONFIGURATIONS;DEPENDS" ${ARGN})
+
+  add_test(
+    NAME ${_args_NAME}
+    COMMAND ${_args_COMMAND}
+    WORKING_DIRECTORY ${_args_WORKING_DIRECTORY}
+    CONFIGURATIONS ${_args_CONFIGURATIONS})
+  add_custom_target(
+    runtest.${_args_NAME}
+    DEPENDS ${_args_DEPENDS}
+    COMMAND ${_args_COMMAND}
+    WORKING_DIRECTORY ${_args_WORKING_DIRECTORY})
+  add_dependencies(best-test runtest.${_args_NAME})
+
+endfunction()
 
 # Wraps add_library and provides additional keyword options that translate into
 # additional calls to target_link_libraries, target_set_properties, etc. Usage:
@@ -352,8 +403,8 @@ set_property(GLOBAL PROPERTY SEMVER_INCLUDENO 0)
 # get_version_from_header(<header-path> <macro>)
 # ~~~
 #
-# Assigns into the calling scope a variable witht the same name as `${macro}`
-# the value of the version
+# Assigns into the calling scope a variable with the same name as `${macro}` the
+# value of the version
 function(get_version_from_header headerpath macro)
   get_property(_includeno GLOBAL PROPERTY SEMVER_INCLUDENO)
   math(EXPR _includeno "${_includeno} + 1")
@@ -446,4 +497,29 @@ function(glob_subdirs)
       add_subdirectory(${child})
     endif()
   endforeach()
+endfunction()
+
+# If this build system was generated on travis, the include a rule to decrypt
+# the given file to the given location.
+function(travis_decrypt tgtfile srcfile keyid)
+  get_filename_component(_filename ${tgtfile} NAME)
+  if(IS_TRAVIS_CI)
+    add_custom_command(
+      OUTPUT ${tgtfile}
+      DEPENDS ${srcfile}
+      COMMAND
+        # cmake-format: off
+        openssl aes-256-cbc
+        # NOTE(josh): we could use $ENV{...} but then we end up with the
+        # actual encryption key in the command line... which might show up
+        # in logs or error messages.
+        -K "\$\${encrypted_${keyid}_key}"
+        -iv "\$\${encrypted_${keyid}_iv}"
+        -in ${srcfile}
+        -out ${tgtfile}
+        -d
+        # cmake-format: on
+      COMMAND chmod 0600 ${tgtfile}
+      COMMENT "Decrypting ${_filename}")
+  endif()
 endfunction()

@@ -1,6 +1,7 @@
 *.pyc
 *.o
 *.so
+refactor.ipynb
 
 # sparse-export stuff
 .gitu
@@ -37,6 +38,10 @@ node_modules
 
 # bazel sucks...
 WORKSPACE
+
+# node sucks
+vscode_extension/node_modules
+vscode_extension/out
 
 # Temp/backup files
 *~

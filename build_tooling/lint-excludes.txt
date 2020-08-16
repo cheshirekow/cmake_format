@@ -6,9 +6,9 @@
 build-.*
 cmake/node_modules/.*
 semver-.*\.cmake
-cmake_format/command_tests/.*\.cmake
-cmake_format/test/.*\.cmake
-cmake_lint/test/.*\.cmake
+cmakelang/command_tests/.*\.cmake
+cmakelang/format/testdata/.*\.cmake
+cmakelang/lint/test/.*\.cmake
 linkhash/testproject/.*
 
 # third party stuff

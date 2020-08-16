@@ -191,6 +191,10 @@ add_custom_target(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMENT "Execute ctest")
 
+add_custom_target(
+  best-test
+  COMMENT "Execute all tests")
+
 # ====================
 # buildbot-test target
 # ====================

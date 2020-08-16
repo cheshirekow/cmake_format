@@ -1,0 +1,89 @@
+{
+    "name": "cmake-format",
+    "displayName": "cmake-format",
+    "description": "Format listfiles so they don't look like crap",
+    "version": "0.6.12-dev0",
+    "publisher": "cheshirekow",
+    "repository": "https://github.com/cheshirekow/cmakelang",
+    "icon": "images/cmake-format-logo.png",
+    "license": "GPL-3.0-or-later",
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:cmake"
+    ],
+    "main": "./out/extension",
+    "contributes": {
+        "languages": [
+            {
+                "id": "cmake",
+                "aliases": [
+                    "cmake",
+                    "cmake-listfile"
+                ],
+                "extensions": [
+                    "cmake"
+                ]
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "cmake-format",
+            "properties": {
+                "cmakeFormat.cwd": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Working directory for cmake-format. Default will be the workspace root for the active document."
+                },
+                "cmakeFormat.env": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Environment used when subprocessing cmake-format. Set PYTHONPATH or PATH here as needed."
+                },
+                "cmakeFormat.mergeEnv": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Set to false to use the cmakeFormat.env environment verbatim, set to true to merge it with the existing environment."
+                },
+                "cmakeFormat.exePath": {
+                    "type": "string",
+                    "default": "cmake-format",
+                    "description": "Full path cmake-format entry point script or binary"
+                },
+                "cmakeFormat.args": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Additional arguments to pass to cmake-format. Specify, e.g. --config-file here."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "@types/mocha": "^2.2.42",
+        "@types/node": "^8.10.25",
+        "tslint": "^5.8.0",
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.36",
+        "vsce": "^1.73.0"
+    }
+}

@@ -9,6 +9,12 @@ python:
 go:
 - 1.13
 
+env:
+  global:
+    # GITHUB_ACCESS_TOKEN=
+    - secure: "e62y3i4FG7KsJ/I8aVKoPk5CG0L7/TW1K4M+BLt5zULsKGyRw6b53I97p5Tc1zcAHqcocFeYL/eC3AucG3VNvyv6LIZuv5Y0upF/MG++tvkfV9Iyok76mP70DXR/ikAJDMgZSdEL/6uTTJ4XfBuH/VvCMMBvj+5ORSL65KIfqXcexj2JWaNtEEfwiVSkDvQZYYbHLRjQdAXzzI7g1xh+8mCmuFAvtn6U1cIZpdQv5u1DNIry8PoQ2asHr+vaCN9iVXvkWcUjoXpJTp96Hd8eO40ts3v3Ja1yJ7GzH09zjbKJS63dcB0LfV5uLjybJCkQ03102ua0V+E5OzPn5VYeIRSRWmdo35e9xZjqqbtNdHqNayOOpew/ik+wf2Nmzva5MCRf154pFfWjBDL4zh0WGBW8FyJ/9NxdYDJsOIznHBPBHCXnQOlrpdInIptuoLnT52V7MOq9XIiuqLlAH8Tr0GzNSJIJfwwhwJuGxgYi2DPDH8PRmkbHbvY/mN2WBxNFfHBSfCQGZJt6kHtEE+xIi0QQXME0h36V/8sOsmQDzArNFl2Um5GCXodtIjZI6Ga3nQhHDRRiQKJz0V/9OsJF4GteGw94xt/l6PkCT0o4D1cmPIELrBTzaEMnXYKRQEOPnvViyV8eJF2RBnaqNk+FqI+hmGtXXUKAdXZWAzyS66I="
+
+
 before_install:
 - sudo add-apt-repository --no-update -y ppa:longsleep/golang-backports
 - sudo apt-get update
@@ -31,38 +37,63 @@ script:
 - ninja better-test
 - ninja lint
 
-env:
-  global:
-    # GITHUB_ACCESS_TOKEN=
-    secure: "e62y3i4FG7KsJ/I8aVKoPk5CG0L7/TW1K4M+BLt5zULsKGyRw6b53I97p5Tc1zcAHqcocFeYL/eC3AucG3VNvyv6LIZuv5Y0upF/MG++tvkfV9Iyok76mP70DXR/ikAJDMgZSdEL/6uTTJ4XfBuH/VvCMMBvj+5ORSL65KIfqXcexj2JWaNtEEfwiVSkDvQZYYbHLRjQdAXzzI7g1xh+8mCmuFAvtn6U1cIZpdQv5u1DNIry8PoQ2asHr+vaCN9iVXvkWcUjoXpJTp96Hd8eO40ts3v3Ja1yJ7GzH09zjbKJS63dcB0LfV5uLjybJCkQ03102ua0V+E5OzPn5VYeIRSRWmdo35e9xZjqqbtNdHqNayOOpew/ik+wf2Nmzva5MCRf154pFfWjBDL4zh0WGBW8FyJ/9NxdYDJsOIznHBPBHCXnQOlrpdInIptuoLnT52V7MOq9XIiuqLlAH8Tr0GzNSJIJfwwhwJuGxgYi2DPDH8PRmkbHbvY/mN2WBxNFfHBSfCQGZJt6kHtEE+xIi0QQXME0h36V/8sOsmQDzArNFl2Um5GCXodtIjZI6Ga3nQhHDRRiQKJz0V/9OsJF4GteGw94xt/l6PkCT0o4D1cmPIELrBTzaEMnXYKRQEOPnvViyV8eJF2RBnaqNk+FqI+hmGtXXUKAdXZWAzyS66I="
+_is_pseudo_source_branch: &is-pseudo-source-branch
+  repo = cheshirekow/cmake_format
+  AND NOT tag IS present
+  AND branch =~ ^((master)|(staging))$
+
+_is_pseudo_release: &is-pseudo-release
+  repo = cheshirekow/cmake_format
+  AND tag IS present
+  AND tag =~ ^pseudo-((master)|(staging))$
+
+_not_pseudo_tag: &not-pseudo-release
+  repo = cheshirekow/cmake_format
+  AND (tag IS NOT present
+        OR tag =~ ^(?!pseudo-).*$)
+
+_is_release: &is-release
+  repo == cheshirekow/cmake_format
+  AND tag IS present
+  AND (tag =~ ^pseudo-((master)|(staging))$
+        OR tag =~ ^v\d+\.\d+\.\d+$)
 
 jobs:
   include:
+  # If this is a push to one of the pseudo-release branches, then generate
+  # the tag and push it to the repo
   - stage: deploy
     name: deploy-tag
-    if: repo = cheshirekow/cmake_format
-        AND NOT tag IS present
-        AND branch =~ ^((master)|(staging))$
+    if: *is-pseudo-source-branch
     python: 3.6
     script:
     - mkdir ${TRAVIS_BUILD_DIR}/../cmake-build
     - cd ${TRAVIS_BUILD_DIR}/../cmake-build
     - cmake -G Ninja ${TRAVIS_BUILD_DIR}
-    - ninja push-cmake_format-github-pseudorelease-tag
+    - ninja push-cmakelang-github-pseudorelease-tag
+
+  # If this is a release tag, then push release artifacts and synchronize
+  # dependant repositories.
   - name: deploy-artifacts
     python: 3.6
-    if: repo = cheshirekow/cmake_format
-        AND tag IS present
-        AND (tag =~ ^pseudo-((master)|(staging))$
-             OR tag =~ ^v\d+\.\d+\.\d+$)
+    if: *is-release
     script:
     - mkdir ${TRAVIS_BUILD_DIR}/../cmake-build
     - cd ${TRAVIS_BUILD_DIR}/../cmake-build
     - cmake -G Ninja ${TRAVIS_BUILD_DIR}
-    - ninja push-cmake_format-github-release
-    - ninja push-cmake_format-rtd-repo
+    - ninja push-cmakelang-github-release
+    - ninja push-cmakelang-rtd-repo
+    - ninja push-cmakelang-pypi-release
+    - ninja push-cmakelang-precommit
+    - ninja push-cmakelang-docker
 
 stages:
-  - test
+  # Skip the test stage if this is a pseudo-release tag, since those tests
+  # were already run on the branch
+  - name: test
+    if: *not-pseudo-release
+
+  # Enable the deploy stage only if this was a push. In particular, exclude
+  # this stage on pull requests
   - name: deploy
     if: type = push

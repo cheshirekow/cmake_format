@@ -17,7 +17,7 @@ def main():
 
   args = parser.parse_args()
   if args.tag == "from-travis":
-    args.tag = os.environ["TRAVIS_TAG"]
+    args.tag = os.environ.get("TRAVIS_TAG", "pseudo-staging")
 
   if args.outfile_path == "-":
     args.outfile_path = os.dup(sys.stdout.fileno())

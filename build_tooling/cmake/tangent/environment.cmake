@@ -69,11 +69,9 @@ endfunction()
 # include(environment.cmake)
 # ~~~
 set(IS_TRAVIS_CI FALSE)
-if(DEFINED ENV{CI}
-   AND DEFINED ENV{TRAVIS}
-   AND "$ENV{CI}" STREQUAL "true"
+if("$ENV{CI}" STREQUAL "true"
    AND "$ENV{TRAVIS}" STREQUAL "true")
-  set(IS_TRAVIS_CI TRUE)
+  set(IS_TRAVIS_CI TRUE CACHE BOOL "This build is on travis" FORCE)
 endif()
 
 set(IS_PULL_REQUEST FALSE)

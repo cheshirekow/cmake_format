@@ -1,1 +1,1 @@
-cmake_format/pypi/setup.py
+cmakelang/pypi/setup.py

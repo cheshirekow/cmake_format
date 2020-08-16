@@ -24,6 +24,7 @@ with section("parse"):
           }
       }
     },
+
     "cc_library": {
       "pargs": "1+",
       "flags": ["STATIC", "SHARED"],
@@ -68,6 +69,7 @@ with section("parse"):
           }
       }
     },
+
     "cc_test": {
       "pargs": 1,
       "kwargs": {
@@ -80,6 +82,7 @@ with section("parse"):
           "LABELS": "*"
       }
     },
+
     "check_call": {
       "kwargs": {
         "COMMAND": "*",
@@ -101,11 +104,34 @@ with section("parse"):
         "ERROR_STRIP_TRAILING_WHITESPACE",
       ]
     },
+
     "join": {
       "pargs": [1, "+"],
       "kwargs": {
           "GLUE": 1,
       }
+    },
+
+    "check_pyoneline": {
+      "pargs": "+",
+      "kwargs": {
+        "OUTPUT_VARIABLE": 1,
+        "ERROR_VARIABLE": 1
+      }
+    },
+
+    "tangent_addtest": {
+      "kwargs": {
+        "NAME": 1,
+        "WORKING_DIRECTORY": 1,
+        "COMMAND": "+",
+        "CONFIGURATIONS": "+"
+      }
+    },
+
+    "travis_decrypt": {
+      "pargs": [3],
+      "kwargs": {}
     },
 
     # debian.cmake
@@ -177,6 +203,7 @@ with section("parse"):
       },
     },
 
+
     # GtkDocConfig.cmake
     "gtk_doc_add_module": {
       "pargs": 1,
@@ -190,4 +217,5 @@ with section("parse"):
         "XML": 1,
       },
     },
+
   }

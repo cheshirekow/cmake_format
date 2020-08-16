@@ -16,11 +16,12 @@ import sys
 import tempfile
 
 if True:
-
   if os.path.samefile(sys.path[0], os.path.dirname(__file__)):
     sys.path.pop(0)
 
   import github
+  import keyring
+  from packaging import version as versiontool
   import magic
 
 logger = logging.getLogger(__name__)
@@ -32,13 +33,23 @@ frequently and are very likely to be broken.
 """.replace("\n", " ")
 
 
-def create_pseudorelease_tag(reposlug, branch):
-  access_token = os.environ.get("GITHUB_ACCESS_TOKEN")
-  if access_token is None:
-    raise RuntimeError("GITHUB_ACCESS_TOKEN missing from environment")
+def get_access_token():
+  if "GITHUB_ACCESS_TOKEN" in os.environ:
+    return os.environ["GITHUB_ACCESS_TOKEN"]
 
+  credential = keyring.get_credential("api.github.com", None)
+  if credential is not None:
+    return credential.password
+
+  raise RuntimeError(
+      "No github access token found, please set GITHUB_ACCESS_TOKEN "
+      "environment variable or add username@api.github.com to your "
+      "system keyring, e.g. run `keyring set api.github.com <username>`")
+
+
+def create_pseudorelease_tag(reposlug, branch):
   # TODO(josh): get title out of the script so that it can be reusable
-  hub = github.Github(access_token)
+  hub = github.Github(get_access_token())
   repo = hub.get_repo(reposlug)
   branchobj = repo.get_branch(branch)
   logger.info("Creating tag pseudo-%s -> %s", branch, branchobj.commit.sha)
@@ -171,7 +182,7 @@ def sync_doc_artifacts(
   # Create a temporary branchname for us to do our work in
   workbranch = "work-" + make_randstr(10)
 
-  # Clear out stratch tree
+  # Clear out scratch tree
   if os.path.exists(scratch_dir):
     shutil.rmtree(scratch_dir)
   os.makedirs(scratch_dir)
@@ -239,37 +250,53 @@ def sync_doc_artifacts(
         cwd=docrepo_dir, env=env)
 
 
+PSEUDO_MESSAGE = """\
+This is a pseudo-release used only to stage artifacts for the release pipeline.
+Please do not rely on the artifacts contained in this release as they change
+frequently and are very likely to be broken.
+""".replace("\n", " ")
+
+
 def push_release(reposlug, tag, message_path, filepaths):
   message = ""
   if message_path:
     with io.open(message_path, encoding="utf-8") as infile:
       message = infile.read()
 
-  access_token = os.environ.get("GITHUB_ACCESS_TOKEN")
-  if access_token is None:
-    raise RuntimeError("GITHUB_ACCESS_TOKEN missing from environment")
-
   # TODO(josh): get title out of the script so that it can be reusable
+  prerelease = False
+  title = reposlug.split("/", 1)[1].replace("_", "-") + " " + tag
+
   if tag.startswith("pseudo-"):
     prerelease = True
     title = "pseudo-release artifacts for " + tag[len("pseudo-"):]
   else:
-    prerelease = False
-    title = reposlug.split("/", 1)[1].replace("_", "-") + " " + tag
+    try:
+      version = versiontool.parse(tag)
+      if version.is_devrelease or version.is_prerelease:
+        prerelease = True
+    except versiontool.InvalidVersion:
+      version = None
 
   filenames = set(filepath.rsplit(os.sep, 1)[-1] for filepath in filepaths)
-  hub = github.Github(access_token)
+  hub = github.Github(get_access_token())
   repo = hub.get_repo(reposlug)
+
   try:
     release = repo.get_release(tag)
     logger.info("Found release for tag %s", tag)
-    if release.title != title or release.body != message:
-      logger.info("Updating release message")
-      release.update_release(title, message, prerelease=prerelease)
   except github.UnknownObjectException:
     logger.info("Creating release for tag %s", tag)
-    release = repo.create_git_release(
-        tag, title, message, prerelease=prerelease)
+    try:
+      release = repo.create_git_release(
+          tag, title, message, prerelease=prerelease)
+    except github.UnknownObjectException:
+      logger.warning("Can't create a release for tag %s", tag)
+      raise
+
+  if release.title != title or release.body != message:
+    logger.info("Updating release message for: %d", release.id)
+    release.update_release(title, message, prerelease=prerelease)
 
   for asset in release.get_assets():
     if asset.name in filenames:
@@ -284,6 +311,9 @@ def push_release(reposlug, tag, message_path, filepaths):
 
 
 def setup_argparser(argparser):
+  argparser.add_argument(
+      "-l", "--log-level", default="info",
+      choices=["debug", "info", "warning", "error"])
   subparsers = argparser.add_subparsers(dest="command")
 
   subparser = subparsers.add_parser(
@@ -361,13 +391,26 @@ def main():
     pass
 
   args = argparser.parse_args()
+  logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
   if hasattr(args, "tag"):
-    if getattr(args, "tag") == "from-travis":
-      setattr(args, "tag", os.environ["TRAVIS_TAG"])
+    tagstr = getattr(args, "tag")
+    travis_tag = os.environ.get("TRAVIS_TAG", tagstr)
+
+    if travis_tag != tagstr:
+      # If this is a travis incremental build, then stage artifacts under the
+      # pseudo-release instead of creating a new release for the tag.
+      if travis_tag.startswith("pseudo-"):
+        setattr(args, "tag", travis_tag)
+      else:
+        logger.error(
+            "Cowardly refusing to to create a github release '%s' from a travis"
+            "build of tag '%s'", tagstr, os.environ["TRAVIS_TAG"])
+        sys.exit(1)
 
   argdict = get_argdict(args)
   command = argdict.pop("command")
+  argdict.pop("log_level")
 
   if command == "create-pseudorelease-tag":
     create_pseudorelease_tag(args.reposlug, args.branch)
