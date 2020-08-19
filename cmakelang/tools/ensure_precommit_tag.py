@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 def get_env(deploykey_path):
   env = os.environ.copy()
   if deploykey_path:
+    if not os.path.exists(deploykey_path):
+      raise RuntimeError(
+          "Supplied deploy key {} does not exist".format(deploykey_path))
     env["GIT_SSH_COMMAND"] = (
         "ssh -o IdentitiesOnly=yes -i {} -F /dev/null".format(deploykey_path))
   return env

@@ -5,7 +5,7 @@ Installation
 All of the tools are included as part of the ``cmakelang`` python
 distribution package.
 
-.. note:: Until verion 0.6.12 the software was distributed under the
+.. note:: Until verion 0.6.13 the software was distributed under the
    ``cmake-format`` python package. As the project grew to include
    multiple tools beyond the formatter, the name was changed to something
    more appropriate. The ``cmake-format`` package will be maintained
@@ -58,7 +58,7 @@ Install from source
 You can also install from source with pip. You can download a release package
 from github__ or pypi__ and then install it directly with pip. For example::
 
-  pip install v0.6.12.tar.gz
+  pip install v0.6.13.tar.gz
 
 .. __: https://github.com/cheshirekow/cmake_format/releases
 .. __: https://pypi.org/project/cmake-format/#files
@@ -104,7 +104,7 @@ formatter, ``cmake-format``, to your hooks with the following addition to your
 
    repos:
      - repo: https://github.com/cheshirekow/cmake-format-precommit
-       rev: v0.6.12
+       rev: v0.6.13
        hooks:
        - id: cmake-format
 

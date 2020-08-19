@@ -359,7 +359,7 @@ add_custom_target(
       --scratch-tree ${CMAKE_CURRENT_BINARY_DIR}/scratch-tree
       --stage ${_stage}
       --deploy-key "${_deploykey}"
-      --tag "${_src_version}"
+      --tag "v${_src_version}"
     # cmake-format: on
   DEPENDS clean-cmakelang-sphinx-stage ${_sphinx_manifest} ${_deploykey}
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

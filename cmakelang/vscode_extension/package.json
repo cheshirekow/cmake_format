@@ -2,7 +2,7 @@
     "name": "cmake-format",
     "displayName": "cmake-format",
     "description": "Format listfiles so they don't look like crap",
-    "version": "0.6.12-dev0",
+    "version": "0.6.13",
     "publisher": "cheshirekow",
     "repository": "https://github.com/cheshirekow/cmakelang",
     "icon": "images/cmake-format-logo.png",

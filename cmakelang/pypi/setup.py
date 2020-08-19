@@ -20,10 +20,11 @@ setup(
     name="cmakelang",
     packages=[
         "cmakelang",
-        "cmakelang.command_tests",
+        "cmakelang.format",
+        "cmakelang.lex",
+        "cmakelang.lint",
         "cmakelang.parse",
         "cmakelang.parse.funs",
-        "cmakelang.lint",
     ],
     version=VERSION,
     description="Language tools for cmake (format, lint, etc)",

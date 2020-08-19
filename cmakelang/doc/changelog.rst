@@ -8,6 +8,11 @@ Changelog
 v0.6 series
 -----------
 
+v0.6.13
+-------
+
+* Fix subpackages missing from python distribution
+
 v0.6.12
 -------
 

@@ -11,6 +11,13 @@ v0.6 series
 ===========
 
 -------
+v0.6.13
+-------
+
+This is a hotfix on v0.6.12. The python distribution package was missing some
+modules.
+
+-------
 v0.6.12
 -------
 
