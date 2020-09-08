@@ -898,3 +898,17 @@ use_tabchars = True
 if(TRUE)
 	message("Hello world")
 endif()
+
+# test: indent_mode_parent_alignment
+#[==[
+continuation_mode = "align"
+#]==]
+target_include_directories(my-dummy-target
+                           PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+# test: indent_mode_indented
+#[==[
+continuation_mode = "indent"
+#]==]
+target_include_directories(my-dummy-target
+  PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
