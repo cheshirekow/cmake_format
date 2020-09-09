@@ -582,6 +582,41 @@ target_include_directories(
   target INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
 )
 
+# test: dangle_parens_06
+#[=[
+dangle_parens = True
+]=]
+#[==[
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../")
+]==]
+include(
+  "${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../"
+)
+
+# test: dangle_parens_07
+#[=[
+dangle_parens = False
+]=]
+#[==[
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../")
+]==]
+include(
+  "${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../")
+
+# test: dangle_parens_08
+#[=[
+dangle_parens = False
+]=]
+#[==[
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../") # force dangle on trailing comment
+]==]
+include(
+  "${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../../../../../../../../../../../"
+) # force dangle on trailing comment
+
 # test: keyword_case_upper
 #[=[
 keyword_case = "upper"

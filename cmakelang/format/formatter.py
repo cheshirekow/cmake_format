@@ -911,9 +911,11 @@ class StatementNode(LayoutNode):
       # request so long as the statement doesn't fit on a single line
       dangle_parens = True
     elif cursor[1] >= config.format.linewidth:
-      # If the child reflow was unable to reserve a column for us to place our
-      # parenthesis, then we must dangle it
-      dangle_parens = True
+      if config.format.dangle_parens:
+        # If the child reflow was unable to reserve a column for us to place our
+        # parenthesis, then we must dangle it
+        dangle_parens = True
+
       # But we really want to nest first in this case
       if not self._wrap:
         self._reflow_valid = False
@@ -958,7 +960,7 @@ class StatementNode(LayoutNode):
       # If the statement trailing comment does not fit in the column after the
       # rparen, then dangle the rparen and try again.
       if not dangle_parens and child.colextent > config.format.linewidth:
-        cursor = rparen.reflow(stack_context, dangle_cursor, passno)
+        cursor = rparen.reflow(stack_context, dangle_cursor, passno) + (0, 1)
         self._reflow_valid &= rparen.reflow_valid
         # NOTE(josh): don't max rparen.colextent here, since we may reverse our
         # dangle decision in the next if block
