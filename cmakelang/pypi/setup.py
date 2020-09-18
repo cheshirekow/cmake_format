@@ -1,7 +1,7 @@
 import io
 from setuptools import setup
 
-GITHUB_URL = "https://github.com/cheshirekow/cmakelang"
+GITHUB_URL = "https://github.com/cheshirekow/cmake_format"
 
 VERSION = None
 with io.open("cmakelang/__init__.py", encoding="utf-8") as infile:
