@@ -309,6 +309,11 @@ class FormattingConfig(ConfigObject):
       ['lower', 'upper', 'unchanged']
   )
 
+  always_dangle_first_parg = FieldDescriptor(
+      [],
+      "A list of command names which should always dangle first argument"
+  )
+
   always_wrap = FieldDescriptor(
       [],
       "A list of command names which should always be wrapped"

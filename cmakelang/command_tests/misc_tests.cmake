@@ -347,6 +347,17 @@ cmake_parse_arguments(
 # TODO(josh): This todo should not be joined with the previous line.
 # NOTE(josh): Also this should not be joined with the todo.
 
+# test: always_dangle_first_parg_01
+#[=[
+always_dangle_first_parg = ['target_link_libraries']
+]=]
+#[==[
+target_link_libraries(nonkwarg_a PUBLIC liba libb libc PRIVATE libd libe libf)
+]==]
+target_link_libraries(nonkwarg_a
+  PUBLIC liba libb libc
+  PRIVATE libd libe libf)
+
 # test: always_wrap_01
 #[=[
 max_subgroups_hwrap = 100
