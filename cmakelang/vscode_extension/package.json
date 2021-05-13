@@ -82,7 +82,7 @@
         "@types/mocha": "^2.2.42",
         "@types/node": "^8.10.25",
         "tslint": "^5.8.0",
-        "typescript": "^2.6.1",
+        "typescript": "^3.5.1",
         "vscode": "^1.1.36",
         "vsce": "^1.73.0"
     }

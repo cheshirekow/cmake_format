@@ -1,6 +1,6 @@
-============
-cmake format
-============
+==========
+cmake lang
+==========
 
 .. image:: https://travis-ci.com/cheshirekow/cmake_format.svg?branch=master
     :target: https://travis-ci.com/cheshirekow/cmake_format
@@ -8,7 +8,7 @@ cmake format
 .. image:: https://readthedocs.org/projects/cmake-format/badge/?version=latest
     :target: https://cmake-format.readthedocs.io
 
-The ``cmake-format`` project provides Quality Assurance (QA) tools
+The ``cmakelang`` project provides Quality Assurance (QA) tools
 for ``cmake``:
 
 
