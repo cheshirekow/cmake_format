@@ -117,3 +117,7 @@ if(_returncode EQUAL 0)
 else()
   message(WARNING "Failed to query current distribution architecture")
 endif()
+
+# Default signing key
+set(DEBIAN_SIGNING_KEY 6A8A4FAF CACHE "STRING"
+    "Fingerprint of gpg key used to sign debian packages")

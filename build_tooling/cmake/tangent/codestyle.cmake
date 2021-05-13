@@ -44,8 +44,8 @@ else()
 endif()
 
 # TODO(josh): need to build this dynamically over the course of the
-# configure-time, and then build the format and lint commands after we
-# know all of the python path that needs to be included
+# configure-time, and then build the format and lint commands after we know all
+# of the python path that needs to be included
 set(_pythonpath "${CMAKE_SOURCE_DIR}:${CMAKE_BINARY_DIR}/pynix")
 
 # Generate targets to format or lint the list of files
@@ -173,6 +173,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
       DEPENDS ${filename} ${lintdep_witness}
+              ${CMAKE_SOURCE_DIR}/.cmake-format.py
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND cmake_lintdeps
          ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
@@ -269,7 +270,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
-      DEPENDS ${filename} ${lintdep_witness}
+      DEPENDS ${filename} ${lintdep_witness} ${CMAKE_SOURCE_DIR}/.eslintrc.js
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND js_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 
@@ -320,7 +321,7 @@ function(format_and_lint slug)
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
       COMMAND ${CMAKE_COMMAND} -E touch
               ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp
-      DEPENDS ${filename}
+      DEPENDS ${filename} ${CMAKE_SOURCE_DIR}/pylintrc
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     list(APPEND py_lintdeps ${CMAKE_CURRENT_BINARY_DIR}/${filename}.lintstamp)
 

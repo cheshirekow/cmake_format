@@ -1,3 +1,6 @@
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -8,6 +11,9 @@ py_library(
     "execution_tests.py",
     "expect_tests.py",
     "genfiles.py",
+  ],
+  deps = [
+    requirement("six"),
   ],
 )
 

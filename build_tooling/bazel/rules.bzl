@@ -31,3 +31,4 @@ glslang_compile = rule(
   },
   doc = "Compile one or more glsl files into SPIR-V",
 )
+

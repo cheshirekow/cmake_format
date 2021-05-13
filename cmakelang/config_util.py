@@ -1,3 +1,19 @@
+"""
+Configuration utility library for tangentbuild.
+===============================================
+
+The foundation of the configuration system is the ConfigObject, which is a
+serializable class whose fields are managed by python descriptors. The full
+configuration is a tree of ConfigObjects, and each field may be either a
+primitive value or a ConfigObject.
+
+The descriptors allow us to automatically create or parse serializations
+in multiple formats (json, yaml, python) and to automatically build command
+line (argparse) and environment (os.environ) parsers.
+
+Configuration options are taken first from the configuration file, then
+from the environment, then from the command line.
+"""
 from __future__ import unicode_literals
 
 import collections
@@ -32,6 +48,8 @@ def serialize(obj, with_help=False, with_defaults=True):
 
 
 def parse_bool(string):
+  """Interpret a wide range of "natural" strings which clearly indicate
+     truthiness."""
   if string.lower() in ('y', 'yes', 't', 'true', '1', 'yup', 'yeah', 'yada'):
     return True
   if string.lower() in ('n', 'no', 'f', 'false', '0', 'nope', 'nah', 'nada'):
@@ -54,9 +72,9 @@ def get_default(value, default):
 
 class ExecGlobal(dict):
   """
-  We pass this in as the "global" variable when parsing a config. It is
-  composed of a nested dictionary and provides methods for mangaging
-  the current  "stack" into that nested dictionary
+  We pass this in as the "global" variable when interpreting a config file in
+  python format. It is composed of a nested dictionary and provides methods
+  for mangaging the current  "stack" into that nested dictionary
   """
 
   def __init__(self, filepath):
@@ -289,12 +307,22 @@ class FieldDescriptor(Descriptor):
 
 
 def serialize_docstring(docstring):
+  """For serializations like JSON, the serialized representation is much more
+     readable as a list of short strings rather than a single string with
+     JSON-escaped newlines"""
   if "\n" in docstring:
     return docstring.split("\n")
   return docstring
 
 
 def warn_unused(kwargs):
+  """Call this after all known arguments have been pop()ed from the `globals()`
+     dictionary of an `exec()`ed file. This function will print a warning if
+     there are any names that weren't popped off, i.e. kwargs is not empty.
+     This function will ignore names that start with an underscore
+     (the author has indicated this is a temporary) or a module name
+     (from an import)."""
+
   unused = []
   for keyword, value in kwargs.items():
     if keyword.startswith("_"):

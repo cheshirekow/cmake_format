@@ -1,3 +1,6 @@
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -53,6 +56,7 @@ py_test(
   deps = [
     ":testdata",
     "//cmakelang",
+    requirement("six"),
   ],
 )
 
@@ -61,5 +65,7 @@ py_test(
   srcs = ["layout_tests.py"],
   main = "layout_tests.py",
   python_version = "PY3",
-  deps = ["//cmakelang"],
+  deps = [
+    "//cmakelang",
+  ],
 )

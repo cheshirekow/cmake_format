@@ -66,7 +66,7 @@ def scangobj_run(args, outfile):
 
   tplargs = {
       "get_types": "\n".join(typesinfo.get_types),
-      "ntypes": len(typesinfo.get_types),
+      "ntypes": len(typesinfo.get_types) + 1,
       "main_func_params": main_func_params,
       "type_init_func": type_init_func,
   }

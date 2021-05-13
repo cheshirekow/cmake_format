@@ -49,6 +49,17 @@ function(join outvar)
       PARENT_SCOPE)
 endfunction()
 
+function(string_repeat value count outvar)
+  unset(_local)
+  math(EXPR range_end "${count} - 1")
+  foreach(_ RANGE ${range_end})
+    set(_local "${_local}${value}")
+  endforeach()
+  set(${outvar}
+      ${_local}
+      PARENT_SCOPE)
+endfunction()
+
 # Backport list(FILTER ...) to cmake < 3.6
 function(list_filter listname)
   set(localcopy ${${listname}})
@@ -119,7 +130,7 @@ function(check_call)
   # Turn the cmake list into a regular string with '%' as an item separator
   string(REPLACE ";" "%" buffer "${buffer}")
   # Split the string at keyword boundaries
-  string(REGEX REPLACE "\\%(${kwargs})\\%" ";\\1%" buffer "${buffer}")
+  string(REGEX REPLACE "\\%(${kwargs})" ";\\1" buffer "${buffer}")
   # Remove list items that aren't COMMAND
   set(buffer2 ${buffer})
   list_filter(buffer2 INCLUDE REGEX "COMMAND%.*")
@@ -199,13 +210,19 @@ set(KNOWN_PROPERTIES ${_propslist})
 
 function(tangent_addtest)
   cmake_parse_arguments(_args "" "NAME;WORKING_DIRECTORY"
-                        "COMMAND;CONFIGURATIONS;DEPENDS" ${ARGN})
+                        "COMMAND;CONFIGURATIONS;DEPENDS;LABELS" ${ARGN})
 
   add_test(
     NAME ${_args_NAME}
     COMMAND ${_args_COMMAND}
     WORKING_DIRECTORY ${_args_WORKING_DIRECTORY}
     CONFIGURATIONS ${_args_CONFIGURATIONS})
+  if(args_LABELS)
+    set_property(
+      TEST ${_args_NAME}
+      APPEND
+      PROPERTY LABELS ${args_LABELS})
+  endif()
   add_custom_target(
     runtest.${_args_NAME}
     DEPENDS ${_args_DEPENDS}
@@ -240,7 +257,7 @@ endfunction()
 function(cc_library target_name)
   set(flags)
   set(oneargs)
-  set(multiargs INC SRCS DEPS PKGDEPS PROPERTIES)
+  set(multiargs INC LIBDIRS SRCS DEPS PKGDEPS PROPERTIES)
   cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_library(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
@@ -286,10 +303,20 @@ endfunction()
 function(cc_binary target_name)
   set(flags ADD_RUNTARGET)
   set(oneargs)
-  set(multiargs SRCS DEFS DEPS PKGDEPS PROPERTIES)
+  set(multiargs
+      INC
+      LIBDIRS
+      SRCS
+      DEFS
+      DEPS
+      PKGDEPS
+      PROPERTIES)
   cmake_parse_arguments(_args "${flags}" "${oneargs}" "${multiargs}" ${ARGN})
 
   add_executable(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
+  if(_args_INC)
+    target_include_directories(${target_name} ${_args_INC})
+  endif()
   if(_args_DEPS)
     target_link_libraries(${target_name} PUBLIC ${_args_DEPS})
   endif()
@@ -356,27 +383,17 @@ function(cc_test target_name)
   endif()
 
   if(args_TEST_DEPS)
-    add_custom_target(testdeps.${target_name} DEPENDS ${TEST_DEPS})
+    add_custom_target(testdeps.${target_name} DEPENDS ${args_TEST_DEPS})
     add_dependencies(testdeps testdeps.${target_name})
   endif()
 
-  add_custom_target(
-    run.${target_name}
-    COMMAND ${cmd}
-    DEPENDS ${args_TEST_DEPS}
-    WORKING_DIRECTORY ${args_WORKING_DIRECTORY})
-
-  add_test(
+  tangent_addtest(
     NAME ${target_name}
     COMMAND ${cmd}
-    WORKING_DIRECTORY ${args_WORKING_DIRECTORY})
+    DEPENDS ${args_TEST_DEPS}
+    WORKING_DIRECTORY ${args_WORKING_DIRECTORY}
+    LABELS ${args_LABELS})
 
-  if(args_LABELS)
-    set_property(
-      TEST ${target_name}
-      APPEND
-      PROPERTY LABELS ${args_LABELS})
-  endif()
 endfunction()
 
 # Given a list of variables in the current scope, assign their value to a
@@ -522,4 +539,155 @@ function(travis_decrypt tgtfile srcfile keyid)
       COMMAND chmod 0600 ${tgtfile}
       COMMENT "Decrypting ${_filename}")
   endif()
+endfunction()
+
+# Uses the swift command line client to fetch
+function(tangent_fetchobj uuid filename)
+  add_custom_command(
+    OUTPUT ${filename}
+    COMMAND
+      # cmake-format: off
+      swift
+      "--os-auth-url=https://auth.cloud.ovh.net/v3/"
+      "--os-identity-api-version=3"
+      "--os-region-name=BHS"
+      "--os-tenant-id=b5e0ef36abcb498b890d84b61555f063"
+      "--os-tenant-name=0728979165260176"
+      "--os-username=user-px7eRuuMs4hy"
+      "--os-password=HHScMqa9DHaAphNqQx6YpaRsMVE4AakH"
+      # cmake-format: on
+      download tangent-build ${uuid} -o ${filename}
+    COMMENT "Downloading ${filename}")
+endfunction()
+
+function(tangent_unzip targetname zipfile)
+  cmake_parse_arguments(args "ALL" "WORKING_DIRECTORY" "OUTPUT" ${ARGN})
+  set(zip_outputs)
+  if(args_WORKING_DIRECTORY)
+    foreach(outfile ${args_OUTPUT})
+      list(APPEND zip_outputs "${args_WORKING_DIRECTORY}/${outfile}")
+    endforeach()
+  else()
+    set(zip_outputs ${args_OUTPUT})
+  endif()
+
+  add_custom_command(
+    DEPENDS ${zipfile}
+    OUTPUT ${zip_outputs}
+    COMMAND ${CMAKE_COMMAND} -E tar xf ${zipfile}
+    WORKING_DIRECTORY ${args_WORKING_DIRECTORY}
+    COMMENT "Unzipping ${zipfile}")
+
+  set(maybe_ALL)
+  if(${args_ALL})
+    set(maybe_ALL "ALL")
+  endif()
+  add_custom_target(
+    ${targetname}
+    ${maybe_ALL}
+    DEPENDS ${zip_outputs})
+
+endfunction()
+
+function(tangent_verify_image target_prefix imgfile reference_hash)
+  tangent_addtest(
+    NAME phash-verify-${target_prefix}${imgfile}
+    COMMAND $<TARGET_FILE:phash-exe> verify ${imgfile} ${reference_hash}
+    DEPENDS phash-exe
+    WORKING_DIRECTORY ${args_WORKING_DIRECTORY}
+    LABELS ${args_LABELS})
+endfunction()
+
+# Copy a file from the source tree to the binary tree
+function(copybin target)
+  unset(_copyfiles)
+  foreach(filename ${ARGN})
+    if(NOT "${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_BINARY_DIR}")
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${filename}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+        COMMAND
+          ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+          ${CMAKE_CURRENT_BINARY_DIR}/${filename})
+      list(APPEND _copyfiles ${CMAKE_CURRENT_BINARY_DIR}/${filename})
+    endif()
+  endforeach()
+  add_custom_target(${target} DEPENDS ${_copyfiles})
+endfunction()
+
+# Generate .h and .c resource data to embed in an application
+function(gresource args_BASENAME args_XMLFILE)
+  cmake_parse_arguments(args "" "SRCDIR" "DEPENDS" ${ARGN})
+
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${args_BASENAME}.h
+    DEPENDS ${args_XMLFILE} ${args_DEPENDS}
+    COMMAND
+      glib-compile-resources --sourcedir=${args_SRCDIR} --generate
+      ${CMAKE_CURRENT_SOURCE_DIR}/${args_XMLFILE} --target=${args_BASENAME}.h)
+
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${args_BASENAME}.c
+    DEPENDS ${args_XMLFILE} ${args_DEPENDS}
+    COMMAND
+      glib-compile-resources --sourcedir=${args_SRCDIR} --generate
+      ${CMAKE_CURRENT_SOURCE_DIR}/${args_XMLFILE} --target=${args_BASENAME}.c)
+endfunction()
+
+# Use inkscape to extract a subset of an SVG into it's own SVG file. This is
+# useful for working on multiple icons in a single SVG and then splitting them
+# into separate SVGs at build time
+function(tangent_extract_svg)
+  cmake_parse_arguments(args "" "OUTPUT;SRC;EXPORT" "" ${ARGN})
+  add_custom_command(
+    OUTPUT ${args_OUTPUT}
+    DEPENDS icons.svg
+    # NOTE(josh): rsvg is completely broken COMMAND rsvg-convert
+    # --export-id="${args_EXPORT}" --format=svg --output ${args_OUTPUT}
+    # ${args_SRC}
+    COMMAND inkscape "--export-plain-svg=${args_OUTPUT}"
+            "--export-id=${args_EXPORT}" --export-id-only ${args_SRC})
+endfunction()
+
+function(protostruct_gen args_PROTO)
+  cmake_parse_arguments(args "" "" "ONLY" ${ARGN})
+
+  if(NOT ${args_PROTO} MATCHES "(.*).proto")
+    message(FATAL_ERROR "invalid protofile ${args_PROTO}")
+  endif()
+  set(basename ${CMAKE_MATCH_1})
+
+  unset(outs)
+  unset(only_flags)
+  if(args_ONLY)
+    set(only_flags "--only" ${args_ONLY})
+    foreach(groupname ${args_ONLY})
+      if(groupname STREQUAL "cpp-simple")
+        list(APPEND outs #
+             ${CMAKE_CURRENT_BINARY_DIR}/${basename}-simple.h
+             ${CMAKE_CURRENT_BINARY_DIR}/${basename}-simple.cc)
+      else()
+        message(FATAL_ERROR "protostruct_gen not implemented for ${groupname}")
+      endif()
+    endforeach()
+  else()
+    message(FATAL_ERROR "protostruct_gen not implemented without ONLY")
+  endif()
+
+  add_custom_command(
+    OUTPUT ${outs}
+    DEPENDS ${args_PROTO} protostruct
+    COMMAND
+      # cmake-format: off
+      $<TARGET_FILE:protostruct>
+      ${args_PROTO}
+      --proto-path ${CMAKE_CURRENT_SOURCE_DIR}
+      --outfile ${CMAKE_CURRENT_BINARY_DIR}/${basename}.pb3
+      --cpp-out ${CMAKE_CURRENT_BINARY_DIR}
+      ${only_flags}
+      # cmake-format: on
+    COMMAND # cmake-format: off
+      clang-format-8 -i -style=File ${outs}
+      # cmake-format: on
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()

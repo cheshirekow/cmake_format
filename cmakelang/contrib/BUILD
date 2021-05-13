@@ -1,3 +1,6 @@
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -55,5 +58,10 @@ py_test(
   deps = [
     ":contrib_tests",
     "//cmakelang",
+    requirement("cffi"),
+    requirement("cryptography"),
+    requirement("pgpy"),
+    requirement("pyasn1"),
+    requirement("six"),
   ],
 )

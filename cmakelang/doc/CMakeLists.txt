@@ -217,8 +217,8 @@ foreach(genfile ${_insource_genfiles})
   list(APPEND _genfiles ${CMAKE_CURRENT_SOURCE_DIR}/${genfile})
 
   tangent_addtest(
-    NAME cmakelang-doc-verify-${genfile} DEPENDS
-                                         ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
+    NAME cmakelang-doc-verify-${genfile}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     COMMAND python -B ${TANGENT_TOOLING}/gendoc.py --verify --bits
             ${_stage}/bits ${CMAKE_CURRENT_SOURCE_DIR}/${genfile}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

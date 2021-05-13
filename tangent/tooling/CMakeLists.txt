@@ -28,6 +28,7 @@ set(_build_scripts
     github.py
     gtkdoc_helper.py
     install_debug_symbols.py
+    sync_sparse.py
     vscode_varsub.py)
 
 set(_cmake_modules

@@ -13,6 +13,22 @@ with section("parse"):
       "pargs": "1+",
       "flags": ["ADD_RUNTARGET"],
       "kwargs": {
+          "INC": {
+            "pargs": 0,
+            "kwargs": {
+                "PUBLIC": "*",
+                "PRIVATE": "*",
+                "INTERFACE": "*",
+            }
+          },
+          "LIBDIRS": {
+            "pargs": "*",
+            "kwargs": {
+                "PUBLIC": "*",
+                "PRIVATE": "*",
+                "INTERFACE": "*",
+            }
+          },
           "SRCS": "*",
           "DEPS": "*",
           "PKGDEPS": "*",
@@ -105,6 +121,14 @@ with section("parse"):
       ]
     },
 
+    "gresource" : {
+      "pargs": 2,
+      "kwargs": {
+        "SRCDIR": 1,
+        "DEPENDS": "+",
+      }
+    },
+
     "join": {
       "pargs": [1, "+"],
       "kwargs": {
@@ -125,7 +149,9 @@ with section("parse"):
         "NAME": 1,
         "WORKING_DIRECTORY": 1,
         "COMMAND": "+",
-        "CONFIGURATIONS": "+"
+        "CONFIGURATIONS": "+",
+        "DEPENDS": "+",
+        "LABELS": "+",
       }
     },
 
@@ -141,6 +167,9 @@ with section("parse"):
         "OUTPUTS": "*",
         "DEPS": "*"
       }
+    },
+    "create_debian_depsrepo": {
+      "pargs": [3, "+"]
     },
     "create_debian_packages": {
       "pargs": [
@@ -201,6 +230,40 @@ with section("parse"):
         "SOURCEDIR": 1,
         "FILES": "*"
       },
+    },
+
+    "tangent_extract_svg": {
+      "kwargs": {
+        "OUTPUT": 1,
+        "SRC": 1,
+        "EXPORT": 1,
+      }
+    },
+
+    "tangent_fetchobj": {
+      "pargs": 2,
+      "kwargs": {
+        "OUTDIR": 1,
+      }
+    },
+
+    "tangent_rmark_render": {
+      "pargs": 1,
+      "kwargs": {
+        "UUID": 1,
+        "OUTPUT": 1,
+        "FORMAT": 1,
+        "PAGENO": 1,
+        "DEPENDS": 1
+      }
+    },
+
+    "tangent_unzip": {
+      "pargs": "1+",
+      "kwargs": {
+        "OUTPUT": "1+",
+        "WORKING_DIRECTORY": 1,
+      }
     },
 
 

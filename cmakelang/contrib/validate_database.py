@@ -93,6 +93,8 @@ class TestContributorAgreements(unittest.TestCase):
 
     if sys.version_info < (3, 0, 0):
       self.skipTest("no pgpy on this python version")
+    elif sys.version_info > (3, 9, 0):
+      self.skipTest("pgpy broken for 3.10")
 
     # TODO(josh): For some reason importing pgpy seems to cause the
     # stderr filedescriptor to leak when we subprocess below. pgpy must be

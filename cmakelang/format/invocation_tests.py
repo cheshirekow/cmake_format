@@ -22,8 +22,14 @@ class TestInvocations(unittest.TestCase):
     thisdir = os.path.realpath(os.path.dirname(__file__))
     parentdir = os.path.dirname(thisdir)
 
+    # NOTE(josh): bazel uses PYTHONPATH to import pip dependencies
+    hostenv = os.environ.copy()
+    python_path_parts = hostenv.get("PYTHONPATH", "").split(":")
+    if not python_path_parts[0]:
+      python_path_parts.pop(0)
+    python_path_parts.append(os.path.dirname(parentdir))
     self.env = {
-        'PYTHONPATH': os.path.dirname(parentdir)
+        'PYTHONPATH': ":".join(python_path_parts)
     }
 
     configpath = os.path.join(thisdir, 'testdata', 'cmake-format.py')

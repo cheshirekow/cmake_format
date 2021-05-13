@@ -1,3 +1,6 @@
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -32,6 +35,7 @@ py_library(
     "//cmakelang/format",
     "//cmakelang/lex",
     "//cmakelang/parse",
+    requirement("six"),
   ],
 )
 

@@ -1,3 +1,5 @@
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -6,7 +8,9 @@ py_library(
     "__init__.py",
     "__main__.py",
   ],
-  deps = ["//cmakelang:common"],
+  deps = [
+    "//cmakelang:common",
+  ],
 )
 
 # -- Python 2 --

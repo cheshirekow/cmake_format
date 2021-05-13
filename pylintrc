@@ -15,7 +15,7 @@ profile=no
 ignore=CVS
 
 # Pickle collected data for later comparisons.
-persistent=yes
+persistent=no
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
@@ -56,8 +56,10 @@ disable=
     missing-docstring,
     no-name-in-module,
     no-self-use,
+    raise-missing-from,
     similarities,
     star-args,
+    super-with-arguments,
     too-few-public-methods,
     too-many-ancestors,
     too-many-boolean-expressions,
@@ -107,6 +109,9 @@ ignore-mixin-members=yes
 ignored-classes=
     cairo,
     cv2,
+    descriptor_pb2,
+    descriptor_extensions_pb2,
+    FieldDescriptorProto,
     GitError,
     git_watch.inotify,
     jinja2,
@@ -114,7 +119,13 @@ ignored-classes=
     numpy,
     numpy.random,
     plotly.graph_objs,
+    ProtostructEnumOptions,
+    ProtostructEnumValueOptions,
+    ProtostructFieldOptions,
+    ProtostructFileOptions,
+    ProtostructMessageOptions,
     scoped_session,
+    Session,
     SQLAlchemy,
     SQLObject,
     tensorflow,
@@ -123,6 +134,7 @@ ignored-classes=
     urllib,
     Workspace,
 
+
 # When zope mode is activated, add a predefined set of Zope acquired attributes
 # to generated-members.
 zope=no
@@ -130,7 +142,7 @@ zope=no
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E0201 when accessed. Python regular
 # expressions are accepted.
-generated-members=REQUEST,acl_users,aq_parent,query
+generated-members=REQUEST,acl_users,aq_parent,query,
 
 
 [MISCELLANEOUS]
@@ -240,7 +252,7 @@ init-import=no
 
 # A regular expression matching the beginning of the name of dummy variables
 # (i.e. not used).
-# dummy-variables-rgx=(_+[a-zA-Z0-9]*?$)
+dummy-variables-rgx=_$|dummy|^_
 
 # List of additional names supposed to be defined in builtins. Remember that
 # you should avoid to define new builtins when possible.

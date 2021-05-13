@@ -1,3 +1,6 @@
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(default_visibility = ["//visibility:public"])
 
 py_library(
@@ -21,6 +24,9 @@ py_library(
     "misc_tests.cmake",
     "set_target_properties_tests.cmake",
     "set_tests.cmake",
+  ],
+  deps = [
+    requirement("six"),
   ],
 )
 

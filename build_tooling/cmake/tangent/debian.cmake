@@ -1,6 +1,11 @@
 set(SUPPORTED_DISTRIBUTIONS xenial bionic eoan focal)
 set(SUPPORTED_ARCHITECTURES amd64 arm64 i386)
 
+set_property(GLOBAL PROPERTY DEBIAN_SUPPORTED_DISTRIBUTIONS
+                             ${SUPPORTED_DISTRIBUTIONS})
+set_property(GLOBAL PROPERTY DEBIAN_SUPPORTED_ARCHITECTURES
+                             ${SUPPORTED_ARCHITECTURES})
+
 foreach(distro ${SUPPORTED_DISTRIBUTIONS})
   add_custom_target(${distro}-source-packages)
   foreach(arch ${SUPPORTED_ARCHITECTURES})
@@ -157,12 +162,12 @@ endmacro()
 # * <prefix>_version: upstream package version
 # * <prefix>_debversion: debian version suffix
 function(debhelp_parsechangelog filepath prefix)
-  debhelp(parse-changelog ${filepath} ${prefix})
+  DEBHELP(parse-changelog ${filepath} ${prefix})
   # Enforces cmake re-run if the changelog changes. This is required because the
   # version number might have changed and we'll need to reparse it.
   configure_file(${filepath}
                  ${CMAKE_BINARY_DIR}/debhelp/parse-stamps/${filepath} COPYONLY)
-  exportvars(DIRECTORY VARS ${prefix}_package ${prefix}_version
+  EXPORTVARS(DIRECTORY VARS ${prefix}_package ${prefix}_version
                             ${prefix}_debversion)
 endfunction()
 
@@ -177,7 +182,7 @@ endfunction()
 #
 # Where `name` is a subdirectory of `debian/exports`.
 function(create_debian_tarball name)
-  importvars(DIRECTORY VARS ${name}_package ${name}_version ${name}_debversion)
+  IMPORTVARS(DIRECTORY VARS ${name}_package ${name}_version ${name}_debversion)
   set(basename ${${name}_package}_${${name}_version})
   set(common_patterns_path
       ${CMAKE_CURRENT_SOURCE_DIR}/common/debian/sources.txt)
@@ -193,9 +198,8 @@ function(create_debian_tarball name)
     COMMAND
       python -B ${TANGENT_TOOLING}/debhelp.py #
       --outpath ${manifest_path} #
-      check-manifest
-      --patterns-from ${common_patterns_path}
-      --patterns-from ${patterns_path} ${CMAKE_SOURCE_DIR}
+      check-manifest --patterns-from ${common_patterns_path} --patterns-from
+      ${patterns_path} ${CMAKE_SOURCE_DIR}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     BYPRODUCTS ${manifest_path}
     COMMENT "Checking source manifest for ${name}")
@@ -256,7 +260,7 @@ endfunction()
 # Where `name` is a subdirectory of `debian/exports` and `distro` is an valid
 # ubuntu codename (xenial, bionic, focal).
 function(create_debian_source_package name distro)
-  importvars(DIRECTORY VARS ${name}_package ${name}_version ${name}_debversion)
+  IMPORTVARS(DIRECTORY VARS ${name}_package ${name}_version ${name}_debversion)
   set(basename ${${name}_package}_${${name}_version})
   set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${distro})
   set(changelog ${CMAKE_CURRENT_SOURCE_DIR}/exports/${name}/debian/changelog)
@@ -316,31 +320,16 @@ function(create_debian_source_package name distro)
   add_dependencies(${distro}-source-packages deb-src-${name}-${distro})
 endfunction()
 
-# Create debian binary packages from the debian source package for `name`.
+# Create debian package repository from the specified list of binary packages
 #
 # Usage:
 # ~~~
-# create_debian_binary_packages(
-#   <tag> <distro> <arch> <binpkg1> [<binpkg2> [...]])
-# ~~~
-function(create_debian_binary_packages tag distro arch)
-  cmake_parse_arguments(_args "FORCE_PBUILDER" "" "OUTPUTS;DEPS" ${ARGN})
-
-  importvars(GLOBAL VARS NATIVE_ARCHITECTURE)
-  set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${distro})
-  set(basename "${${tag}_package}_${${tag}_version}")
-  set(version "${${tag}_version}-${${tag}_debversion}~${distro}")
-
-  get_pbuilder_basetgz(_basetgz ${distro} ${arch})
-
-  # This is a directory where we will copy all of the dependant debian packages
-  # and construct a local filesystem debian repository.
-  set(depsrepo ${CMAKE_CURRENT_BINARY_DIR}/${distro}/${arch}/${tag}-deps)
-
+# create_debian_depsrepo(<outdir> <distro> <arch> <deps>...)
+function(create_debian_depsrepo depsrepo distro arch)
   # Given a list of all the dependant projects, construct a list of all the .deb
   # files that we depend on
   set(deb_depends)
-  foreach(deptag ${_args_DEPS})
+  foreach(deptag ${ARGN})
     get_property(_deblist GLOBAL PROPERTY deblist-${deptag}-${distro}-${arch})
     list(APPEND deb_depends ${_deblist})
   endforeach()
@@ -353,7 +342,7 @@ function(create_debian_binary_packages tag distro arch)
     # NOTE(josh): we add the deps/ path suffix so that at least one component is
     # in-common with the bindmount location. We'll need this to generate correct
     # file paths in the Packages file.
-    set(repo_deb ${depsrepo}/deps/${_filename})
+    set(repo_deb ${depsrepo}/${_filename})
     add_custom_command(
       OUTPUT ${repo_deb}
       COMMAND ${CMAKE_COMMAND} -E copy ${deb} ${repo_deb}
@@ -364,15 +353,38 @@ function(create_debian_binary_packages tag distro arch)
   # Create a rule to generate the debian `Packages` file indexing the packages
   # of our filesystem debian repository.
   add_custom_command(
-    OUTPUT ${depsrepo}/deps/Packages
+    OUTPUT ${depsrepo}/Packages
     COMMAND dpkg-scanpackages . > Packages
     # NOTE(josh): the following is equivalent. I'm not sure which tool is better
     # to use??
     #
     # COMMAND apt-ftparchive packages . > Packages
-    WORKING_DIRECTORY ${depsrepo}/deps
+    WORKING_DIRECTORY ${depsrepo}
     DEPENDS ${repo_debs}
     COMMENT "Creating depsrepo for ${tag}")
+endfunction()
+
+# Create debian binary packages from the debian source package for `name`.
+#
+# Usage:
+# ~~~
+# create_debian_binary_packages(
+#   <tag> <distro> <arch> <binpkg1> [<binpkg2> [...]])
+# ~~~
+function(create_debian_binary_packages tag distro arch)
+  cmake_parse_arguments(_args "FORCE_PBUILDER" "" "OUTPUTS;DEPS" ${ARGN})
+
+  IMPORTVARS(GLOBAL VARS NATIVE_ARCHITECTURE)
+  set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${distro})
+  set(basename "${${tag}_package}_${${tag}_version}")
+  set(version "${${tag}_version}-${${tag}_debversion}~${distro}")
+
+  get_pbuilder_basetgz(_basetgz ${distro} ${arch})
+
+  # This is a directory where we will copy all of the dependant debian packages
+  # and construct a local filesystem debian repository.
+  set(depsrepo ${CMAKE_CURRENT_BINARY_DIR}/${distro}/${arch}/${tag}-deps)
+  create_debian_depsrepo(${depsrepo} ${distro} ${arch} ${_args_DEPS})
 
   get_signing_flags(_signflags)
 
@@ -409,7 +421,7 @@ function(create_debian_binary_packages tag distro arch)
         ${distro} --architecture ${arch} --basetgz ${_basetgz} #
         --buildresult ${CMAKE_CURRENT_BINARY_DIR}/${distro} #
         --hookdir ${CMAKE_CURRENT_SOURCE_DIR}/pbuilder-hooks #
-        --bindmounts "${depsrepo}/deps:/var/cache/pbuilder/deps" #
+        --bindmounts "${depsrepo}:/var/cache/pbuilder/deps" #
         --loglevel W #
         --logfile ${outdir}/${basename}.pbuild.log #
         ${outdir}/${basename}-${${tag}_debversion}~${distro}.dsc #
@@ -417,7 +429,7 @@ function(create_debian_binary_packages tag distro arch)
         || (cat ${outdir}/${basename}.pbuild.log && false)
       DEPENDS ${outdir}/${basename}.orig.tar.gz
               ${outdir}/${basename}-${${tag}_debversion}~${distro}.dsc
-              ${_basetgz} ${depsrepo}/deps/Packages check-pbuilder-rc
+              ${_basetgz} ${depsrepo}/Packages check-pbuilder-rc
       COMMENT "Creating ${distro}/${arch} (pbuilder) binary pkgs for ${tag}")
   endif()
 
@@ -443,7 +455,7 @@ function(create_debian_packages tag)
   debhelp_parsechangelog(${changelog} ${tag})
   create_debian_tarball(${tag})
 
-  importvars(DIRECTORY VARS ${tag}_package ${tag}_version ${tag}_debversion)
+  IMPORTVARS(DIRECTORY VARS ${tag}_package ${tag}_version ${tag}_debversion)
 
   foreach(distro ${SUPPORTED_DISTRIBUTIONS})
     create_debian_source_package(${tag} ${distro})

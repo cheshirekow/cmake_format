@@ -1,3 +1,6 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_python//python:defs.bzl", "py_runtime", "py_runtime_pair")
+
 filegroup(
   name = "lsb-release",
   srcs = ["etc/lsb-release"],
@@ -81,6 +84,7 @@ cc_library(
   hdrs = glob(["usr/include/libpng16/*.h"]),
   strip_include_prefix = "usr/include",
   visibility = ["//visibility:public"],
+  deps = [":zlib"],
 )
 
 cc_library(
@@ -322,7 +326,7 @@ cc_library(
   includes = ["usr/include/cairo"],
   hdrs = glob(["usr/include/cairo/**/*.h"]),
   srcs = glob(["usr/lib/x86_64-linux-gnu/libcairo.*"]),
-  deps = [":freetype2", "glib-2.0", ":libpng16", ":pixman-1"],
+  deps = [":freetype2", "glib-2.0", ":libpng16", ":pixman-1", ":libX11"],
   visibility = ["//visibility:public"],
 )
 
@@ -467,7 +471,7 @@ cc_library(
   includes = ["usr/include/pango-1.0"],
   hdrs = glob(["usr/include/pango-1.0/**/*.h"]),
   srcs = glob(["usr/lib/x86_64-linux-gnu/libpango-1.0.*"]),
-  deps = [":glib-2.0", ":libthai"],
+  deps = [":glib-2.0", ":gobject-2.0", ":libthai"],
   visibility = ["//visibility:public"],
 )
 
@@ -475,6 +479,7 @@ cc_library(
   name = "pangoft2-1.0",
   srcs = glob(["usr/lib/x86_64-linux-gnu/libpangoft2-1.0.*"]),
   deps = [":pango-1.0", ":freetype2", ":fontconfig"],
+  visibility = ["//visibility:public"],
 )
 
 cc_library(
@@ -682,7 +687,7 @@ cc_library(
     "usr/include/re2/*.h",
   ]),
   # NOTE(josh): libre2.so is missing operator<< for stringpiece
-  srcs = glob(["usr/lib/x86_64-linux-gnu/libre2.a"]),
+  srcs = ["usr/lib/x86_64-linux-gnu/libre2.a"],
   visibility = ["//visibility:public"],
   linkopts = ["-pthread"],
 )
@@ -694,4 +699,194 @@ cc_library(
   ]),
   srcs = glob(["usr/lib/libfmt.*"]),
   visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "python-dev",
+  srcs = [
+    "usr/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6.so",
+    "usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0",
+    "usr/lib/x86_64-linux-gnu/libpython3.6m.so.1",
+  ],
+  hdrs = glob(["usr/include/python3.6m/*.h"]),
+  includes = ["usr/include/python3.6m"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libllvm",
+  srcs = [
+    "usr/lib/llvm-8/lib/libLLVM.so",
+    "usr/lib/llvm-8/lib/libLLVM-8.so",
+  ],
+  hdrs = glob(["usr/lib/llvm-8/include/llvm-c/*.h"]),
+  includes = ["usr/lib/llvm-8/include"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libclang",
+  srcs = [
+    "usr/lib/llvm-8/lib/libclang-8.0.0.so",
+    "usr/lib/llvm-8/lib/libclang-8.so",
+    "usr/lib/llvm-8/lib/libclang-8.so.1",
+    "usr/lib/x86_64-linux-gnu/libclang-8.so",
+    "usr/lib/x86_64-linux-gnu/libclang-8.so.1",
+  ],
+  deps = ["libllvm"],
+  hdrs = glob(["usr/lib/llvm-8/include/clang-c/*.h"]),
+  includes = ["usr/lib/llvm-8/include"],
+  visibility = ["//visibility:public"],
+)
+
+py_runtime(
+  name = "python-3.6.6",
+  files = glob(["usr/lib/python3.6/*"]),
+  interpreter = "usr/bin/python3.6",
+  python_version = "PY3",
+)
+
+py_runtime(
+  name = "python-2.7.17",
+  files = glob(["usr/lib/python2.7/*"]),
+  interpreter = "usr/bin/python2.7",
+  python_version = "PY2",
+)
+
+py_runtime_pair(
+  name = "py_runtime",
+  py2_runtime = ":python-2.7.17",
+  py3_runtime = ":python-3.6.6",
+)
+
+cc_library(
+  name = "libzip-config",
+  hdrs = [
+    "usr/lib/x86_64-linux-gnu/libzip/include/zipconf.h",
+  ],
+  strip_include_prefix = "usr/lib/x86_64-linux-gnu/libzip/include",
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libzip",
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libzip.so.4",
+    "usr/lib/x86_64-linux-gnu/libzip.so",
+    "usr/lib/x86_64-linux-gnu/libzip.so.4.0.0",
+    "usr/lib/x86_64-linux-gnu/libzip.a",
+  ],
+  hdrs = [
+    "usr/include/zip.h",
+  ],
+  deps = [":zlib", ":libzip-config"],
+  strip_include_prefix = "usr/include",
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libuuid",
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libuuid.so",
+    "usr/lib/x86_64-linux-gnu/libuuid.a",
+  ],
+  hdrs = ["usr/include/uuid/uuid.h"],
+  strip_include_prefix = "usr/include",
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libpng",
+  deps = [":libpng16"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libcrypto",
+  hdrs = [],
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
+    "usr/lib/x86_64-linux-gnu/libcrypto.so.1.1",
+    "usr/lib/x86_64-linux-gnu/libcrypto.a",
+    "usr/lib/x86_64-linux-gnu/libcrypto.so",
+  ],
+  includes = ["usr/include"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libssl",
+  hdrs = [],
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libssl.so.1.0.0",
+    "usr/lib/x86_64-linux-gnu/libssl3.so",
+    "usr/lib/x86_64-linux-gnu/libssl.so",
+    "usr/lib/x86_64-linux-gnu/libssl.so.1.1",
+    "usr/lib/x86_64-linux-gnu/libssl.a",
+  ],
+  includes = ["usr/include"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libgssapi",
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libgssapi.so.3",
+    "usr/lib/x86_64-linux-gnu/libgssapi.so.3.0.0",
+    "usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2",
+    "usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2.2",
+  ],
+  includes = ["usr/include"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "libssh",
+  hdrs = [
+    "usr/include/libssh/legacy.h",
+    "usr/include/libssh/libssh.h",
+    "usr/include/libssh/libsshpp.hpp",
+    "usr/include/libssh/server.h",
+    "usr/include/libssh/sftp.h",
+    "usr/include/libssh/ssh2.h",
+  ],
+  includes = ["usr/include"],
+  visibility = ["//visibility:public"],
+  deps = [":libcrypto", ":libssl", ":libgssapi"],
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libssh.so.4.5.0",
+    "usr/lib/x86_64-linux-gnu/libssh.so.4",
+    "usr/lib/x86_64-linux-gnu/libssh.so",
+    "usr/lib/x86_64-linux-gnu/libssh.a",
+  ],
+)
+
+cc_library(
+  name = "libssh_threads",
+  hdrs = ["usr/include/libssh/callbacks.h"],
+  visibility = ["//visibility:public"],
+  includes = ["usr/include"],
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/libssh_threads.so.4.5.0",
+    "usr/lib/x86_64-linux-gnu/libssh_threads.so.4",
+    "usr/lib/x86_64-linux-gnu/libssh_threads.a",
+    "usr/lib/x86_64-linux-gnu/libssh_threads.so",
+  ],
+)
+
+cc_library(
+  name = "librsvg-2.0",
+  includes = ["usr/include/librsvg-2.0"],
+  visibility = ["//visibility:public"],
+  hdrs = [
+    "usr/include/librsvg-2.0/librsvg/rsvg.h",
+    "usr/include/librsvg-2.0/librsvg/librsvg-enum-types.h",
+    "usr/include/librsvg-2.0/librsvg/librsvg-features.h",
+    "usr/include/librsvg-2.0/librsvg/rsvg-cairo.h",
+  ],
+  srcs = [
+    "usr/lib/x86_64-linux-gnu/librsvg-2.so.2.40.20",
+    "usr/lib/x86_64-linux-gnu/librsvg-2.so.2",
+    "usr/lib/x86_64-linux-gnu/librsvg-2.so",
+  ],
 )
