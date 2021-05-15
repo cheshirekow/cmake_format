@@ -364,6 +364,9 @@ class LayoutNode(object):
     # when viewing the tree for debugging.
     self._wrap = False
 
+    # Set the col of in column layout.
+    self.column_col = 0
+
     assert isinstance(pnode, TreeNode)
 
   def _index_in_parent(self):
@@ -839,6 +842,7 @@ class StatementNode(LayoutNode):
   def _reflow(self, stack_context, cursor, passno):
     # pylint: disable=too-many-statements
     config = stack_context.config
+    dangle_first_parg = self.name in config.format.always_dangle_first_parg
     start_cursor = cursor.clone()
     self._colextent = cursor[1]
 
@@ -860,7 +864,9 @@ class StatementNode(LayoutNode):
     if need_paren_space(token.spelling.lower(), config):
       cursor[1] += 1
 
-    if self.get_prefix_width(config) <= config.format.min_prefix_chars:
+    if dangle_first_parg:
+      self._wrap = True
+    elif self.get_prefix_width(config) <= config.format.min_prefix_chars:
       # If the statement or keyword spelling is too short, then nesting doesn't
       # make sense because (nest + tab-width) will take us right back to the
       # same column as without nesting.
@@ -873,11 +879,6 @@ class StatementNode(LayoutNode):
     self._reflow_valid &= child.reflow_valid
     self._colextent = max(self._colextent, child.colextent)
 
-    if self._wrap:
-      column_cursor = start_cursor + (1, config.format.tab_size)
-      cursor = Cursor(*column_cursor)
-    else:
-      column_cursor = cursor.clone()
 
     # NOTE(josh): STATEMENTs should have at most one ARGGROUP child between
     # parentheses.
@@ -889,6 +890,16 @@ class StatementNode(LayoutNode):
     # notion, but as a sentinel for the future "number of open parens" we'll
     # go ahead and mark it.
     child.statement_terminal = True
+
+    if self._wrap:
+      column_cursor = start_cursor + (1, config.format.tab_size)
+      if dangle_first_parg:
+        child.column_col = column_cursor[1]
+      else:
+        cursor = Cursor(*column_cursor)
+    else:
+      column_cursor = cursor.clone()
+
     cursor = child.reflow(stack_context, cursor, passno)
     self._reflow_valid &= child.reflow_valid
     # We must keep updating the extent after each child because
@@ -1239,6 +1250,10 @@ class PargGroupNode(LayoutNode):
     prev = None
     child = None
     column_cursor = cursor.clone()
+    if self.column_col:
+      column_cursor[1] = self.column_col
+      self._wrap = True
+
     numpargs = count_arguments(children)
 
     # "COMMAND" arguments are never columnized, since there is no way for us
@@ -1393,6 +1408,10 @@ class ArgGroupNode(LayoutNode):
     child = None
 
     column_cursor = cursor.clone()
+    if self.column_col:
+      column_cursor[1] = self.column_col
+      self._wrap = True
+
     numgroups = count_subgroups(children)
 
     while children:
@@ -1403,6 +1422,8 @@ class ArgGroupNode(LayoutNode):
         # This is the first child of the arg group so the cursor is already
         # at the right location and theres nothing for us to update
         is_first_in_row = True
+        if self.column_col:
+          child.column_col = self.column_col
       elif (is_line_comment(prev)
             or prev.has_terminal_comment()
             or self._wrap):
