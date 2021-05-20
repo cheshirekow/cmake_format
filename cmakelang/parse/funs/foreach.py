@@ -64,7 +64,7 @@ def parse_foreach_range(ctx, tokens, breakstack):
   return StandardArgTree.parse(
       ctx, tokens,
       npargs=1,
-      kwargs={"RANGE": PositionalParser(3)},
+      kwargs={"RANGE": PositionalParser("1-3")},
       flags=[],
       breakstack=breakstack
   )

@@ -342,6 +342,7 @@ class PositionalGroupNode(TreeNode):
     * "?": zero or one
     * "*": zero or more
     * "+": one or more
+    * "min-max": where min is the minimum pargs count and max is the maximum pargs count
     """
 
     tree = cls(sortable=spec.sortable, tags=spec.tags)

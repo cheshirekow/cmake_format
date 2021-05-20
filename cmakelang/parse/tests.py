@@ -317,6 +317,121 @@ class TestCanonicalParse(unittest.TestCase):
           ]),
       ])
 
+  def test_foreach_range_one_arg(self):
+    self.do_type_test("""\
+      foreach(loopvar RANGE 3)
+      endforeach()
+    """, [
+        (NodeType.BODY, [
+            (NodeType.WHITESPACE, []),
+            (NodeType.FLOW_CONTROL, [
+                (NodeType.STATEMENT, [
+                    (NodeType.FUNNAME, []),
+                    (NodeType.LPAREN, []),
+                    (NodeType.ARGGROUP, [
+                        (NodeType.PARGGROUP, [
+                            (NodeType.ARGUMENT, []),
+                        ]),
+                        (NodeType.KWARGGROUP, [
+                            (NodeType.KEYWORD, []),
+                            (NodeType.PARGGROUP, [
+                                (NodeType.ARGUMENT, []),
+                            ]),
+                        ]),
+                    ]),
+                    (NodeType.RPAREN, []),
+                ]),
+                (NodeType.BODY, [
+                    (NodeType.WHITESPACE, []),
+                ]),
+                (NodeType.STATEMENT, [
+                    (NodeType.FUNNAME, []),
+                    (NodeType.LPAREN, []),
+                    (NodeType.ARGGROUP, []),
+                    (NodeType.RPAREN, []),
+                ]),
+            ]),
+            (NodeType.WHITESPACE, []),
+        ])
+    ])
+
+  def test_foreach_range_two_arg(self):
+    self.do_type_test("""\
+      foreach(loopvar RANGE 1 3)
+      endforeach()
+    """, [
+        (NodeType.BODY, [
+            (NodeType.WHITESPACE, []),
+            (NodeType.FLOW_CONTROL, [
+                (NodeType.STATEMENT, [
+                    (NodeType.FUNNAME, []),
+                    (NodeType.LPAREN, []),
+                    (NodeType.ARGGROUP, [
+                        (NodeType.PARGGROUP, [
+                            (NodeType.ARGUMENT, []),
+                        ]),
+                        (NodeType.KWARGGROUP, [
+                            (NodeType.KEYWORD, []),
+                            (NodeType.PARGGROUP, [
+                                (NodeType.ARGUMENT, []),
+                                (NodeType.ARGUMENT, []),
+                            ]),
+                        ]),
+                    ]),
+                    (NodeType.RPAREN, []),
+                ]),
+                (NodeType.BODY, [
+                    (NodeType.WHITESPACE, []),
+                ]),
+                (NodeType.STATEMENT, [
+                    (NodeType.FUNNAME, []),
+                    (NodeType.LPAREN, []),
+                    (NodeType.ARGGROUP, []),
+                    (NodeType.RPAREN, []),
+                ]),
+            ]),
+            (NodeType.WHITESPACE, []),
+        ])
+    ])
+
+  def test_foreach_range_three_arg(self):
+    self.do_type_test("""\
+      foreach(loopvar RANGE 1 3 1)
+      endforeach()
+    """, [(NodeType.BODY, [
+        (NodeType.WHITESPACE, []),
+        (NodeType.FLOW_CONTROL, [
+            (NodeType.STATEMENT, [
+                (NodeType.FUNNAME, []),
+                (NodeType.LPAREN, []),
+                (NodeType.ARGGROUP, [
+                    (NodeType.PARGGROUP, [
+                        (NodeType.ARGUMENT, []),
+                    ]),
+                    (NodeType.KWARGGROUP, [
+                        (NodeType.KEYWORD, []),
+                        (NodeType.PARGGROUP, [
+                            (NodeType.ARGUMENT, []),
+                            (NodeType.ARGUMENT, []),
+                            (NodeType.ARGUMENT, []),
+                        ]),
+                    ]),
+                ]),
+                (NodeType.RPAREN, []),
+            ]),
+            (NodeType.BODY, [
+                (NodeType.WHITESPACE, []),
+            ]),
+            (NodeType.STATEMENT, [
+                (NodeType.FUNNAME, []),
+                (NodeType.LPAREN, []),
+                (NodeType.ARGGROUP, []),
+                (NodeType.RPAREN, []),
+            ]),
+        ]),
+        (NodeType.WHITESPACE, []),
+    ])])
+
 
 if __name__ == '__main__':
   unittest.main()
