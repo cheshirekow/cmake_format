@@ -341,6 +341,14 @@ class FormattingConfig(ConfigObject):
       " the documentation for more information."
   )
 
+  continuation_mode = FieldDescriptor(
+      'align',
+      "Defines how continuation lines are indented: `align`: aligns the "
+      "continuation line with its parent, `indent`: indents the continuation "
+      "line according to <tab_size>.",
+      ['align', 'indent']
+  )
+
   def __init__(self, **kwargs):
     super(FormattingConfig, self).__init__(**kwargs)
     self.endl = None

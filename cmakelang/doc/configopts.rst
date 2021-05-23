@@ -418,6 +418,30 @@ desired linewidth it will apply the last, most agressive attempt that it made.
 If this flag is True, however, cmake-format will print error, exit with non-
 zero status code, and write-out nothing
 
+continuation_mode
+=================
+
+Specifies the style of indentation that continuation lines will adopt. By
+default, continuation lines are indented according to the position of the first
+item in the group that they belong to (for example, an argument list), but this
+can be adjusted:
+
+* ``align``: align continuation lines with the first item of the group to which
+  they belong
+* ``indent``: indent continuation lines according to the ``tab_size`` setting,
+  offset from the position of the parent item
+
+For example:
+
+.. code::
+
+  # continuation_mode = "align" (default)
+  target_include_directories(my-dummy-target
+                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+  # continuation_mode = "indent"
+  target_include_directories(my-dummy-target
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 -------
 comment

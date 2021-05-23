@@ -1443,6 +1443,10 @@ class ArgGroupNode(LayoutNode):
 
         if needs_wrap:
           column_cursor[0] += 1
+
+          if config.format.continuation_mode == 'indent':
+            column_cursor[1] = self._parent.position[1] + config.format.tab_size
+
           cursor = Cursor(*column_cursor)
           cursor = child.reflow(stack_context, cursor, passno)
 
