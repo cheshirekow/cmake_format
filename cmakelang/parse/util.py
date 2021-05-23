@@ -209,6 +209,15 @@ def pargs_are_full(npargs, nconsumed):
       _ = int(npargs[:-1])
     except ValueError:
       raise ValueError("Unexepected npargs {}".format(npargs))
+
+  dash_pos = npargs.find("-")
+  if dash_pos != -1:
+    try:
+      max = int(npargs[dash_pos+1:])
+      return nconsumed >= max
+    except ValueError:
+      raise ValueError("Unexepected npargs {}".format(npargs))
+
   return False
 
 
@@ -238,6 +247,13 @@ def get_min_npargs(npargs):
   if npargs.endswith("+"):
     try:
       return int(npargs[:-1])
+    except ValueError:
+      pass
+
+  dash_pos = npargs.find("-")
+  if dash_pos != -1:
+    try:
+      return int(npargs[0:dash_pos])
     except ValueError:
       pass
 

@@ -45,3 +45,6 @@ vscode_extension/out
 
 # Temp/backup files
 *~
+
+# PyCharm
+/.idea
