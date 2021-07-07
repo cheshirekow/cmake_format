@@ -445,7 +445,7 @@ def parse_pspec(pargs, flags):
 
     if isinstance(pargdecl, dict):
         # A dictionary is interpreted as init kwargs
-      if "npargs" not in pargdecl:
+      if "nargs" not in pargdecl:
         pargdecl = dict(pargdecl)
         pargdecl["nargs"] = ZERO_OR_MORE
       out.append(PositionalSpec(**pargdecl))
