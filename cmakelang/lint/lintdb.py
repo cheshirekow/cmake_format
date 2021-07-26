@@ -113,7 +113,7 @@ Used when custom parse logic is detected.
 }), (
 "C0301", "Line too long ({:d}/{:d})", {
 "description": """\
-Used when a line is longer than the limit specified in the line-length
+Used when a line is longer than the limit specified in the line-width
 option.
 """,
 "explain": """\
@@ -121,7 +121,7 @@ It is a good idea to keep each line within a maximum length to keep it from
 wrapping past the edge of an editing window. This improves readability and
 tempers other developers' irritability!
 
-The default value of the line-length option is 80, the customary width of a
+The default value of the line-width option is 80, the customary width of a
 terminal window.
 
 Note that the line length and the limit are counted in characters, not in Bytes
