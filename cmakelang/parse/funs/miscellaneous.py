@@ -161,29 +161,38 @@ def parse_get_filename_component(ctx, tokens, breakstack):
   """
   ::
 
-      get_filename_component(<VAR> <FileName> <COMP> [CACHE])
+      get_filename_component(<var> <FileName> <mode> [CACHE])
 
-      get_filename_component(<VAR> FileName
-                             PROGRAM [PROGRAM_ARGS <ARG_VAR>]
-                             [CACHE])
+      get_filename_component(<var> <FileName> <mode> [BASE_DIR <dir>] [CACHE])
+
+      get_filename_component(<var> <FileName> PROGRAM [PROGRAM_ARGS <arg_var>] [CACHE])
 
   :see: https://cmake.org/cmake/help/latest/command/get_filename_component.html
   """
   descriminator = get_nth_semantic_token(tokens, 2)
   if descriminator is not None and descriminator.spelling.upper() == "PROGRAM":
-    flags = ["PROGRAM", "PROGRAM_ARGS", "CACHE"]
-    return StandardArgTree.parse(ctx, tokens, "3+", {}, flags, breakstack)
+    kwargs = {
+        "PROGRAM_ARGS": PositionalParser(1),
+    }
+    flags = ["PROGRAM", "CACHE"]
+    return StandardArgTree.parse(ctx, tokens, "2", kwargs, flags, breakstack)
 
+  kwargs = {
+      "BASE_DIR": PositionalParser(1),
+  }
   flags = [
       "DIRECTORY",
       "NAME",
       "EXT",
       "NAME_WE",
+      "LAST_EXT",
+      "NAME_WLE",
+      "PATH",
+      "CACHE",
       "ABSOLUTE",
       "REALPATH",
-      "PATH",
   ]
-  return StandardArgTree.parse(ctx, tokens, "3+", {}, flags, breakstack)
+  return StandardArgTree.parse(ctx, tokens, "2", kwargs, flags, breakstack)
 
 
 def parse_get_source_file_property(ctx, tokens, breakstack):
