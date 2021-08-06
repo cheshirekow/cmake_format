@@ -346,6 +346,13 @@ FUNSPECS = {
       "INTERFACE": "+"
     }
   },
+  "target_link_options": {
+    "kwargs": {
+      "PRIVATE": "+",
+      "PUBLIC": "+",
+      "INTERFACE": "+"
+    }
+  },
   "try_run": {
     "kwargs": {
       "ARGS": "*",
