@@ -123,18 +123,18 @@ def process_defn_body(body, out):
 
         pargs["flags"] = flags = []
         for flag in kwvargs:
-          flag = flag.strip().upper()
+          flag = flag.strip()
           if flag:
             flags.append(flag)
 
         out["kwargs"] = kwargs = {}
 
         for kwarg in onevargs:
-          kwarg = kwarg.strip().upper()
+          kwarg = kwarg.strip()
           if kwarg:
             kwargs[kwarg] = 1
         for kwarg in multivargs:
-          kwarg = kwarg.strip().upper()
+          kwarg = kwarg.strip()
           if kwarg:
             kwargs[kwarg] = "+"
         return
