@@ -264,7 +264,7 @@ class LintChecker(object):
 
     missing_prefix = re.compile(
         r"(?<!\\)(?:\\\\)*"
-        r"(\$|\{)((?:(?:[A-Za-z0-9_./+-])|(?:\\[^A-Za-z0-9_./+-]))+)")
+        r"(\$|\{|ENV\{)((?:(?:[A-Za-z0-9_./+-])|(?:\\[^A-Za-z0-9_./+-]))+)")
 
     match_types = (
         TokenType.QUOTED_LITERAL,
@@ -281,7 +281,7 @@ class LintChecker(object):
       match = missing_prefix.search(resolved)
       if match and variables.CASE_SENSITIVE_REGEX.match(match.group(2)):
         catmatch = "".join(match.group(1, 2))
-        if catmatch == "$ENV":
+        if catmatch == "$ENV" or match.group(1) == "ENV{":
           # This is an environment variable reference, so we don't try to
           # match it
           continue
