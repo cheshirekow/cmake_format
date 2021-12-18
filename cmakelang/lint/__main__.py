@@ -144,12 +144,13 @@ def inner_main():
     config_dict.update(argdict)
 
     cfg = configuration.Configuration(**config_dict)
+    file_path = infile_path
     if infile_path == '-':
-      infile_path = os.dup(sys.stdin.fileno())
+      file_path = os.dup(sys.stdin.fileno())
 
     try:
       infile = io.open(
-          infile_path, mode='r', encoding=cfg.encode.input_encoding, newline='')
+          file_path, mode='r', encoding=cfg.encode.input_encoding, newline='')
     except (IOError, OSError):
       logger.error("Failed to open %s for read", infile_path)
       returncode = 1
