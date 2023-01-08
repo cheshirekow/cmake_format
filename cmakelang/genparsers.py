@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Parse cmake listfiles, find function and macro declarations, and generate
-parsers for them.
+Parse cmake listfiles, find function and macro declarations, and generate parsers for them.
 """
 from __future__ import print_function, unicode_literals
 
@@ -214,6 +213,19 @@ def setup_argparse(argparser):
   argparser.add_argument('infilepaths', nargs='*')
 
 
+def get_argparser():
+  argparser = argparse.ArgumentParser(
+      prog='cmake-genparsers',
+      description=__doc__,
+      formatter_class=argparse.RawDescriptionHelpFormatter,
+      usage=USAGE_STRING)
+
+  setattr(argparser, 'man_short_description', __doc__.strip().splitlines()[0])
+
+  setup_argparse(argparser)
+  return argparser
+
+
 USAGE_STRING = """
 cmake-genparsers [-h] [-o OUTFILE_PATH] infilepath [infilepath ...]
 """
@@ -223,12 +235,7 @@ def main():
   """Parse arguments, open files, start work."""
   logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-  argparser = argparse.ArgumentParser(
-      description=__doc__,
-      formatter_class=argparse.RawDescriptionHelpFormatter,
-      usage=USAGE_STRING)
-
-  setup_argparse(argparser)
+  argparser = get_argparser()
   args = argparser.parse_args()
   logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 

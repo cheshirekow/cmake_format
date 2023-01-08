@@ -30,5 +30,26 @@
       "46OOj1B85tUs1+f6wCuX4SyIVww5aA==",
       "=4ykw"
     ]
+  },
+  {
+    "template": "individual",
+    "version": "1.0",
+    "name": "Ian Campbell",
+    "email": "ijc@debian.org",
+    "signature": [
+      "iQIzBAABCAAdFiEE7fn8DiT6MgcCyDswKi4ln2laRsYFAmO6oWoACgkQKi4ln2la",
+      "RsZGOw//Qhm+ZscRad8D23eqs0fbWYFSOIZGzlPWnu9RiRcmmSOvuPi2AwZM9pUV",
+      "aTi8Fuh3Y8wx1OjWw7Px8TfWDwLvV52cCTt7G7RVIDxUhGyPuEttYgwK2ADc3bYz",
+      "Qe3gns/CeCWFQCbb1pQzd5pTc2Ocj0LvEpZOt16Uqi+vDYduhstZ38NneqRzC8S6",
+      "54UQXSKfEmm8SbsxMBxQIVErxE2Op8z2eSjy1yZfwVdiJifLDzJ6fDQpQt3tKZxC",
+      "JYxbHLeii8H6MIuV/XR2Cr7cyMkOCUYUgbY4drqMA3bbUdrEASAbAazMNCMAmouh",
+      "FBP3NWfv0hGae7azfBetPIpibo5xXc4Hg3EkxHK8UeZ9swZtLXZhSwwglDFr13CE",
+      "57Lq/Kjhd/2zr6LEtUFd1HPx66qFDdCnrXHckoWqHr4fMEiBNXYV3JoPsBs/n2ae",
+      "VD03NxxMPzgoTqmqikZBkURnFT0aogzEQjffYIde+xeyLFKWTg9ibRaugizOsPV/",
+      "Q0D9JQ0qXkn1JhJWCmE2r0TDY2Z06ZpB+dnBhNfepgXb/YBmCYDk0lhoocjqPt6Q",
+      "BG1MRlycaZkYWb01TPbCvV1n1Ecp/UzQlG9tzaiUDtL5kGUixKT1hBje6grxw4+C",
+      "jW75xhPbMkGTjEWg9ugrwmj0gkGBjx5cC8w7s4UBPCv5XQQAjXQ=",
+      "=AXfC"
+    ]
   }
 ]

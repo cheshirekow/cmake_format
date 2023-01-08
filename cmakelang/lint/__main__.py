@@ -94,16 +94,23 @@ cmake-lint [-h]
 """
 
 
-def inner_main():
-  """Parse arguments, open files, start work."""
-  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-
-  argparser = argparse.ArgumentParser(
+def get_argparser():
+  arg_parser = argparse.ArgumentParser(
+      prog='cmake-lint',
       description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter,
       usage=USAGE_STRING)
 
-  setup_argparse(argparser)
+  setattr(arg_parser, 'man_short_description', __doc__.strip().splitlines()[0])
+
+  setup_argparse(arg_parser)
+  return arg_parser
+
+def inner_main():
+  """Parse arguments, open files, start work."""
+  logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+  argparser = get_argparser()
   try:
     import argcomplete
     argcomplete.autocomplete(argparser)
