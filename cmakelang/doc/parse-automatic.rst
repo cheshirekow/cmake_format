@@ -64,7 +64,7 @@ can't really figure a pattern for when they are used and when  they are not.
 Ellipses
 ========
 
-Whether or not there is a space between an elipsis and the preceeding token
+Whether or not there is a space between an elipsis and the preceding token
 seems to imply something about what is repeated.
 
 ::

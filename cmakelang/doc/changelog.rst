@@ -450,7 +450,7 @@ v0.5.1
   children
 * Fix ``file(READ ...)`` and ``file(STRINGS ...)`` parser kwargs using set
   syntax instead of dict syntax
-* Fix agressive positional parser within conditional parser
+* Fix aggressive positional parser within conditional parser
 * Fix missing endif, endwhile in parsemap
 * Split parse functions out into separate modules for better organization
 * Add more sanity tests for ``file(...)``.
