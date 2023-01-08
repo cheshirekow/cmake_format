@@ -25,15 +25,13 @@ class TestConfigInclude(unittest.TestCase):
 
   def _test_passed(self):
     # Taken from https://stackoverflow.com/a/39606065/141023
-    if hasattr(self, '_outcome'):  # Python 3.4+
-      # these 2 methods have no side effects
-      result = self.defaultTestResult()
-      # pylint: disable=no-member
-      self._feedErrorsToResult(result, self._outcome.errors)
-    else:  # Python 3.2 - 3.3 or 3.0 - 3.1 and 2.7
-      result = getattr(
-          self, '_outcomeForDoCleanups',
-          self._resultForDoCleanups)  # pylint: disable=no-member
+    if hasattr(self._outcome, 'errors'):
+        # Python 3.4 - 3.10  (These two methods have no side effects)
+        result = self.defaultTestResult()
+        self._feedErrorsToResult(result, self._outcome.errors)
+    else:
+        # Python 3.11+
+        result = self._outcome.result
 
     error = self._list2reason(result.errors)
     failure = self._list2reason(result.failures)
