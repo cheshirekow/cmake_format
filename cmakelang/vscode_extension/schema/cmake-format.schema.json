@@ -1,0 +1,485 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "additionalProperties": false,
+  "definitions": {
+    "flags": {
+      "$ref": "#/definitions/string-array",
+      "description": "Flags that can be passed onto the command.\n\"*\" can be used as a wildcard for any value."
+    },
+    "kwargs": {
+      "description": "Keyword Arguments the command can take, as well as their values.\n\"*\" can be used as a wildcard for any value.",
+      "type": "object",
+      "minItems": 1,
+      "patternProperties": {
+        ".*": {
+          "minItems": 1,
+          "properties": {
+            "pargs": { "$ref": "#/definitions/pargs" },
+            "kwargs": { "$ref": "#/definitions/kwargs" },
+            "nargs": { "$ref": "#/definitions/nargs" }
+          }
+        }
+      }
+    },
+    "nargs": { "type": "string" },
+    "pargs": {
+      "description": "Property Arguments that are passed to the command.\n\"*\" can be used as a wildcard for any value.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "integer" },
+        {
+          "type": "array",
+          "maxItems": 2,
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" },
+            {
+              "type": "object",
+              "properties": {
+                "flags": { "$ref": "#/definitions/flags" },
+                "kwargs": { "$ref": "#/definitions/kwargs" },
+                "nargs": { "$ref": "#/definitions/nargs" },
+                "pargs": { "$ref": "#/definitions/pargs" },
+                "spelling": { "$ref": "#/definitions/spelling" }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "maxProperties": 2,
+          "anyOf": [
+            { "$ref": "#/definitions/flags" },
+            { "$ref": "#/definitions/kwargs" },
+            { "$ref": "#/definitions/nargs" },
+            { "$ref": "#/definitions/pargs" }
+          ]
+        }
+      ]
+    },
+    "spelling": {
+      "description": "Case sensitive correct spelling of the command.",
+      "type": "string",
+      "minLength": 1
+    },
+    "string-array": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "string-map": {
+      "patternProperties": {
+        "": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "string-or-strings": {
+      "else": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "if": {
+        "type": "string"
+      },
+      "then": true
+    },
+    "strings-map": {
+      "patternProperties": {
+        "": {
+          "$ref": "#/definitions/string-or-strings"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "description": "Various configuration options and parameters",
+  "minProperties": 1,
+  "properties": {
+    "encode": {
+      "description": "Options affecting file encoding.",
+      "type": "object",
+      "properties": {
+        "emit_byteorder_mark": {
+          "type": "boolean",
+          "description": "If true, emit the unicode byte-order mark (BOM) at the start of the file.",
+          "default": false
+        },
+        "input_encoding": {
+          "type": "string",
+          "description": "Specify the encoding of the input file. Defaults to utf-8.",
+          "default": "utf-8"
+        },
+        "output_encoding": {
+          "type": "string",
+          "description": "Specify the encoding of the output file. Defaults to utf-8.\nNote that cmake only claims to support utf-8 so be\ncareful when using anything else",
+          "default": "utf-8"
+        }
+      },
+      "additionalProperties": false
+    },
+    "format": {
+      "description": "Options affecting formatting.",
+      "type": "object",
+      "additionalItems": false,
+      "properties": {
+        "disable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable formatting entirely, making cmake-format a no-op."
+        },
+        "line_width": {
+          "type": "integer",
+          "description": "How wide to allow formatted cmake files.",
+          "default": 80
+        },
+        "tab_size": {
+          "type": "integer",
+          "default": 2,
+          "description": "How many spaces to tab for indent"
+        },
+        "use_tabchars": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, lines are indented using tab characters (utf-8 0x09) instead of space characters (utf-8 0x20).\nIn cases where the layout would require a fractional tab character, the behavior of the fractional indentation is goverened by `fractional_tab_policy`."
+        },
+        "fractional_tab_policy": {
+          "type": "string",
+          "description": "If <use_tabchars> is True, then the value of this variable indicates how fractional indentions are handled during whitespace replacement.\nIf set to 'use-space', fractional indentation is left as spaces (utf-8 0x20).\nIf set to `round-up` fractional indentation is replaced with a single tab character (utf-8 0x09) effectively shifting the column to the next tabstop.",
+          "default": "use-space",
+          "enum": ["use-space", "round-up"]
+        },
+        "max_subgroups_hwrap": {
+          "type": "integer",
+          "default": 2,
+          "description": "If an argument group contains more than this many sub-groups (parg or kwarg groups) then force it to a vertical layout."
+        },
+        "max_pargs_hwrap": {
+          "type": "integer",
+          "default": 6,
+          "description": "If a positional argument group contains more than this many arguments, then force it to a vertical layout."
+        },
+        "max_rows_cmdline": {
+          "type": "integer",
+          "default": 2,
+          "description": "If a cmdline positional group consumes more than this many lines without nesting, then invalidate the layout (and nest)."
+        },
+        "separate_ctrl_name_with_space": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, separate flow control names from their parentheses with a space."
+        },
+        "separate_fn_name_with_space": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, separate function names from parentheses with a space."
+        },
+        "dangle_parens": {
+          "type": "boolean",
+          "default": false,
+          "description": "If a statement is wrapped to more than one line, than dangle the closing parenthesis on its own line."
+        },
+        "dangle_align": {
+          "type": "string",
+          "default": "prefix",
+          "enum": ["prefix", "prefix-indent", "child", "off"],
+          "description": "If the trailing parenthesis must be 'dangled' on its on line, then align it to this reference: `prefix`: the start of the statement, `prefix-indent`: the start of the statement, plus one indentation level, `child`: align to the column of the arguments."
+        },
+        "min_prefix_chars": {
+          "type": "integer",
+          "default": 4,
+          "description": "If the statement spelling length (including space and parenthesis) is smaller than this amount, then force reject nested layouts."
+        },
+        "max_prefix_chars": {
+          "type": "integer",
+          "default": 10,
+          "description": "If the statement spelling length (including space and parenthesis) is larger than the tab width by more than this amount, then force reject un-nested layouts."
+        },
+        "max_lines_hwrap": {
+          "type": "integer",
+          "default": 2,
+          "description": "If a candidate layout is wrapped horizontally but it exceeds this many lines, then reject the layout."
+        },
+        "line_ending": {
+          "type": "string",
+          "default": "unix",
+          "enum": ["windows", "unix", "auto"],
+          "description": "What style line endings to use in the output."
+        },
+        "command_case": {
+          "type": "string",
+          "default": "canonical",
+          "enum": ["lower", "upper", "canonical", "unchanged"],
+          "description": "Format command names consistently as 'lower' or 'upper' case."
+        },
+        "keyword_case": {
+          "type": "string",
+          "default": "unchanged",
+          "enum": ["lower", "upper", "unchanged"],
+          "description": "Format keywords consistently as 'lower' or 'upper' case."
+        },
+        "always_wrap": {
+          "type": "array",
+          "default": [],
+          "description": "A list of command names which should always be wrapped."
+        },
+        "enable_sort": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, the argument lists which are known to be sortable will be sorted lexicographically."
+        },
+        "require_valid_layout": {
+          "type": "boolean",
+          "default": false,
+          "description": "By default, if cmake-format cannot successfully fit everything into the desired linewidth it will apply the last, most aggressive attempt that it made.\nIf this is true, however, cmake-format will print error, exit with non-zero status code, and write-out nothing."
+        },
+        "layout_passes": {
+          "type": "object",
+          "default": {},
+          "description": "A dictionary mapping layout nodes to a list of wrap decisions.\nSee the documentation for more information."
+        }
+      }
+    },
+    "markup": {
+      "description": "Options affecting comment reflow and formatting.",
+      "type": "object",
+      "properties": {
+        "bullet_char": {
+          "type": "string",
+          "description": "What character to use for bulleted lists.",
+          "default": "*"
+        },
+        "enum_char": {
+          "type": "string",
+          "description": "What character to use as punctuation after numerals in an enumerated list.",
+          "default": "."
+        },
+        "first_comment_is_literal": {
+          "type": "boolean",
+          "description": "If comment markup is enabled, don't reflow the first comment block in each listfile.\nUse this to preserve formatting of your copyright/license statements.",
+          "default": false
+        },
+        "literal_comment_pattern": {
+          "description": "If comment markup is enabled, don't reflow any comment block which matches this (regex) pattern.\nDefault is `Null` (disabled).",
+          "default": null,
+          "type": ["null", "string"]
+        },
+        "fence_pattern": {
+          "type": "string",
+          "description": "Regular expression to match preformat fences in comments.",
+          "default": "^\\s*([`~]{3}[`~]*)(.*)$"
+        },
+        "ruler_pattern": {
+          "type": "string",
+          "description": "Regular expression to match rulers in comments.",
+          "default": "^\\s*[^\\w\\s]{3}.*[^\\w\\s]{3}$"
+        },
+        "explicit_trailing_pattern": {
+          "type": "string",
+          "description": "If a comment line matches starts with this pattern then it is explicitly a trailing comment for the preceeding argument.",
+          "default": "#<"
+        },
+        "hashruler_min_length": {
+          "type": "integer",
+          "default": 10,
+          "description": "If a comment line starts with at least this many consecutive hash characters, then don't lstrip() them off.\nThis allows for lazy hash rulers where the first hash char is not separated by space."
+        },
+        "canonicalize_hashrulers": {
+          "type": "boolean",
+          "description": "If true, then insert a space between the first hash char and remaining hash chars in a hash ruler, and normalize its length to fill the column.",
+          "default": true
+        },
+        "enable_markup": {
+          "type": "boolean",
+          "description": "Enable comment markup parsing and reflow.",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "misc": {
+      "description": "Miscellaneous configuration options.",
+      "properties": {
+        "per_command": {
+          "type": "object",
+          "description": "A dictionary containing any per-command configuration overrides. Currently only `command_case` is supported.",
+          "patternProperties": {
+            "^[a-z]*(?:_[a-z]*)?$": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "type": "object",
+      "additionalItems": false
+    },
+    "parse": {
+      "description": "Options affecting listfile parsing.",
+      "properties": {
+        "additional_commands": {
+          "description": "Specify structure for custom cmake functions",
+          "minItems": 1,
+          "default": {
+            "FOO": {
+              "flags": ["BAR", "BAZ"],
+              "kwargs": {
+                "HEADERS": "*",
+                "SOURCES": "*",
+                "DEPENDS": "*"
+              }
+            }
+          },
+          "patternProperties": {
+            ".*": {
+              "properties": {
+                "flags": { "$ref": "#/definitions/flags" },
+                "kwargs": { "$ref": "#/definitions/kwargs" },
+                "pargs": { "$ref": "#/definitions/pargs" },
+                "spelling": { "$ref": "#/definitions/spelling" }
+              },
+              "type": "object"
+            }
+          },
+          "title": "Additional Commands",
+          "type": "object"
+        },
+        "override_spec": {
+          "description": "Override configurations per-command where available.",
+          "type": "object",
+          "default": {}
+        },
+        "proptags": {
+          "description": "Specify property tags.",
+          "type": "array",
+          "default": []
+        },
+        "vartags": {
+          "description": "Specify variable tags.",
+          "type": "array",
+          "default": []
+        }
+      },
+      "title": "Parser Options",
+      "type": "object"
+    },
+    "lint": {
+      "description": "Options affecting the linter.",
+      "type": "object",
+      "additionalItems": false,
+      "properties": {
+        "disabled_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "C0102",
+              "C0103",
+              "C0111",
+              "C0112",
+              "C0113",
+              "C0114",
+              "C0201",
+              "C0202",
+              "C0301",
+              "C0303",
+              "C0304",
+              "C0305",
+              "C0306",
+              "C0307",
+              "C0321",
+              "C0327",
+              "E0011",
+              "E0012",
+              "E0103",
+              "E0108",
+              "E0109",
+              "E1120",
+              "E1121",
+              "E1122",
+              "E1125",
+              "E1126",
+              "R0911",
+              "R0912",
+              "R0913",
+              "R0914",
+              "R0915",
+              "W0101",
+              "W0104",
+              "W0105",
+              "W0106"
+            ]
+          },
+          "description": "A list of lint codes to disable.",
+          "default": []
+        },
+        "function_pattern": {
+          "type": "string",
+          "description": "Regular expression pattern describing valid function names.",
+          "default": "[0-9a-z_]+"
+        },
+        "macro_pattern": {
+          "type": "string",
+          "default": "[0-9A-Z_]+",
+          "description": "Regular expression pattern describing valid macro names."
+        },
+        "global_var_pattern": {
+          "type": "string",
+          "default": "[A-Z][0-9A-Z_]+",
+          "description": "Regular expression pattern describing valid names for variables with global (cache) scope."
+        },
+        "internal_var_pattern": {
+          "type": "string",
+          "default": "_[A-Z][0-9A-Z_]",
+          "description": "Regular expression pattern describing valid names for variables with global scope (but internal semantic)."
+        },
+        "local_var_pattern": {
+          "type": "string",
+          "default": "[a-z[a-z0-9_]+",
+          "description": "Legular expression pattern describing valid names for variables with local scope."
+        },
+        "private_var_pattern": {
+          "type": "string",
+          "default": "_[0-9a-z]+",
+          "description": "Regular expression pattern describing valid names for private directory variables."
+        },
+        "public_var_pattern": {
+          "type": "string",
+          "default": "[A-Z][0-9A-Z_]+",
+          "description": "Regular expression pattern describing valid names for public directory variables."
+        },
+        "argument_var_pattern": {
+          "type": "string",
+          "default": "[a-z][a-z0-9_]+",
+          "description": "Regular expression pattern describing valid names for keywords arguments and loop variables."
+        },
+        "keyword_pattern": {
+          "type": "string",
+          "default": "[A-Z][0-9A-Z_]+",
+          "description": "Regular expression pattern describing valid names for keywords used in functions or macros."
+        },
+        "max_conditionals_custom_parser": {
+          "type": "integer",
+          "default": 2,
+          "description": "In the heuristic for C0201, how many conditionals to match within a loop in before considering the loop a parser."
+        },
+        "min_statement_spacing": {
+          "type": "integer",
+          "default": 1,
+          "description": "Require at least this many newlines between statements."
+        },
+        "max_statement_spacing": {
+          "type": "integer",
+          "default": 2,
+          "description": "Require no more than this many newlines between statements."
+        }
+      }
+    }
+  },
+  "type": "object"
+}
