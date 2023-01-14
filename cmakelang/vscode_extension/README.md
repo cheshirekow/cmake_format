@@ -6,8 +6,9 @@ crap.
 ## Features
 
 The `cmake-format` extension for vscode provides a document format
-command for listfiles. The extension is quite limited in scope to just this
-one feature. I may grow it in the future to provide more language support
+command for listfiles, as well as schema validation and intellisense for
+cmake-format config files. The extension is quite limited in scope to just
+these two feature. I may grow it in the future to provide more language support
 features for cmake.
 
 ![Not Crap](images/small_demo.gif)
