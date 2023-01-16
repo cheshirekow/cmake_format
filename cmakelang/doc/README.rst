@@ -40,10 +40,12 @@ Integrations
 
 * There is an official `vscode extension`__
 * Someone also created a `sublime plugin`__
+* CLion (and Android Studio) integration via `CMake Plus plugin`__
 * You can add ``cmake-format`` to your ``pre-commit`` configuration__
 
 .. __: https://marketplace.visualstudio.com/items?itemName=cheshirekow.cmake-format
 .. __: https://packagecontrol.io/packages/CMakeFormat
+.. __: https://plugins.jetbrains.com/plugin/12869-cmake-plus
 .. __: https://cmake-format.readthedocs.io/en/latest/installation.html#pre-commit
 
 -----
