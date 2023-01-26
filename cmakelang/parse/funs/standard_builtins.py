@@ -69,6 +69,8 @@ FUNSPECS = {
   },
   "execute_process": {
     "flags": [
+      "ECHO_ERROR_VARIABLE",
+      "ECHO_OUTPUT_VARIABLE",
       "ERROR_QUIET",
       "ERROR_STRIP_TRAILING_WHITESPACE",
       "OUTPUT_QUIET",
@@ -76,12 +78,16 @@ FUNSPECS = {
     ],
     "kwargs": {
       "COMMAND": "*",
+      "COMMAND_ECHO": "*",
+      "COMMAND_ERROR_IS_FATAL": "*",
+      "ENCODING": "*",
       "ERROR_FILE": "*",
       "ERROR_VARIABLE": "*",
       "INPUT_FILE": "*",
       "OUTPUT_FILE": "*",
       "OUTPUT_VARIABLE": "*",
       "RESULT_VARIABLE": "*",
+      "RESULTS_VARIABLE": "*",
       "TIMEOUT": "*",
       "WORKING_DIRECTORY": "*"
     }
