@@ -27,6 +27,7 @@ import logging
 import os
 import shutil
 import sys
+import difflib
 
 import cmakelang
 from cmakelang import common
@@ -532,7 +533,13 @@ def onefile_main(infile_path, args, argparse_dict):
 
   if args.check:
     if intext != outtext:
-      raise common.FormatError("Check failed: {}".format(infile_path))
+      from_file = '{}_original'.format(infile_path)
+      to_file = '{}_formatted'.format(infile_path)
+      differences = difflib.unified_diff(intext.split('\n'), outtext.split('\n'), fromfile=from_file, tofile=to_file)
+      diff_str = ""
+      for l in differences:
+        diff_str = "{}{}{}".format(diff_str, ("\n" if len(diff_str) != 0 and diff_str[-1] != "\n" else "") , l)
+      raise common.FormatError("Check failed: {}\n{}".format(infile_path, diff_str))
     return
 
   if args.in_place:
