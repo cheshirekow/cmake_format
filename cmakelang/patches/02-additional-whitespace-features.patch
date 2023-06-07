@@ -86,7 +86,7 @@ index 47dcd19..f42fa8e 100644
 --- a/cmakelang/doc/README.rst
 +++ b/cmakelang/doc/README.rst
 @@ -156,6 +156,15 @@ Usage
-                             the last, most agressive attempt that it made. If this
+                             the last, most aggressive attempt that it made. If this
                              flag is True, however, cmake-format will print error,
                              exit with non-zero status code, and write-out nothing
 +      --allow-superfluous-newlines ALLOW_SUPERFLUOUS_NEWLINES

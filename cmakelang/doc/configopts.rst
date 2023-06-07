@@ -414,7 +414,7 @@ require_valid_layout
 ====================
 
 By default, if cmake-format cannot successfully fit everything into the
-desired linewidth it will apply the last, most agressive attempt that it made.
+desired linewidth it will apply the last, most aggressive attempt that it made.
 If this flag is True, however, cmake-format will print error, exit with non-
 zero status code, and write-out nothing
 
@@ -551,10 +551,10 @@ a particular argument, and will format it accordingly. For example:
     "BOZ" # multi value keywords
     ${ARGN})
 
-The rules for associating a comment with the preceeding argument depend on
+The rules for associating a comment with the preceding argument depend on
 how much (and what kinds) of whitespace separate them. Alternatively, if
 the comments match the ``explicit_trailing_pattern``, then they are associated
-with the preceeding argument regardless of the whitespace separating them.
+with the preceding argument regardless of the whitespace separating them.
 The format for this variable is a python regular expression matching prefix
 characters for such explicit trailing comments. The default value is ``#<``,
 such that the above example using explicit trailing comments would  be:

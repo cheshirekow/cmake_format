@@ -348,7 +348,7 @@ class PositionalGroupNode(TreeNode):
     tree.spec = spec
     nconsumed = 0
 
-    # Strip off any preceeding whitespace (note that in most cases this has
+    # Strip off any preceding whitespace (note that in most cases this has
     # already been done but in some cases (such ask kwarg subparser) where
     # it hasn't
     while tokens and tokens[0].type in WHITESPACE_TOKENS:
