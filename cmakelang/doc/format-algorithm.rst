@@ -186,9 +186,9 @@ of it's children.
    a newline is inserted between them.
 4. If a token is a line comment which is not associated with an argument (e.g.
    it is  a "free" comment at the current scope) then it will not be placed
-   on the same line as a preceeding argument token. If it was, then subsequent
+   on the same line as a preceding argument token. If it was, then subsequent
    parses would associate this comment with that argument. In such a case, a
-   newline is inserted between the preceeding argument and the line comment.
+   newline is inserted between the preceding argument and the line comment.
 5. If the node is an interior node, and one of it's children is internally
    wrapped (i.e. consumes more than two lines) then it will not be placed
    on the same line as another node. In such a case a newlines is inserted.

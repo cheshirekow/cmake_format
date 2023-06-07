@@ -61,7 +61,7 @@ convention is satisfied if the name matches the regular expression.
 "C0111", "Missing docstring on function or macro declaration", {
 "description": """\
 Used when a function or macro is defined without a documentation comment
-immediately preceeding it.
+immediately preceding it.
 
 This message belongs to the basic checker.
 """,
