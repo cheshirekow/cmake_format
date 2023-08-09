@@ -11,7 +11,10 @@
         "vscode": "^1.23.0"
     },
     "categories": [
-        "Other"
+        "Formatters"
+    ],
+    "keywords": [
+        "cmake"
     ],
     "activationEvents": [
         "onLanguage:cmake"
