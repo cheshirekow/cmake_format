@@ -36,7 +36,7 @@ function getWorkspaceFolder(): string | undefined {
       + `'${fallbackWorkspace.name}' path`);
     workspacePath = fallbackWorkspace;
   }
-  return workspacePath.uri.path;
+  return workspacePath.uri.fsPath;
 }
 
 function varSub(value: string): string {
