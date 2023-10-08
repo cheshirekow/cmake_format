@@ -101,7 +101,7 @@ class FileContext(object):
     # Remove any lint records that were suppressed at the line number where
     # they were recorded
     out = []
-    events = list(self._suppression_events)
+    events = sorted(self._suppression_events, key=lambda event: int(event.lineno))
     active_suppressions = set()
 
     for record in records:
