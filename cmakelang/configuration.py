@@ -113,19 +113,19 @@ class LinterConfig(ConfigObject):
   )
 
   global_var_pattern = FieldDescriptor(
-      "[A-Z][0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]*",
       "regular expression pattern describing valid names for variables"
       " with global (cache) scope"
   )
 
   internal_var_pattern = FieldDescriptor(
-      "_[A-Z][0-9A-Z_]+",
+      "_[A-Z][0-9A-Z_]*",
       "regular expression pattern describing valid names for variables"
       " with global scope (but internal semantic)"
   )
 
   local_var_pattern = FieldDescriptor(
-      "[a-z][a-z0-9_]+",
+      "[a-z][a-z0-9_]*",
       "regular expression pattern describing valid names for variables"
       " with local scope"
   )
@@ -137,19 +137,19 @@ class LinterConfig(ConfigObject):
   )
 
   public_var_pattern = FieldDescriptor(
-      "[A-Z][0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]*",
       "regular expression pattern describing valid names for public"
       " directory variables"
   )
 
   argument_var_pattern = FieldDescriptor(
-      "[a-z][a-z0-9_]+",
+      "[a-z][a-z0-9_]*",
       "regular expression pattern describing valid names for function/macro"
       " arguments and loop variables."
   )
 
   keyword_pattern = FieldDescriptor(
-      "[A-Z][0-9A-Z_]+",
+      "[A-Z][0-9A-Z_]*",
       "regular expression pattern describing valid names for keywords"
       " used in functions or macros"
   )
