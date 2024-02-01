@@ -56,7 +56,6 @@ if(TRUE)
    message("Hello world")
 endif()
 
-
 # test: oneline-disable
 # expect:
 set(gtest_force_shared_crt ON # cmake-lint: disable=C0103
@@ -243,6 +242,13 @@ message("Using C++ standard ${CMAKE_Cxx_STANDARD}")
 message("$CMAKE_INSTALL_PREFIX}")
 message("{CMAKE_INSTALL_PREFIX}")
 message("${CMAKE_INSTALL_PREFIX")
+
+# test: valid-if-defined-env-varref
+# expect:
+if(DEFINED ENV{CMAKE_CXX_COMPILER_LAUNCHER})
+  message("Hello world")
+endif()
+
 
 # test: missing-final-newline
 # expect: C0304
