@@ -1,4 +1,4 @@
-# test: descriminator_hidden_behind_variable
+# test: discriminator_hidden_behind_variable
 # Ensure that argument's aren't sorted in the event that we can't infer the form
 # of the command.
 set(exetype ALIAS)

@@ -1,4 +1,4 @@
-# test: descriminator_hidden_behind_variable
+# test: discriminator_hidden_behind_variable
 set(libtype OBJECT)
 add_library(foobar ${libtype} ${alpha}.cc bar.cc baz.cc foo.cc)
 

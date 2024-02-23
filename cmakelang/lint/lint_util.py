@@ -54,7 +54,7 @@ class FileContext(object):
   def suppress(self, lineno, idlist):
     """
     Given a list of lint ids, enable a suppression for each one which is not
-    already supressed. Return the list of new suppressions
+    already suppressed. Return the list of new suppressions
     """
     new_suppressions = []
     for idstr in idlist:

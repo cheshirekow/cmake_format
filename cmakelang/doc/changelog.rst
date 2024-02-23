@@ -154,7 +154,7 @@ v0.6.9
 v0.6.8
 ------
 
-* Reduce packaging depependency version numbers
+* Reduce packaging dependency version numbers
 * Add build rules to generate variable and property pattern lists
 * Implement lint checks on assignment/use of variables that are "close" to
   builtins except for case.
@@ -287,7 +287,7 @@ v0.6.2
 * fix TOUCH_NOCREATE
 * copymode during --in-place
 * add --check command
-* supress spurious warnings in tests
+* suppress spurious warnings in tests
 * create add_custom_target parser
 * update add_custom_command parser with different forms
 * fix target form of install command
@@ -344,7 +344,7 @@ Significant refactor of the formatting logic.
 * ArgGroupNodes gain representation in the layout tree
 * Get rid of ``WrapAlgo``
 * Eliminate vertical/nest as separate decisions. Nesting is just the wrap
-  decision for StatementNode and KwargNode wheras vertical is the wrap
+  decision for StatementNode and KwargNode whereas vertical is the wrap
   decision for PargGroupnode and ArgGroupNode.
 * Replace ``algorithm_order`` with ``_layout_passes``
 * Get rid of ``default_accept_layout`` and move logic into a member function
@@ -425,7 +425,7 @@ v0.5.2
 * move ``add_library``, ``add_executable()`` and ``install()`` parsers to their
   own modules
 * don't infer sortability in ``add_library`` or ``add_executable()`` if the
-  descriminator token might be a cmake variable hiding the descriminator
+  discriminator token might be a cmake variable hiding the discriminator
   spelling
 * Split configuration options into different groups during dump and --help
 * Refactor long ``_reflow()`` implementations, splitting into methods for
@@ -450,7 +450,7 @@ v0.5.1
   children
 * Fix ``file(READ ...)`` and ``file(STRINGS ...)`` parser kwargs using set
   syntax instead of dict syntax
-* Fix agressive positional parser within conditional parser
+* Fix aggressive positional parser within conditional parser
 * Fix missing endif, endwhile in parsemap
 * Split parse functions out into separate modules for better organization
 * Add more sanity tests for ``file(...)``.

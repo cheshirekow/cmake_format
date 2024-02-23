@@ -133,7 +133,7 @@ max_subgroups_hwrap
 A "subgroup" in this context is either a positional or keyword argument group
 within the current depth of the statement parse tree. If the number of
 "subgroups" at this depth is greater than ``max_subgroups_hwrap`` then
-hwrap-formatting is inadmissable and a vertical layout will be selected.
+hwrap-formatting is inadmissible and a vertical layout will be selected.
 
 The default value for this parameter is `2`.
 
@@ -201,10 +201,10 @@ The second statement has three argument groups:
 max_pargs_hwrap
 ===============
 
-This configuration parameter is relavent only to positional argument groups.
+This configuration parameter is relevant only to positional argument groups.
 A positional argument group is a list of "plain" arguments. If the number of
 arguments in the group is greater than this number, then then hwrap-formatting
-is inadmissable and a vertical layout will be selected.
+is inadmissible and a vertical layout will be selected.
 
 The default value for this parameter is 6
 
@@ -268,7 +268,7 @@ both.
 dangle_parens
 =============
 
-If a statement is wrapped to more than one line, than dangle the closing
+If a statement is wrapped to more than one line, then dangle the closing
 parenthesis on its own line. For example:
 
 .. code::
@@ -291,7 +291,7 @@ If the trailing parenthesis must be 'dangled' on it's on line, then align it
 to this reference. Options are:
 
 * ``prefix``: the start of the statement,
-* ``prefix-indent``: the start of the statement, plus one indentation  level
+* ``prefix-indent``: the start of the statement, plus one indentation level
 * ``child``: align to the column of the arguments
 
 For example:
@@ -414,7 +414,7 @@ require_valid_layout
 ====================
 
 By default, if cmake-format cannot successfully fit everything into the
-desired linewidth it will apply the last, most agressive attempt that it made.
+desired linewidth it will apply the last, most aggressive attempt that it made.
 If this flag is True, however, cmake-format will print error, exit with non-
 zero status code, and write-out nothing
 
@@ -538,7 +538,7 @@ but trailing whitespace will still be removed.
 explicit_trailing_pattern
 =========================
 
-If ``cmake-format`` encountes a comment within or at the very end of a
+If ``cmake-format`` encounters a comment within or at the very end of a
 statement it will try to determine whether or not that comment refers to
 a particular argument, and will format it accordingly. For example:
 
@@ -551,10 +551,10 @@ a particular argument, and will format it accordingly. For example:
     "BOZ" # multi value keywords
     ${ARGN})
 
-The rules for associating a comment with the preceeding argument depend on
+The rules for associating a comment with the preceding argument depend on
 how much (and what kinds) of whitespace separate them. Alternatively, if
 the comments match the ``explicit_trailing_pattern``, then they are associated
-with the preceeding argument regardless of the whitespace separating them.
+with the preceding argument regardless of the whitespace separating them.
 The format for this variable is a python regular expression matching prefix
 characters for such explicit trailing comments. The default value is ``#<``,
 such that the above example using explicit trailing comments would  be:

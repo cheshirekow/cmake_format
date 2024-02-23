@@ -64,7 +64,7 @@ can't really figure a pattern for when they are used and when  they are not.
 Ellipses
 ========
 
-Whether or not there is a space between an elipsis and the preceeding token
+Whether or not there is a space between an ellipsis and the preceding token
 seems to imply something about what is repeated.
 
 ::
@@ -79,7 +79,7 @@ seems to imply something about what is repeated.
                     [VERBATIM] [USES_TERMINAL])
 
 
-Note that the elipsis for "COMMAND" is inside the bracket above, but is
+Note that the ellipsis for "COMMAND" is inside the bracket above, but is
 outside the bracket here:
 
 ::
@@ -132,7 +132,7 @@ brackets.
       [<globbing-expressions>...])
 
 
-Manditory Sequence
+Mandatory Sequence
 ==================
 
 In this case the literal pattern is listed inside the mandatory group pattern
@@ -197,7 +197,7 @@ Conclusion
 
 After implementing a prototype parser and testing it on some of the above cases
 it is clear that the help text is not very consistent and is likely to be very
-challenging to get an implementation that works reliabily and knows when it
+challenging to get an implementation that works reliably and knows when it
 fails. For example:
 
 ::
