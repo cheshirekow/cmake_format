@@ -84,7 +84,7 @@ install(
 # expect: E1120
 add_custom_command()
 
-# test: add-custom-command-hidden-descriminator
+# test: add-custom-command-hidden-discriminator
 # expect: C0114
 set(_form TARGET PRE_BUILD)
 add_custom_command(
@@ -92,7 +92,7 @@ add_custom_command(
   COMMAND echo "hello"
   COMMENT "echo hello")
 
-# test: add-custom-command-invalid-descriminator
+# test: add-custom-command-invalid-discriminator
 # expect: E1126
 add_custom_command(
   TARGRET PRE_BUILD
@@ -107,12 +107,12 @@ add_custom_command(OUTPUT foo)
 # expect: E1120
 file()
 
-# test: file-hidden-descriminator
+# test: file-hidden-discriminator
 # expect: C0114
 set(_form TOUCH)
 file(${form} foo.py)
 
-# test: file-invalid-descriminator
+# test: file-invalid-discriminator
 # expect: E1126
 file(TOUCHE foo.py)
 

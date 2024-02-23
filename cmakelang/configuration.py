@@ -49,7 +49,7 @@ class MarkupConfig(ConfigObject):
   explicit_trailing_pattern = FieldDescriptor(
       "#<",
       "If a comment line matches starts with this pattern then it is "
-      "explicitly a trailing comment for the preceeding argument. Default "
+      "explicitly a trailing comment for the preceding argument. Default "
       "is '#<'"
   )
   hashruler_min_length = FieldDescriptor(
@@ -259,15 +259,15 @@ class FormattingConfig(ConfigObject):
 
   dangle_parens = FieldDescriptor(
       False,
-      "If a statement is wrapped to more than one line, than dangle the"
+      "If a statement is wrapped to more than one line, then dangle the"
       " closing parenthesis on its own line."
   )
 
   dangle_align = FieldDescriptor(
       "prefix",
       "If the trailing parenthesis must be 'dangled' on its on line, then"
-      " align it to this reference: `prefix`: the start of the statement, "
-      " `prefix-indent`: the start of the statement, plus one indentation "
+      " align it to this reference: `prefix`: the start of the statement,"
+      " `prefix-indent`: the start of the statement, plus one indentation"
       " level, `child`: align to the column of the arguments",
       ["prefix", "prefix-indent", "child", "off"],
   )
@@ -316,8 +316,8 @@ class FormattingConfig(ConfigObject):
 
   enable_sort = FieldDescriptor(
       True,
-      "If true, the argument lists which are known to be sortable will be "
-      "sorted lexicographicall"
+      "If true, the argument lists which are known to be sortable will be"
+      " sorted lexicographically"
   )
 
   autosort = FieldDescriptor(
@@ -329,7 +329,7 @@ class FormattingConfig(ConfigObject):
   require_valid_layout = FieldDescriptor(
       False,
       "By default, if cmake-format cannot successfully fit everything into"
-      " the desired linewidth it will apply the last, most agressive"
+      " the desired linewidth it will apply the last, most aggressive"
       " attempt that it made. If this flag is True, however, cmake-format"
       " will print error, exit with non-zero status code, and write-out"
       " nothing"

@@ -168,7 +168,7 @@ An example short configuration file in python format is:
       # If true, separate function names from parentheses with a space
       separate_fn_name_with_space = False
 
-      # If a statement is wrapped to more than one line, than dangle the closing
+      # If a statement is wrapped to more than one line, then dangle the closing
       # parenthesis on its own line.
       dangle_parens = False
 
