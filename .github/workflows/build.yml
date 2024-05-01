@@ -1,0 +1,74 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - master
+      - staging
+  pull_request:
+    branches:
+      - master
+      - staging
+
+env:
+  GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.5', '3.6']
+        go-version: ['1.13.1', '1.20']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install apt requirements
+      run: |
+        sudo add-apt-repository --no-update -y ppa:longsleep/golang-backports
+        sudo apt-get update
+        sudo apt-get install -y $(tr '\n' ' ' < apt-requirements.txt)
+
+    - name: Install dependencies
+      run: |
+        export GOROOT=/usr/lib/go-${{ matrix.go-version }}
+        export GOPATH=$HOME/gopath
+        export PATH=$GOROOT/bin:$PATH:$GOPATH/bin
+        export PATH=$PATH:${{ github.workspace }}/cmake/node_modules/.bin
+        go get $(tr '\n' ' ' < go-requirements.txt)
+        npm --prefix ./cmake install ./cmake
+        pip install -r pip-requirements.txt
+
+    - name: Run tests
+      run: |
+        mkdir ${{ github.workspace }}/../cmake-build
+        cd ${{ github.workspace }}/../cmake-build
+        cmake -G Ninja ${{ github.workspace }}
+        ninja better-test
+        ninja lint
+
+    - name: Deploy
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging'
+      run: |
+        mkdir ${{ github.workspace }}/../cmake-build
+        cd ${{ github.workspace }}/../cmake-build
+        cmake -G Ninja ${{ github.workspace }}
+        ninja push-cmakelang-github-pseudorelease-tag
+        ninja push-cmakelang-github-release
+        ninja push-cmakelang-rtd-repo
+        ninja push-cmakelang-pypi-release
+        ninja push-cmakelang-precommit
+        ninja push-cmakelang-docker
+      env:
+        CI: true
