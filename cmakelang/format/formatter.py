@@ -99,7 +99,7 @@ def format_comment_lines(node, stack_context, line_width):
 
   items = markup.parse(inlines, config)
   markup_lines = markup.format_items(config, max(10, line_width - 2), items)
-  return [prefix + (" " * len(line[:1])) + line for line in markup_lines]
+  return [prefix + (" " * len(line[:1]) if not line.startswith(prefix) else "") + line for line in markup_lines]
 
 
 def normalize_line_endings(instr):

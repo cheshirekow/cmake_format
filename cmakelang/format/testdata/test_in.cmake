@@ -10,6 +10,10 @@ project(cmakelang_test)
 # into a single comment
 # on one line
 
+######################
+# This is some section
+######################
+
 # This comment should remain right before the command call.
 # Furthermore, the command call should be formatted
 # to a single line.

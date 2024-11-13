@@ -5,6 +5,10 @@ project(cmakelang_test)
 
 # This multiline-comment should be reflowed into a single comment on one line
 
+###############################################################################
+# This is some section
+###############################################################################
+
 # This comment should remain right before the command call. Furthermore, the
 # command call should be formatted to a single line.
 add_subdirectories(foo bar baz foo2 bar2 baz2)
