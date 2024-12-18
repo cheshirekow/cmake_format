@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
       var fs = require('fs')
       var path = require('path')
       var config = vscode.workspace.getConfiguration('cmakeFormat');
-      var exePath = config.get("exePath");
+      var exePath = varSub(config.get("exePath"));
 
       var args = config.get<string[]>("args", [])
       // NOTE(josh): in case the final user-supplied argument is a
