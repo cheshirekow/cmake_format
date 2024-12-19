@@ -133,7 +133,7 @@ def parse_add_library_imported(ctx, tokens, breakstack):
   return StandardArgTree.parse(
       ctx, tokens, npargs='+',
       kwargs={},
-      flags=["SHARED", "STATIC", "MODULE", "OBJECT", "UNKOWN", "IMPORTED",
+      flags=["SHARED", "STATIC", "MODULE", "OBJECT", "UNKNOWN", "IMPORTED",
              "GLOBAL"],
       breakstack=breakstack)
 
