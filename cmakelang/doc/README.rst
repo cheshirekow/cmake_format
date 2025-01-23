@@ -393,7 +393,7 @@ in the way that you expect, please post an issue on the
 `github issue tracker`_. It is especially helpful if you can provide cmake
 listfile snippets that demonstrate any issues you encounter.
 
-.. _`github issue tracker`: https://github.com/cheshirekow/cmakelang/issues
+.. _`github issue tracker`: https://github.com/cheshirekow/cmake_format/issues
 
 You can also join the ``#cmake-format`` channel on our `discord server`_.
 
