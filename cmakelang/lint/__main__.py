@@ -32,7 +32,7 @@ def process_file(config, local_ctx, infile_content):
   if config.format.line_ending == 'auto':
     detected = __main__.detect_line_endings(infile_content)
     config = config.clone()
-    config.set_line_ending(detected)
+    config.format.set_line_ending(detected)
 
   checker = basic_checker.LintChecker(config, local_ctx)
   checker.check_basics(infile_content)
