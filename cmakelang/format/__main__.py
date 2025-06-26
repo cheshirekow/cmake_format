@@ -639,7 +639,7 @@ def main():
     return 1
   except AssertionError as ex:
     logger.exception(
-        "An internal error occured. Please consider filing a bug report at "
+        "An internal error occurred. Please consider filing a bug report at "
         "github.com/cheshirekow/cmakelang/issues")
     return 1
 
