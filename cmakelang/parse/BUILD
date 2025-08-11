@@ -37,19 +37,6 @@ py_library(
     "util.py",
     "variables.py",
   ],
-  deps = [
-    "//cmakelang:common",
-    requirement("six"),
-  ],
-)
-
-# -- Python 2 --
-
-py_test(
-  name = "tests",
-  srcs = ["tests.py"],
-  python_version = "PY2",
-  deps = ["//cmakelang"],
 )
 
 # -- Python 3 --

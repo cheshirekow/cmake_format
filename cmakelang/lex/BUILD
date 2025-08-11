@@ -13,14 +13,6 @@ py_library(
   ],
 )
 
-# -- Python 2 --
-py_test(
-  name = "tests",
-  srcs = ["tests.py"],
-  python_version = "PY2",
-  deps = ["//cmakelang"],
-)
-
 # -- Python 3 --
 
 py_test(

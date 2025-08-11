@@ -20,32 +20,6 @@ py_library(
   data = glob(["testdata/*"]),
 )
 
-# -- Python 2 --
-
-py_binary(
-  name = "cmake-format",
-  srcs = ["__main__.py"],
-  main = "__main__.py",
-  deps = [":format"],
-)
-
-py_test(
-  name = "invocation_tests",
-  srcs = ["invocation_tests.py"],
-  python_version = "PY2",
-  deps = [
-    ":testdata",
-    "//cmakelang",
-  ],
-)
-
-py_test(
-  name = "layout_tests",
-  srcs = ["layout_tests.py"],
-  python_version = "PY2",
-  deps = ["//cmakelang"],
-)
-
 # -- Python 3 --
 
 py_test(
@@ -56,7 +30,6 @@ py_test(
   deps = [
     ":testdata",
     "//cmakelang",
-    requirement("six"),
   ],
 )
 

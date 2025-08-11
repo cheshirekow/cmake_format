@@ -14,7 +14,6 @@ line (argparse) and environment (os.environ) parsers.
 Configuration options are taken first from the configuration file, then
 from the environment, then from the command line.
 """
-from __future__ import unicode_literals
 
 import collections
 import contextlib
@@ -23,8 +22,6 @@ import logging
 import pprint
 import sys
 import textwrap
-
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -337,7 +334,7 @@ def warn_unused(kwargs):
         "\n  ".join(unused))
 
 
-class ConfigObject(six.with_metaclass(ConfigMeta)):
+class ConfigObject(metaclass=ConfigMeta):
   """
   Base class for encapsulationg options/parameters
   """

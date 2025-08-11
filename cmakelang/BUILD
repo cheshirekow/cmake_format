@@ -35,17 +35,7 @@ py_library(
     "//cmakelang/format",
     "//cmakelang/lex",
     "//cmakelang/parse",
-    requirement("six"),
   ],
-)
-
-# -- Python 2 --
-
-py_test(
-  name = "markup_tests",
-  srcs = ["markup_tests.py"],
-  python_version = "PY2",
-  deps = [":cmakelang"],
 )
 
 # -- Python 3 --

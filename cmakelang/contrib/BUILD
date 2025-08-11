@@ -14,28 +14,6 @@ py_library(
   ],
 )
 
-# -- Python 2 --
-
-py_test(
-  name = "validate_pullrequest",
-  srcs = ["validate_pullrequest.py"],
-  python_version = "PY2",
-  deps = [
-    ":contrib_tests",
-    "//cmakelang",
-  ],
-)
-
-py_test(
-  name = "validate_database",
-  srcs = ["validate_database.py"],
-  python_version = "PY2",
-  deps = [
-    ":contrib_tests",
-    "//cmakelang",
-  ],
-)
-
 # -- Python 3 --
 
 py_test(
@@ -62,6 +40,5 @@ py_test(
     requirement("cryptography"),
     requirement("pgpy"),
     requirement("pyasn1"),
-    requirement("six"),
   ],
 )

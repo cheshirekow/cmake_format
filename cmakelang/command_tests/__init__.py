@@ -12,8 +12,6 @@ import re
 import sys
 import unittest
 
-import six
-
 from cmakelang.format import __main__
 from cmakelang import configuration
 from cmakelang.format import formatter
@@ -334,7 +332,7 @@ def make_test_fun(test_name, test_body, test_meta, input_str):
   return test_fun
 
 
-class TestBase(six.with_metaclass(SidecarMeta, unittest.TestCase)):
+class TestBase(unittest.TestCase, metaclass=SidecarMeta):
   """
   Given a bunch of example usages of a particular command, ensure that they
   lex, parse, layout, and format the same as expected.

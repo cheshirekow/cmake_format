@@ -59,7 +59,6 @@ setup(
         "YAML": ["pyyaml>=5.3"],
         "html-gen": ["jinja2==2.10.3"]
     },
-    install_requires=["six>=1.13.0"]
 )
 
 setup(

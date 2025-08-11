@@ -10,25 +10,6 @@ py_library(
   ],
 )
 
-# -- Python 2 --
-
-py_test(
-  name = "version_number_test",
-  srcs = ["version_number_test.py"],
-  python_version = "PY2",
-  deps = [":test"],
-)
-
-py_test(
-  name = "command_db_test",
-  srcs = ["command_db_test.py"],
-  python_version = "PY2",
-  deps = [
-    ":test",
-    "//cmakelang",
-  ],
-)
-
 # -- Python 3 --
 
 py_test(
