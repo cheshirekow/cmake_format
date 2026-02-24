@@ -162,6 +162,32 @@ class PatternNode(StandardArgTree):
     )
 
 
+class FileSetNode(StandardArgTree):
+  """File sets are children of a `FILE_SET` keyword argument and are used
+     in target_sources and install commands (CMake 3.23+)."""
+
+  @classmethod
+  def parse(cls, ctx, tokens, breakstack):
+    """
+    ::
+
+      FILE_SET <set> [TYPE <type>] [BASE_DIRS <dirs>...] [FILES <files>...]
+
+    :see: https://cmake.org/cmake/help/latest/command/target_sources.html
+    """
+    return super(FileSetNode, cls).parse(
+        ctx, tokens,
+        npargs=1,  # The set name
+        kwargs={
+            "TYPE": PositionalParser(1),
+            "BASE_DIRS": PositionalParser('+'),
+            "FILES": PositionalParser('+'),
+        },
+        flags=[],
+        breakstack=breakstack
+    )
+
+
 class FlagGroupNode(PositionalGroupNode):
   """A positinal group where each argument is a flag."""
 

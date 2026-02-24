@@ -5,7 +5,7 @@ from cmakelang.parse.common import KwargBreaker
 from cmakelang.parse.simple_nodes import CommentNode
 from cmakelang.parse.argument_nodes import (
     KeywordGroupNode, PositionalGroupNode, PositionalParser, StandardArgTree)
-from cmakelang.parse.additional_nodes import PatternNode
+from cmakelang.parse.additional_nodes import FileSetNode, PatternNode
 from cmakelang.parse.util import (
     WHITESPACE_TOKENS,
     get_first_semantic_token,
@@ -40,13 +40,40 @@ def parse_install_targets_sub(ctx, tokens, breakstack):
       breakstack=breakstack)
 
 
+def parse_install_file_set_sub(ctx, tokens, breakstack):
+  """
+    Parse the inner kwargs of an ``install(TARGETS ... FILE_SET)`` command.
+    FILE_SET requires a set name followed by optional destination kwargs.
+  :see: https://cmake.org/cmake/help/latest/command/install.html#targets
+  """
+  return StandardArgTree.parse(
+      ctx, tokens,
+      npargs=1,  # The file set name
+      kwargs={
+          "DESTINATION": PositionalParser(1),
+          "PERMISSIONS": PositionalParser('+'),
+          "CONFIGURATIONS": PositionalParser('+'),
+          "COMPONENT": PositionalParser(1),
+          "NAMELINK_COMPONENT": PositionalParser(1),
+      },
+      flags=[
+          "OPTIONAL",
+          "EXCLUDE_FROM_ALL",
+          "NAMELINK_ONLY",
+          "NAMELINK_SKIP"
+      ],
+      breakstack=breakstack)
+
+
 def parse_install_targets(ctx, tokens, breakstack):
   """
   ::
 
     install(TARGETS targets... [EXPORT <export-name>]
+            [RUNTIME_DEPENDENCIES <arg>...|RUNTIME_DEPENDENCY_SET <set-name>]
             [[ARCHIVE|LIBRARY|RUNTIME|OBJECTS|FRAMEWORK|BUNDLE|
-              PRIVATE_HEADER|PUBLIC_HEADER|RESOURCE]
+              PRIVATE_HEADER|PUBLIC_HEADER|RESOURCE|
+              FILE_SET <set>|CXX_MODULES_BMI]
              [DESTINATION <dir>]
              [PERMISSIONS permissions...]
              [CONFIGURATIONS [Debug|Release|...]]
@@ -58,11 +85,13 @@ def parse_install_targets(ctx, tokens, breakstack):
             [INCLUDES DESTINATION [<dir> ...]]
             )
 
-  :see: https://cmake.org/cmake/help/v3.14/command/install.html#targets
+  :see: https://cmake.org/cmake/help/latest/command/install.html#targets
   """
   kwargs = {
       "TARGETS": PositionalParser('+'),
       "EXPORT": PositionalParser(1),
+      "RUNTIME_DEPENDENCY_SET": PositionalParser(1),
+      "RUNTIME_DEPENDENCIES": parse_install_runtime_dependencies_sub,
       "INCLUDES": PositionalParser('+', flags=["DESTINATION"]),
       # Common kwargs
       "DESTINATION": PositionalParser(1),
@@ -79,7 +108,8 @@ def parse_install_targets(ctx, tokens, breakstack):
   )
   designated_kwargs = (
       "ARCHIVE", "LIBRARY", "RUNTIME", "OBJECTS", "FRAMEWORK",
-      "BUNDLE", "PRIVATE_HEADER", "PUBLIC_HEADER", "RESOURCE"
+      "BUNDLE", "PRIVATE_HEADER", "PUBLIC_HEADER", "RESOURCE",
+      "FILE_SET", "CXX_MODULES_BMI"
   )
 
   # NOTE(josh): from here on, code is essentially StandardArgTree.parse(),
@@ -138,8 +168,13 @@ def parse_install_targets(ctx, tokens, breakstack):
     # just make sure we check flags first.
     word = get_normalized_kwarg(tokens[0])
     if word in designated_kwargs:
-      subtree = KeywordGroupNode.parse(
-          ctx, tokens, word, parse_install_targets, subtree_breakstack)
+      # FILE_SET requires a set name argument, so use a different subparser
+      if word == "FILE_SET":
+        subtree = KeywordGroupNode.parse(
+            ctx, tokens, word, parse_install_file_set_sub, subtree_breakstack)
+      else:
+        subtree = KeywordGroupNode.parse(
+            ctx, tokens, word, parse_install_targets_sub, subtree_breakstack)
     elif word in kwargs:
       subtree = KeywordGroupNode.parse(
           ctx, tokens, word, kwargs[word], kwarg_breakstack)
@@ -280,6 +315,73 @@ def parse_install_export(ctx, tokens, breakstack):
       breakstack=breakstack)
 
 
+def parse_install_runtime_dependencies_sub(ctx, tokens, breakstack):
+  """
+  Parse the inner kwargs of ``RUNTIME_DEPENDENCIES`` within install(TARGETS).
+  These are the filtering options for runtime dependency resolution.
+
+  :see: https://cmake.org/cmake/help/latest/command/install.html#targets
+  """
+  return StandardArgTree.parse(
+      ctx, tokens,
+      npargs='*',
+      kwargs={
+          "PRE_INCLUDE_REGEXES": PositionalParser('+'),
+          "PRE_EXCLUDE_REGEXES": PositionalParser('+'),
+          "POST_INCLUDE_REGEXES": PositionalParser('+'),
+          "POST_EXCLUDE_REGEXES": PositionalParser('+'),
+          "POST_INCLUDE_FILES": PositionalParser('+'),
+          "POST_EXCLUDE_FILES": PositionalParser('+'),
+          "DIRECTORIES": PositionalParser('+'),
+      },
+      flags=[],
+      breakstack=breakstack)
+
+
+def parse_install_runtime_dependency_set(ctx, tokens, breakstack):
+  """
+  ::
+
+    install(RUNTIME_DEPENDENCY_SET <set-name>
+            [[LIBRARY|RUNTIME|FRAMEWORK]
+             [DESTINATION <dir>]
+             [PERMISSIONS permissions...]
+             [CONFIGURATIONS [Debug|Release|...]]
+             [COMPONENT <component>]
+             [NAMELINK_COMPONENT <component>]
+             [OPTIONAL] [EXCLUDE_FROM_ALL]
+            ] [...]
+            [PRE_INCLUDE_REGEXES regex...]
+            [PRE_EXCLUDE_REGEXES regex...]
+            [POST_INCLUDE_REGEXES regex...]
+            [POST_EXCLUDE_REGEXES regex...]
+            [POST_INCLUDE_FILES file...]
+            [POST_EXCLUDE_FILES file...]
+            [DIRECTORIES dir...]
+            )
+
+  :see: https://cmake.org/cmake/help/latest/command/install.html#runtime-dependency-set
+  """
+  return StandardArgTree.parse(
+      ctx, tokens,
+      npargs='*',
+      kwargs={
+          "RUNTIME_DEPENDENCY_SET": PositionalParser(1),
+          "LIBRARY": parse_install_targets_sub,
+          "RUNTIME": parse_install_targets_sub,
+          "FRAMEWORK": parse_install_targets_sub,
+          "PRE_INCLUDE_REGEXES": PositionalParser('+'),
+          "PRE_EXCLUDE_REGEXES": PositionalParser('+'),
+          "POST_INCLUDE_REGEXES": PositionalParser('+'),
+          "POST_EXCLUDE_REGEXES": PositionalParser('+'),
+          "POST_INCLUDE_FILES": PositionalParser('+'),
+          "POST_EXCLUDE_FILES": PositionalParser('+'),
+          "DIRECTORIES": PositionalParser('+'),
+      },
+      flags=[],
+      breakstack=breakstack)
+
+
 def parse_install(ctx, tokens, breakstack):
   """
   The ``install()`` command has multiple different forms, implemented
@@ -292,8 +394,9 @@ def parse_install(ctx, tokens, breakstack):
   * SCRIPT
   * CODE
   * EXPORT
+  * RUNTIME_DEPENDENCY_SET
 
-  :see: https://cmake.org/cmake/help/v3.0/command/install.html
+  :see: https://cmake.org/cmake/help/latest/command/install.html
   """
 
   descriminator_token = get_first_semantic_token(tokens)
@@ -310,7 +413,8 @@ def parse_install(ctx, tokens, breakstack):
       "DIRECTORY": parse_install_directory,
       "SCRIPT": parse_install_script,
       "CODE": parse_install_script,
-      "EXPORT": parse_install_export
+      "EXPORT": parse_install_export,
+      "RUNTIME_DEPENDENCY_SET": parse_install_runtime_dependency_set,
   }
   if descriminator not in parsemap:
     logger.warning("Invalid install form \"%s\" at %s", descriminator,

@@ -2,6 +2,7 @@ from cmakelang.parse.argument_nodes import (
     PositionalParser,
     StandardArgTree,
 )
+from cmakelang.parse.additional_nodes import FileSetNode
 from cmakelang.parse.util import (
     iter_semantic_tokens,
 )
@@ -357,7 +358,10 @@ def parse_target_sources(ctx, tokens, breakstack):
 
     target_sources(<target>
       <INTERFACE|PUBLIC|PRIVATE> [items1...]
-      [<INTERFACE|PUBLIC|PRIVATE> [items2...] ...])
+      [<INTERFACE|PUBLIC|PRIVATE> [items2...] ...]
+      [<INTERFACE|PUBLIC|PRIVATE>
+       [FILE_SET <set> [TYPE <type>] [BASE_DIRS <dirs>...] [FILES <files>...]]
+       ...])
 
   :see: https://cmake.org/cmake/help/latest/command/target_sources.html
   """
@@ -365,6 +369,7 @@ def parse_target_sources(ctx, tokens, breakstack):
       "INTERFACE": PositionalParser("+"),
       "PUBLIC": PositionalParser("+"),
       "PRIVATE": PositionalParser("+"),
+      "FILE_SET": FileSetNode.parse,
   }
   return StandardArgTree.parse(ctx, tokens, 1, kwargs, [], breakstack)
 

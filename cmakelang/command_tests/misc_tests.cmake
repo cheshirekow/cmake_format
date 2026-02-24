@@ -898,3 +898,30 @@ use_tabchars = True
 if(TRUE)
 	message("Hello world")
 endif()
+
+# test: target_sources_file_set
+target_sources(
+  mylib
+  PUBLIC
+  FILE_SET HEADERS
+           BASE_DIRS include
+           FILES include/mylib.h include/mylib_config.h)
+
+# test: target_sources_file_set_with_type
+target_sources(
+  mylib
+  PUBLIC
+  FILE_SET mymodules
+           TYPE CXX_MODULES
+           BASE_DIRS src
+           FILES src/mymodule.cppm)
+
+# test: target_sources_mixed
+target_sources(
+  mylib
+  PRIVATE src/impl.cpp
+  PUBLIC
+  FILE_SET HEADERS
+           BASE_DIRS include
+           FILES include/mylib.h
+  INTERFACE some_interface.h)
